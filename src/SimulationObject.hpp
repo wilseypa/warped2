@@ -5,10 +5,10 @@
 
 class ObjectState;
 
-class SimObject {
+class SimulationObject {
 public:
-    SimObject(const std::string& name) : name(name) {}
-    virtual ~SimObject();
+    SimulationObject(const std::string& name) : name(name) {}
+    virtual ~SimulationObject() {}
 
     virtual ObjectState& getState() = 0;
 
