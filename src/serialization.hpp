@@ -5,5 +5,5 @@
     template<class Archive> \
     void serialize(Archive& ar) { ar(__VA_ARGS__); }
 
-#define WARPED_REGISTER_SERIALIZABLE_CLASS CEREAL_REGISTER_TYPE
+#define WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS CEREAL_REGISTER_TYPE
     
