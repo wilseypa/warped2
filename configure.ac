@@ -1,7 +1,7 @@
 AC_INIT([warped2],[0.1.0])
 
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_SRCDIR([src/Event.h])
+AC_CONFIG_SRCDIR([src/Event.hpp])
 AM_INIT_AUTOMAKE([1.11 silent-rules foreign subdir-objects])
 AC_PREREQ(2.61)
 
@@ -19,5 +19,6 @@ m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
 AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
 AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([test/Makefile])
 
 AC_OUTPUT
