@@ -9,6 +9,7 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 WARPED_TEST_PROGS = \
     test_ObjectState \
     test_serialization \
+    test_Simulation \
     test_SimulationObject
 
 noinst_HEADERS = catch.hpp
