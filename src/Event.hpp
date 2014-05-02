@@ -7,11 +7,11 @@ namespace warped {
 
 class Event {
 public:
-    Event(const std::string& receiverName)
-        : receiverName(receiverName) {}
+    Event(const std::string& receiver_name)
+        : receiver_name_(receiver_name) {}
     virtual ~Event() {}
 
-    const std::string receiverName;
+    const std::string receiver_name_;
 
 };
 
