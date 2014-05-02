@@ -17,7 +17,7 @@ TEST_CASE("The Simulation parses command line arguments", "[Simulation]") {
 
     SECTION("Simulation supports custom arguments") {
         TCLAP::ValueArg<int> arg("a", "arg", "", true, 0, "int");
-        std::vector<TCLAP::Arg*> v2{&arg};
+        std::vector<TCLAP::Arg*> v2 {&arg};
 
         v.push_back("-a");
         v.push_back("42");
@@ -25,6 +25,14 @@ TEST_CASE("The Simulation parses command line arguments", "[Simulation]") {
         REQUIRE_NOTHROW((s = new warped::Simulation {"model", (int)v.size(), v.data(), v2}));
         REQUIRE(arg.getValue() == 42);
     }
+
+    delete s;
+}
+
+TEST_CASE("The Simulation can be constructed without command line parsing", "[Simulation]") {
+    warped::Simulation* s = nullptr;
+
+    REQUIRE_NOTHROW((s = new warped::Simulation {"filename", 100}));
 
     delete s;
 }

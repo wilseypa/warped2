@@ -16,10 +16,11 @@ public:
     Simulation(const std::string& model_description, int argc, const char* const* argv);
     Simulation(const std::string& model_description, int argc, const char* const* argv,
                const std::vector<TCLAP::Arg*>& cmd_line_args);
+    Simulation(const std::string& config_file_name, unsigned int simulate_until);
     ~Simulation();
 
     // void simulate(std::vector<SimulationObject> objects); // TODO
-    // void simulate(std::vector<std::vector<SimulationObject>> objects); 
+    // void simulate(std::vector<std::vector<SimulationObject>> objects);
 
 private:
     class impl;
