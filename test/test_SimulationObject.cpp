@@ -11,11 +11,11 @@ public:
     int x;
 };
 
-class test_SimulationObject : public SimulationObject {
+class test_SimulationObject : public warped::SimulationObject {
 public:
     test_SimulationObject(const std::string& name, int x)
         : SimulationObject(name), state(x) {}
-    ObjectState& getState() { return state; }
+    warped::ObjectState& getState() { return state; }
 
 private:
     test_ObjectState state;

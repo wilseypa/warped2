@@ -3,6 +3,8 @@
 
 #include <memory>
 
+namespace warped {
+
 class ObjectState {
 public:
     virtual ~ObjectState() {}
@@ -18,6 +20,9 @@ public:
     }
 };
 
-#define Define_ObjectState_Subclass(Type) class Type : public ObjectStateMixin<Type>
+#define Define_ObjectState_Subclass(Type) class Type : public warped::ObjectStateMixin<Type>
+
+} // namespace warped
 
 #endif
+

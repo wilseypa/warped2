@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace warped {
+
 class ObjectState;
 
 class SimulationObject {
@@ -14,5 +16,7 @@ public:
 
     const std::string name;
 };
+
+} // namespace warped
 
 #endif

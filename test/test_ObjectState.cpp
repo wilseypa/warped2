@@ -22,7 +22,7 @@ TEST_CASE("The State can be derived from", "[ObjectState]") {
     }
 
     SECTION("subclasses can be cloned from base pointer") {
-        ObjectState* ps1 = &s1;
+        warped::ObjectState* ps1 = &s1;
         auto ps2 = ps1->clone();
         auto s2 = static_cast<test_ObjectState&>(*ps2);
         s2.x = 2;
