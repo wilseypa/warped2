@@ -1,8 +1,9 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main()
 #include "catch.hpp"
 
-#include <ObjectState.hpp>
 #include <memory>
+
+#include "ObjectState.hpp"
 
 Define_ObjectState_Subclass(test_ObjectState) {
 public:

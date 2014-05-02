@@ -1,8 +1,9 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main()
 #include "catch.hpp"
 
-#include <serialization.hpp>
 #include <memory>
+
+#include "serialization.hpp"
 
 struct Class1 {
     Class1(int x = 1, int y = 2): x(x), y(y) {}

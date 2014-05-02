@@ -1,9 +1,10 @@
 #define CATCH_CONFIG_MAIN
 #include "catch.hpp"
 
-#include <SimulationObject.hpp>
-#include <ObjectState.hpp>
 #include <utility>
+
+#include "ObjectState.hpp"
+#include "SimulationObject.hpp"
 
 Define_ObjectState_Subclass(test_ObjectState) {
 public:
