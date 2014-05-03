@@ -8,7 +8,6 @@ WARPED2_HPP_FILES = \
     src/SimulationObject.hpp 
 
 WARPED2_CPP_FILES = \
-    src/Event.cpp \
     src/Simulation.cpp
 
 libwarped2_la_SOURCES = \
