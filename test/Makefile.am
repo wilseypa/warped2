@@ -11,7 +11,8 @@ WARPED_TEST_PROGS = \
     test_ObjectState \
     test_serialization \
     test_Simulation \
-    test_SimulationObject
+    test_SimulationObject \
+    test_STLLTSFQueue
 
 noinst_HEADERS = catch.hpp
 

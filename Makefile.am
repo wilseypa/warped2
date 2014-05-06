@@ -2,13 +2,16 @@ lib_LTLIBRARIES = libwarped2.la
 
 WARPED2_HPP_FILES = \
     src/Event.hpp \
+    src/LTSFQueue.hpp \
     src/ObjectState.hpp \
     src/serialization.hpp \
     src/Simulation.hpp \
-    src/SimulationObject.hpp 
+    src/SimulationObject.hpp \
+    src/STLLTSFQueue.hpp 
 
 WARPED2_CPP_FILES = \
-    src/Simulation.cpp
+    src/Simulation.cpp \
+    src/STLLTSFQueue.cpp
 
 libwarped2_la_SOURCES = \
     $(WARPED2_HPP_FILES) \
