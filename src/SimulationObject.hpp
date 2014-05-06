@@ -2,9 +2,12 @@
 #define SIMULATION_OBJECT_H
 
 #include <string>
+#include <vector>
+#include <memory>
 
 namespace warped {
-
+    
+class Event;
 class ObjectState;
 
 class SimulationObject {
@@ -13,6 +16,9 @@ public:
     virtual ~SimulationObject() {}
 
     virtual ObjectState& getState() = 0;
+
+    virtual std::vector<std::unique_ptr<Event>> receiveEvent(Event* event) = 0;
+    virtual std::vector<std::unique_ptr<Event>> createInitialEvents()  { return {}; }
 
     const std::string name_;
 };
