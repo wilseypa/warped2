@@ -1,4 +1,4 @@
-AC_INIT([warped2],[0.1.0])
+AC_INIT([warped],[0.1.0])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/Event.hpp])

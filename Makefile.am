@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libwarped2.la
+lib_LTLIBRARIES = libwarped.la
 
 WARPED2_HPP_FILES = \
     src/Event.hpp \
@@ -13,13 +13,13 @@ WARPED2_CPP_FILES = \
     src/Simulation.cpp \
     src/STLLTSFQueue.cpp
 
-libwarped2_la_SOURCES = \
+libwarped_la_SOURCES = \
     $(WARPED2_HPP_FILES) \
     $(WARPED2_CPP_FILES)
 
-include_HEADERS = src/warped2.hpp
+include_HEADERS = src/warped.hpp
 
-libwarped2_la_CPPFLAGS=-I$(top_srcdir)/deps
-libwarped2_la_CXXFLAGS = -Wall -Wextra -pedantic
+libwarped_la_CPPFLAGS=-I$(top_srcdir)/deps
+libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic
 
 SUBDIRS = test
