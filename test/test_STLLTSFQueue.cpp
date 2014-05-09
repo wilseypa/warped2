@@ -17,7 +17,7 @@ struct test_Event : public warped::Event {
     unsigned int receive_time_;
 };
 
-TEST_CASE("Basic Queue Functionality", "[STLLTSFQueue][LTSFQueue]") {
+TEST_CASE("Queue events are sorted by timestamp", "[STLLTSFQueue][LTSFQueue]") {
     warped::STLLTSFQueue q;
     test_Event* e;
     std::unique_ptr<warped::Event> upe;
@@ -25,7 +25,7 @@ TEST_CASE("Basic Queue Functionality", "[STLLTSFQueue][LTSFQueue]") {
     REQUIRE(q.size() == 0);
     REQUIRE(q.peek() == nullptr);
 
-    SECTION("added events are sorted by timestamp") {
+    SECTION("Adding events individually") {
         q.push(std::unique_ptr<warped::Event>(new test_Event {"1", 10}));
         REQUIRE(!q.empty());
         REQUIRE(q.size() == 1);
@@ -61,7 +61,59 @@ TEST_CASE("Basic Queue Functionality", "[STLLTSFQueue][LTSFQueue]") {
 
         for (int i = 0; i < 3; ++i) {
             upe = q.pop();
-            CHECK(q.size() == (2-i));
+            CHECK(q.size() == (2 - i));
+            e = dynamic_cast<test_Event*>(upe.get());
+            REQUIRE(e != nullptr);
+            CHECK(e->get_receive_time() == expected_timestamps[i]);
+        }
+
+        REQUIRE(q.peek() == nullptr);
+        REQUIRE(q.empty());
+    }
+
+    SECTION("Adding events in a vector") {
+        std::vector<std::unique_ptr<warped::Event>> v;
+        v.emplace_back(new test_Event {"1", 10});
+        v.emplace_back(new test_Event {"2", 5});
+        v.emplace_back(new test_Event {"3", 15});
+
+        q.push(v);
+        REQUIRE(!q.empty());
+        REQUIRE(q.size() == 3);
+        REQUIRE(q.peek() != nullptr);
+
+        // pop all three events
+        int expected_timestamps[3] = {5, 10, 15};
+
+        for (int i = 0; i < 3; ++i) {
+            upe = q.pop();
+            CHECK(q.size() == (2 - i));
+            e = dynamic_cast<test_Event*>(upe.get());
+            REQUIRE(e != nullptr);
+            CHECK(e->get_receive_time() == expected_timestamps[i]);
+        }
+
+        REQUIRE(q.peek() == nullptr);
+        REQUIRE(q.empty());
+    }
+
+    SECTION("Adding multiple events with the same timestamp") {
+        std::vector<std::unique_ptr<warped::Event>> v;
+        v.emplace_back(new test_Event {"1", 10});
+        v.emplace_back(new test_Event {"2", 5});
+        v.emplace_back(new test_Event {"3", 10});
+
+        q.push(v);
+        REQUIRE(!q.empty());
+        REQUIRE(q.size() == 3);
+        REQUIRE(q.peek() != nullptr);
+
+        // pop all three events
+        int expected_timestamps[3] = {5, 10, 10};
+
+        for (int i = 0; i < 3; ++i) {
+            upe = q.pop();
+            CHECK(q.size() == (2 - i));
             e = dynamic_cast<test_Event*>(upe.get());
             REQUIRE(e != nullptr);
             CHECK(e->get_receive_time() == expected_timestamps[i]);
