@@ -15,7 +15,7 @@ public:
     int x;
 };
 
-struct test_Event : public warped::Event {
+struct test_Event : warped::Event {
     test_Event() = default;
     test_Event(const std::string& receiver_name, unsigned int receive_time)
         : receiver_name_(receiver_name), receive_time_(receive_time) {}
