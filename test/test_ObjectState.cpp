@@ -17,8 +17,9 @@ TEST_CASE("The State can be derived from", "[ObjectState]") {
     SECTION("subclasses can be cloned") {
         auto ps2 = s1.clone();
         auto s2 = static_cast<test_ObjectState&>(*ps2);
+        REQUIRE(s2.x == 1);
         s2.x = 2;
-        REQUIRE(s1.x == 1);
+        CHECK(s1.x == 1);
         REQUIRE(s2.x == 2);
     }
 
@@ -26,8 +27,9 @@ TEST_CASE("The State can be derived from", "[ObjectState]") {
         warped::ObjectState* ps1 = &s1;
         auto ps2 = ps1->clone();
         auto s2 = static_cast<test_ObjectState&>(*ps2);
+        REQUIRE(s2.x == 1);
         s2.x = 2;
-        REQUIRE(s1.x == 1);
+        CHECK(s1.x == 1);
         REQUIRE(s2.x == 2);
     }
 }
