@@ -20,7 +20,7 @@ public:
     }
 };
 
-#define Define_ObjectState_Subclass(Type) class Type : public warped::ObjectStateMixin<Type>
+#define WARPED_DEFINE_OBJECT_STATE_SUBCLASS(Type) class Type : public warped::ObjectStateMixin<Type>
 
 } // namespace warped
 

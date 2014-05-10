@@ -5,7 +5,7 @@
 
 #include "ObjectState.hpp"
 
-Define_ObjectState_Subclass(test_ObjectState) {
+WARPED_DEFINE_OBJECT_STATE_SUBCLASS(test_ObjectState) {
 public:
     test_ObjectState(int x): x(x) {}
     int x;
