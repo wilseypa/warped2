@@ -1,4 +1,5 @@
 #include "Event.hpp"
 #include "ObjectState.hpp"
+#include "serialization.hpp"
 #include "Simulation.hpp"
 #include "SimulationObject.hpp"
