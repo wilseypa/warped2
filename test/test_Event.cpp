@@ -12,8 +12,8 @@ struct test_Event : public warped::Event {
     test_Event(const std::string& receiver_name, unsigned int receive_time, int x)
         : receiver_name_(receiver_name), receive_time_(receive_time), x(x) {}
 
-    const std::string& get_receiver_name() {return receiver_name_;}
-    unsigned int get_receive_time() {return receive_time_;}
+    const std::string& get_receiver_name() const {return receiver_name_;}
+    unsigned int get_receive_time() const {return receive_time_;}
 
     int x;
     std::string receiver_name_;

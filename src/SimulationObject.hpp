@@ -17,7 +17,7 @@ public:
 
     virtual ObjectState& getState() = 0;
 
-    virtual std::vector<std::unique_ptr<Event>> receiveEvent(Event* event) = 0;
+    virtual std::vector<std::unique_ptr<Event>> receiveEvent(const Event& event) = 0;
     virtual std::vector<std::unique_ptr<Event>> createInitialEvents()  { return {}; }
 
     const std::string name_;

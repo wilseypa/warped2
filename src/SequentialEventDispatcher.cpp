@@ -22,7 +22,7 @@ void SequentialEventDispatcher::startSimulation(
         auto event = events_.pop();
         current_sim_time_ = event->get_receive_time();
         auto receiver = objects_[event->get_receiver_name()].get();
-        events_.push(receiver->receiveEvent(event.get()));
+        events_.push(receiver->receiveEvent(*event.get()));
     }
 }
 
