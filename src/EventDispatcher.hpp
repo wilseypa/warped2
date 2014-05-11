@@ -13,7 +13,7 @@ public:
         : max_sim_time_(max_sim_time > 0 ? max_sim_time : std::numeric_limits<unsigned int>::max()),
           current_sim_time_(0) {}
     virtual ~EventDispatcher() {}
-    virtual void startSimulation(std::vector<std::unique_ptr<SimulationObject>>& objects) = 0;
+    virtual void startSimulation(std::vector<SimulationObject*>& objects) = 0;
 
 protected:
     const unsigned int max_sim_time_;

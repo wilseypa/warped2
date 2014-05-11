@@ -12,10 +12,10 @@ namespace warped {
 class SequentialEventDispatcher : public EventDispatcher {
 public:
     SequentialEventDispatcher(unsigned int max_sim_time);
-    void startSimulation(std::vector<std::unique_ptr<SimulationObject>>& objects);
+    void startSimulation(std::vector<SimulationObject*>& objects);
 
 private:
-    std::unordered_map<std::string, std::unique_ptr<SimulationObject>> objects_;
+    std::unordered_map<std::string, SimulationObject*> objects_;
     STLLTSFQueue events_;
 };
 

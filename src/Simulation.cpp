@@ -67,7 +67,7 @@ Simulation::Simulation(const std::string& config_file_name, unsigned int max_sim
 // access to the definition of impl
 Simulation::~Simulation() = default;
 
-void Simulation::simulate(std::vector<std::unique_ptr<SimulationObject>>& objects) {
+void Simulation::simulate(std::vector<SimulationObject*>& objects) {
     pimpl_->dispatcher_->startSimulation(objects);
 }
 

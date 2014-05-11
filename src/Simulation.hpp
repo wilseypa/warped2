@@ -19,7 +19,7 @@ public:
     Simulation(const std::string& config_file_name, unsigned int max_time);
     ~Simulation();
 
-    void simulate(std::vector<std::unique_ptr<SimulationObject>>& objects);
+    void simulate(std::vector<SimulationObject*>& objects);
 
     // unsigned int getNumberOfPartitions(); // TODO
     // void simulate(std::vector<std::vector<std::unique_ptr<SimulationObject>>> objects); // TODO
