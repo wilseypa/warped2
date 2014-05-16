@@ -1,6 +1,7 @@
 lib_LTLIBRARIES = libwarped.la
 
 WARPED2_HPP_FILES = \
+    src/Configuration.hpp \
     src/Event.hpp \
     src/EventDispatcher.hpp \
     src/LTSFQueue.hpp \
@@ -12,6 +13,7 @@ WARPED2_HPP_FILES = \
     src/STLLTSFQueue.hpp
 
 WARPED2_CPP_FILES = \
+    src/Configuration.cpp \
     src/SequentialEventDispatcher.cpp \
     src/Simulation.cpp \
     src/STLLTSFQueue.cpp
