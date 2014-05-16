@@ -5,11 +5,11 @@
 #include <string>
 #include <vector>
 
-#include "SimulationObject.hpp"
 
 namespace TCLAP { class Arg; }
 
 namespace warped {
+class SimulationObject;
 
 class Simulation {
 public:

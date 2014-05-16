@@ -9,6 +9,8 @@
 #include "EventDispatcher.hpp"
 #include "SequentialEventDispatcher.hpp"
 
+class SimulationObject;
+
 namespace warped {
 
 class Simulation::impl {
