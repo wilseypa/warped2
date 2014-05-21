@@ -27,5 +27,7 @@ libwarped_la_SOURCES = \
 include_HEADERS = src/warped.hpp
 
 libwarped_la_LIBADD = $(top_builddir)/deps/json/libjsoncpp.la
-libwarped_la_CPPFLAGS=-I$(top_srcdir)/deps
 libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic
+
+# Use -isystem here instead of -I to disable warnings for third party code
+libwarped_la_CPPFLAGS=-isystem$(top_srcdir)/deps
