@@ -16,15 +16,16 @@ SequentialEventDispatcher::SequentialEventDispatcher(unsigned int max_sim_time)
 void SequentialEventDispatcher::startSimulation(std::vector<SimulationObject*>& objects) {
     std::unordered_map<std::string, SimulationObject*> objects_;
     STLLTSFQueue events_;
+    unsigned int current_sim_time = 0;
 
     for (auto& ob : objects) {
         events_.push(ob->createInitialEvents());
         objects_[ob->name_] = ob;
     }
 
-    while (current_sim_time_ < max_sim_time_ && !events_.empty()) {
+    while (current_sim_time < max_sim_time_ && !events_.empty()) {
         auto event = events_.pop();
-        current_sim_time_ = event->timestamp();
+        current_sim_time = event->timestamp();
         auto receiver = objects_[event->receiverName()];
         events_.push(receiver->receiveEvent(*event.get()));
     }

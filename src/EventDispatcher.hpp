@@ -15,8 +15,8 @@ public:
     // timestamp of all remaining events is greater than max_sim_time.
     // Otherwise, events will be processed until none remain.
     EventDispatcher(unsigned int max_sim_time)
-        : max_sim_time_(max_sim_time > 0 ? max_sim_time : std::numeric_limits<unsigned int>::max()),
-          current_sim_time_(0) {}
+        : max_sim_time_(max_sim_time > 0 ?
+                        max_sim_time : std::numeric_limits<unsigned int>::max()) {}
     virtual ~EventDispatcher() {}
 
     // This method will call createInitialEvents() on all objects, then
@@ -25,7 +25,6 @@ public:
 
 protected:
     const unsigned int max_sim_time_;
-    unsigned int current_sim_time_;
 };
 
 } // namespace warped
