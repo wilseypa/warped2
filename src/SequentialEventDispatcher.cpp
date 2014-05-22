@@ -1,17 +1,22 @@
 #include "SequentialEventDispatcher.hpp"
 
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "Event.hpp"
 #include "SimulationObject.hpp"
+#include "STLLTSFQueue.hpp"
 
 namespace warped {
 
 SequentialEventDispatcher::SequentialEventDispatcher(unsigned int max_sim_time)
-    : EventDispatcher(max_sim_time), objects_(), events_() {}
+    : EventDispatcher(max_sim_time) {}
 
 void SequentialEventDispatcher::startSimulation(std::vector<SimulationObject*>& objects) {
+    std::unordered_map<std::string, SimulationObject*> objects_;
+    STLLTSFQueue events_;
+
     for (auto& ob : objects) {
         events_.push(ob->createInitialEvents());
         objects_[ob->name_] = ob;
