@@ -26,7 +26,7 @@ public:
     void push(std::vector<std::unique_ptr<Event>>&& events);
 
 private:
-    // use a std::funciton with a lambda to do event comparison
+    // use a std::function with a lambda to do event comparison
     typedef std::function<bool (Event*, Event*)> comptype;
     std::priority_queue<Event*, std::vector<Event*>, comptype> queue_;
 };
