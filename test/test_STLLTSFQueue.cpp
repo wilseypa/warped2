@@ -10,8 +10,8 @@ struct test_Event : public warped::Event {
     test_Event(const std::string& receiver_name, unsigned int receive_time)
         : receiver_name_(receiver_name), receive_time_(receive_time) {}
 
-    const std::string& get_receiver_name() const { return receiver_name_; }
-    unsigned int get_receive_time() const { return receive_time_; }
+    const std::string& receiverName() const { return receiver_name_; }
+    unsigned int timestamp() const { return receive_time_; }
 
     std::string receiver_name_;
     unsigned int receive_time_;
@@ -33,8 +33,8 @@ TEST_CASE("Queue events are sorted by timestamp", "[STLLTSFQueue][LTSFQueue]") {
 
         e = dynamic_cast<test_Event*>(q.peek());
         REQUIRE(e != nullptr);
-        CHECK(e->get_receiver_name() == "1");
-        CHECK(e->get_receive_time() == 10);
+        CHECK(e->receiverName() == "1");
+        CHECK(e->timestamp() == 10);
 
         // Add a second event with a smaller timestamp
         q.push(std::unique_ptr<warped::Event>(new test_Event {"2", 5}));
@@ -43,8 +43,8 @@ TEST_CASE("Queue events are sorted by timestamp", "[STLLTSFQueue][LTSFQueue]") {
 
         e = dynamic_cast<test_Event*>(q.peek());
         REQUIRE(e != nullptr);
-        CHECK(e->get_receiver_name() == "2");
-        CHECK(e->get_receive_time() == 5);
+        CHECK(e->receiverName() == "2");
+        CHECK(e->timestamp() == 5);
 
         // Add a third event with a larger timestamp
         q.push(std::unique_ptr<warped::Event>(new test_Event {"3", 15}));
@@ -53,8 +53,8 @@ TEST_CASE("Queue events are sorted by timestamp", "[STLLTSFQueue][LTSFQueue]") {
 
         e = dynamic_cast<test_Event*>(q.peek());
         REQUIRE(e != nullptr);
-        CHECK(e->get_receiver_name() == "2");
-        CHECK(e->get_receive_time() == 5);
+        CHECK(e->receiverName() == "2");
+        CHECK(e->timestamp() == 5);
 
         // pop all three events
         int expected_timestamps[3] = {5, 10, 15};
@@ -64,7 +64,7 @@ TEST_CASE("Queue events are sorted by timestamp", "[STLLTSFQueue][LTSFQueue]") {
             CHECK(q.size() == (2 - i));
             e = dynamic_cast<test_Event*>(upe.get());
             REQUIRE(e != nullptr);
-            CHECK(e->get_receive_time() == expected_timestamps[i]);
+            CHECK(e->timestamp() == expected_timestamps[i]);
         }
 
         REQUIRE(q.peek() == nullptr);
@@ -90,7 +90,7 @@ TEST_CASE("Queue events are sorted by timestamp", "[STLLTSFQueue][LTSFQueue]") {
             CHECK(q.size() == (2 - i));
             e = dynamic_cast<test_Event*>(upe.get());
             REQUIRE(e != nullptr);
-            CHECK(e->get_receive_time() == expected_timestamps[i]);
+            CHECK(e->timestamp() == expected_timestamps[i]);
         }
 
         REQUIRE(q.peek() == nullptr);
@@ -116,7 +116,7 @@ TEST_CASE("Queue events are sorted by timestamp", "[STLLTSFQueue][LTSFQueue]") {
             CHECK(q.size() == (2 - i));
             e = dynamic_cast<test_Event*>(upe.get());
             REQUIRE(e != nullptr);
-            CHECK(e->get_receive_time() == expected_timestamps[i]);
+            CHECK(e->timestamp() == expected_timestamps[i]);
         }
 
         REQUIRE(q.peek() == nullptr);

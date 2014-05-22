@@ -19,8 +19,8 @@ void SequentialEventDispatcher::startSimulation(std::vector<SimulationObject*>& 
 
     while (current_sim_time_ < max_sim_time_ && !events_.empty()) {
         auto event = events_.pop();
-        current_sim_time_ = event->get_receive_time();
-        auto receiver = objects_[event->get_receiver_name()];
+        current_sim_time_ = event->timestamp();
+        auto receiver = objects_[event->receiverName()];
         events_.push(receiver->receiveEvent(*event.get()));
     }
 }

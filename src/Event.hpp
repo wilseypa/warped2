@@ -12,10 +12,10 @@ public:
     virtual ~Event() {}
 
     // The name of the SimualtionObject that should receive this event.
-    virtual const std::string& get_receiver_name() const = 0;
+    virtual const std::string& receiverName() const = 0;
 
     // The timestamp of when the event should be received.
-    virtual unsigned int get_receive_time() const = 0;
+    virtual unsigned int timestamp() const = 0;
 };
 
 } // namespace warped

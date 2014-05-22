@@ -20,8 +20,8 @@ struct test_Event : warped::Event {
     test_Event(const std::string& receiver_name, unsigned int receive_time)
         : receiver_name_(receiver_name), receive_time_(receive_time) {}
 
-    const std::string& get_receiver_name() const {return receiver_name_;}
-    unsigned int get_receive_time() const {return receive_time_;}
+    const std::string& receiverName() const {return receiver_name_;}
+    unsigned int timestamp() const {return receive_time_;}
 
     std::string receiver_name_;
     unsigned int receive_time_;
@@ -36,7 +36,7 @@ public:
 
     std::vector<std::unique_ptr<warped::Event>> receiveEvent(const warped::Event& event) {
         std::vector<std::unique_ptr<warped::Event>> v;
-        v.emplace_back(new test_Event(event.get_receiver_name(), event.get_receive_time()));
+        v.emplace_back(new test_Event(event.receiverName(), event.timestamp()));
         return v;
     }
 
@@ -69,8 +69,8 @@ TEST_CASE("SimualtionObjects support event methods", "[SimulationObject]") {
     SECTION("SimualtionObjects support receiveEvent") {
         auto out = ob.receiveEvent(e);
         REQUIRE(out.size() == 1);
-        CHECK(out[0]->get_receiver_name() == "e");
-        REQUIRE(out[0]->get_receive_time() == 1);
+        CHECK(out[0]->receiverName() == "e");
+        REQUIRE(out[0]->timestamp() == 1);
     }
 
     SECTION("SimualtionObjects support default createInitialEvents") {

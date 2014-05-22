@@ -12,7 +12,7 @@ namespace warped {
 
 STLLTSFQueue::STLLTSFQueue()
     : queue_([](Event* lhs, Event* rhs) {
-                    return lhs->get_receive_time() > rhs->get_receive_time();
+                    return lhs->timestamp() > rhs->timestamp();
                 }) {}
 
 bool STLLTSFQueue::empty() const {
