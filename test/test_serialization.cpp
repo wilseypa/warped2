@@ -22,12 +22,12 @@ TEST_CASE("Objects can be serialized", "[serialization]") {
     REQUIRE(c2.y == 2);
 
     {
-        cereal::JSONOutputArchive oarchive(ss);
+        cereal::BinaryOutputArchive oarchive(ss);
         oarchive(c1);
     }
 
     {
-        cereal::JSONInputArchive iarchive(ss);
+        cereal::BinaryInputArchive iarchive(ss);
         iarchive(c2);
     }
     REQUIRE(c2.x == 3);
@@ -49,17 +49,18 @@ WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(DerivedClass);
 
 TEST_CASE("Polymorphic Objects can be serialized", "[serialization]") {
     std::stringstream ss;
-    std::unique_ptr<BaseClass> c{new DerivedClass(1)};
+    std::unique_ptr<BaseClass> c1{new DerivedClass(1)};
+    std::unique_ptr<BaseClass> c2;
 
-    REQUIRE(c->f() == 2);
+    REQUIRE(c1->f() == 2);
     {
-        cereal::JSONOutputArchive oarchive(ss);
-        oarchive(c);
+        cereal::BinaryOutputArchive oarchive(ss);
+        oarchive(c1);
     }
 
     {
-        cereal::JSONInputArchive iarchive(ss);
-        iarchive(c);
+        cereal::BinaryInputArchive iarchive(ss);
+        iarchive(c2);
     }
-    REQUIRE(c->f() == 2);
+    REQUIRE(c2->f() == 2);
 }

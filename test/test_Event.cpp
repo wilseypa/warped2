@@ -29,12 +29,12 @@ TEST_CASE("Events can be serialized", "[serialization][Event]") {
     std::unique_ptr<warped::Event> e2;
 
     {
-        cereal::JSONOutputArchive oarchive(ss);
+        cereal::BinaryOutputArchive oarchive(ss);
         oarchive(e);
     }
 
     {
-        cereal::JSONInputArchive iarchive(ss);
+        cereal::BinaryInputArchive iarchive(ss);
         iarchive(e2);
     }
     auto pe = dynamic_cast<test_Event*>(e2.get());
