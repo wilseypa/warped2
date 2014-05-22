@@ -2,6 +2,7 @@
 #define LTSF_QUEUE_HPP
 
 #include <memory>
+#include <vector>
 
 namespace warped {
 
