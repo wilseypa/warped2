@@ -1,3 +1,4 @@
+
 #ifndef STLLTSF_QUEUE_HPP
 #define STLLTSF_QUEUE_HPP
 
@@ -12,6 +13,7 @@ namespace warped {
 
 class Event;
 
+// An implementation of an LTSF queue that stores events in a std::priority_queue.
 class STLLTSFQueue : public LTSFQueue {
 public:
     STLLTSFQueue();
@@ -24,8 +26,9 @@ public:
     void push(std::vector<std::unique_ptr<Event>>&& events);
 
 private:
+    // use a std::funciton with a lambda to do event comparison
     typedef std::function<bool (Event*, Event*)> comptype;
-    std::priority_queue<std::unique_ptr<Event>, std::vector<Event*>, comptype> queue_;
+    std::priority_queue<Event*, std::vector<Event*>, comptype> queue_;
 };
 
 } // namespace warped

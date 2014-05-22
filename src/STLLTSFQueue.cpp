@@ -1,3 +1,6 @@
+// Since LTSF queues own events that are pushed in, it's safe to store the
+// events as raw pointers. 
+
 #include "STLLTSFQueue.hpp"
 
 #include <queue>
@@ -9,8 +12,8 @@ namespace warped {
 
 STLLTSFQueue::STLLTSFQueue()
     : queue_([](Event* lhs, Event* rhs) {
-    return lhs->get_receive_time() > rhs->get_receive_time();
-}) {}
+                    return lhs->get_receive_time() > rhs->get_receive_time();
+                }) {}
 
 bool STLLTSFQueue::empty() const {
     return queue_.empty();

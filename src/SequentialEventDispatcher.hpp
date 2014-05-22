@@ -9,6 +9,7 @@
 
 namespace warped {
 
+// This class is an EventDispatcher that runs on a single thread and process.
 class SequentialEventDispatcher : public EventDispatcher {
 public:
     SequentialEventDispatcher(unsigned int max_sim_time);
