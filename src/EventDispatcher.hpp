@@ -2,10 +2,11 @@
 #define EVENT_DISPATCHER_H
 
 #include <limits>
-
-#include "SimulationObject.hpp"
+#include <vector>
 
 namespace warped {
+
+class SimulationObject;
 
 class EventDispatcher {
 public:
