@@ -20,10 +20,7 @@ Configuration::Configuration(const std::string& model_description, int argc,
 
 Configuration::Configuration(const std::string& model_description, int argc,
                              const char* const* argv)
-    : config_file_name_(""), max_sim_time_(0) {
-    std::vector<TCLAP::Arg*> v;
-    init(model_description, argc, argv, v);
-}
+    : config_file_name_(""), max_sim_time_(0) { init(model_description, argc, argv, {}); }
 
 void Configuration::init(const std::string& model_description, int argc, const char* const* argv,
                          const std::vector<TCLAP::Arg*>& cmd_line_args) {
