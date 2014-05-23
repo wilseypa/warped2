@@ -19,6 +19,10 @@ LT_INIT
 m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
 AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
+dnl Once MPI support is added, uncomment the next two lines
+dnl m4_include([m4/check_lib_mpi.m4])
+dnl CHECK_LIB_MPI
+
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([deps/Makefile])
 AC_CONFIG_FILES([deps/cereal/Makefile])

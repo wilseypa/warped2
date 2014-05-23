@@ -26,6 +26,15 @@ libwarped_la_SOURCES = \
 
 include_HEADERS = src/warped.hpp
 
+# When MPI support is added, uncomment these next blocks
+# if HAVE_MPICH
+# libwarped_la_LIBADD = -lmpich -lmpl -lpthread 
+# else 
+# if HAVE_MPI
+# libwarped_la_LIBADD = -lmpi
+# endif
+# endif
+
 libwarped_la_LIBADD = $(top_builddir)/deps/json/libjsoncpp.la
 libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic
 
