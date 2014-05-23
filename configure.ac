@@ -2,7 +2,8 @@ AC_INIT([warped],[0.1.0])
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src/Event.hpp])
-AM_INIT_AUTOMAKE([1.11 silent-rules foreign subdir-objects])
+AM_INIT_AUTOMAKE([1.11 foreign subdir-objects])
+AM_SILENT_RULES([yes])
 AC_PREREQ(2.61)
 
 AC_LANG([C++])
