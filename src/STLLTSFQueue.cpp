@@ -3,8 +3,10 @@
 
 #include "STLLTSFQueue.hpp"
 
+#include <cstddef>
+#include <memory>
 #include <queue>
-#include <utility>
+#include <vector>
 
 #include "Event.hpp"
 
@@ -19,7 +21,7 @@ bool STLLTSFQueue::empty() const {
     return queue_.empty();
 }
 
-unsigned int STLLTSFQueue::size() const {
+std::size_t STLLTSFQueue::size() const {
     return queue_.size();
 }
 

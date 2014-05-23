@@ -2,6 +2,7 @@
 #ifndef STLLTSF_QUEUE_HPP
 #define STLLTSF_QUEUE_HPP
 
+#include <cstddef>
 #include <functional>
 #include <memory>
 #include <queue>
@@ -18,7 +19,7 @@ class STLLTSFQueue : public LTSFQueue {
 public:
     STLLTSFQueue();
     bool empty() const;
-    unsigned int size() const;
+    std::size_t size() const;
     Event* peek() const;
     std::unique_ptr<Event> pop();
     void push(std::unique_ptr<Event> event);

@@ -1,6 +1,7 @@
 #ifndef LTSF_QUEUE_HPP
 #define LTSF_QUEUE_HPP
 
+#include <cstddef>
 #include <memory>
 #include <vector>
 
@@ -23,7 +24,7 @@ public:
     virtual bool empty() const = 0;
 
     // Return the size of the queue.
-    virtual unsigned int size() const = 0;
+    virtual std::size_t size() const = 0;
 
     // Return a non-owning pointer to the top of the queue, or nullptr iff the
     // queue is empty.
