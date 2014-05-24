@@ -2,9 +2,6 @@
 
 A Parallel & Distributed Discrete Simulation Library
 
-For a collection of Simulation Models that use this library, see 
-[warped-models](https://github.com/wilseypa/warped-models).
-
 # Building
 
 WARPED is built with Autotools and a C++11 compiler (see [here](http://lektiondestages.blogspot.de/2013/05/installing-and-switching-gccg-versions.html) for instructions about upgrading and switching GCC versions if you have an old version of GCC that does not support the required features.).  
@@ -29,7 +26,7 @@ This will build and install the warped library to the path specified by the `--p
 
 #### Troubleshooting
 
-If you get a linker error telling you that the MPI library couldn't be found, you may need to specify the path to the MPI headers and libraries manually in the configuration step. You can specify the path to the library file with the `--with-mpich` configure option, and the header location with the `--with-mpiheader` option.
+If you get a linker error telling you that the MPI library couldn't be found, you may need to specify the path to the MPI headers and libraries manually in the configuration step. You can specify the path to the library file with the `--with-mpi` configure option, and the header location with the `--with-mpiheader` option.
 
  	./configure --with-mpiheader=/usr/include/mpich --with-mpi=/usr/lib/mpich2
 
@@ -37,7 +34,7 @@ Replace the paths in the above example with the locations of the MPI libraries a
 
 #### Silent Build Rules
 
-The normal output of `make` is very verbose. WARPED is configured to use silent build rules by default. To disable silent rules, pass the `--disable-silent-rules` flag to `configure` or the `V=1` flag to make.
+Because the normal output of `make` is very verbose, WARPED is configured to use silent build rules by default. To disable silent rules, pass the `--disable-silent-rules` flag to `configure` or the `V=1` flag to `make`.
 
     ./configure --prefix=$HOME/lib/warped --disable-silent-rules
 
