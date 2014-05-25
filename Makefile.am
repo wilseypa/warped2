@@ -24,7 +24,9 @@ libwarped_la_SOURCES = \
     $(WARPED2_HPP_FILES) \
     $(WARPED2_CPP_FILES)
 
-include_HEADERS = src/warped.hpp
+include_HEADERS = \
+    $(WARPED2_HPP_FILES) \
+    src/warped.hpp
 
 # When MPI support is added, uncomment these next blocks
 # if HAVE_MPICH

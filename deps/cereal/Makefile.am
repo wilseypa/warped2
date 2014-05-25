@@ -1,4 +1,6 @@
-noinst_HEADERS = \
+libcerealincludedir = $(includedir)/cereal
+
+nobase_libcerealinclude_HEADERS = \
     access.hpp \
     archives/binary.hpp \
     archives/json.hpp \
@@ -17,19 +19,15 @@ noinst_HEADERS = \
     external/rapidjson/internal/pow10.h \
     external/rapidjson/internal/stack.h \
     external/rapidjson/internal/strfunc.h \
-    external/rapidjson/license.txt \
     external/rapidjson/prettywriter.h \
     external/rapidjson/rapidjson.h \
     external/rapidjson/reader.h \
     external/rapidjson/stringbuffer.h \
     external/rapidjson/writer.h \
-    external/rapidxml/license.txt \
-    external/rapidxml/manual.html \
     external/rapidxml/rapidxml.hpp \
     external/rapidxml/rapidxml_iterators.hpp \
     external/rapidxml/rapidxml_print.hpp \
     external/rapidxml/rapidxml_utils.hpp \
-    Makefile.am \
     types/array.hpp \
     types/base_class.hpp \
     types/bitset.hpp \

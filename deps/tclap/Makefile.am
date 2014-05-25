@@ -1,4 +1,5 @@
-noinst_HEADERS = \
+libtclapincludedir = $(includedir)/tclap
+libtclapinclude_HEADERS = \
     Arg.h \
     ArgException.h \
     ArgTraits.h \
@@ -9,7 +10,6 @@ noinst_HEADERS = \
     DocBookOutput.h \
     HelpVisitor.h \
     IgnoreRestVisitor.h \
-    Makefile.am \
     MultiArg.h \
     MultiSwitchArg.h \
     OptionalUnlabeledTracker.h \
