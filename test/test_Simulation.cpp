@@ -9,7 +9,7 @@
 
 TEST_CASE("The Simulation parses command line arguments", "[Simulation]") {
     warped::Simulation* s = nullptr;
-    std::vector<const char*> v {"prog", "-c", "filename", "-t", "100"};
+    std::vector<const char*> v {"prog", "-c", "test_filename", "-t", "100"};
 
     SECTION("Simulation supports default arguments") {
         REQUIRE_NOTHROW((s = new warped::Simulation {"model", (int)v.size(), v.data()}));

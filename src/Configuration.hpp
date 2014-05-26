@@ -6,6 +6,7 @@
 #include <vector>
 
 namespace TCLAP { class Arg; }
+namespace Json { class Value; }
 
 namespace warped {
 
@@ -17,7 +18,7 @@ public:
     Configuration(const std::string& model_description, int argc, const char* const* argv,
                   const std::vector<TCLAP::Arg*>& cmd_line_args);
     Configuration(const std::string& config_file_name, unsigned int max_time);
-
+    ~Configuration();
     std::unique_ptr<EventDispatcher> make_dispatcher();
 
 private:
@@ -26,6 +27,7 @@ private:
 
     std::string config_file_name_;
     unsigned int max_sim_time_;
+    std::unique_ptr<Json::Value> root_;
 };
 
 } // namespace warped
