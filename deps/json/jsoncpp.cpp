@@ -73,7 +73,7 @@ license you like.
 
 
 
-#include "json.h"
+#include <json.h>
 
 
 // //////////////////////////////////////////////////////////////////////
@@ -3693,6 +3693,22 @@ Path::make( Value &root ) const
 #pragma warning( disable : 4996 )   // disable warning about strdup being deprecated.
 #endif
 
+namespace {
+
+std::string trim(std::string str, std::string chars=" \t\r\n") {
+    auto start = str.find_first_not_of(chars);
+    if (start == std::string::npos) {
+        start = 0;
+    }
+    auto len = str.find_last_not_of(chars);
+    if (len != std::string::npos) {
+        len = len - start + 1;
+    }
+    return str.substr(start, len);
+}
+
+} // namespace 
+
 namespace Json {
 
 static bool containsControlCharacter( const char* str )
@@ -4301,6 +4317,7 @@ StyledStreamWriter::writeValue( const Value &value )
                }
                *document_ << ",";
                writeCommentAfterValueOnSameLine( childValue );
+               *document_ << "\n";
             }
             unindent();
             writeWithIndent( "}" );
@@ -4452,8 +4469,9 @@ StyledStreamWriter::writeCommentBeforeValue( const Value &root )
 {
    if ( !root.hasComment( commentBefore ) )
       return;
-   *document_ << normalizeEOL( root.getComment( commentBefore ) );
-   *document_ << "\n";
+   std::istringstream iss(root.getComment( commentBefore ));
+   for(std::string line; std::getline(iss, line);) 
+      writeWithIndent(trim(line));
 }
 
 
