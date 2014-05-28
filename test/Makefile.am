@@ -7,6 +7,7 @@ LDADD=$(top_builddir)/libwarped.la
 AM_DEFAULT_SOURCE_EXT = .cpp
 
 WARPED_TEST_PROGS = \
+    test_CommandLineConfiguration \
     test_Event \
     test_ObjectState \
     test_serialization \

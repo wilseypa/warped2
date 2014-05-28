@@ -21,7 +21,7 @@ Simulation::Simulation(const std::string& config_file_name, unsigned int max_sim
     : config_(config_file_name, max_sim_time) {}
 
 void Simulation::simulate(std::vector<SimulationObject*>& objects) {
-    std::unique_ptr<EventDispatcher> dispatcher = config_.make_dispatcher();
+    std::unique_ptr<EventDispatcher> dispatcher = config_.makeDispatcher();
     dispatcher->startSimulation(objects);
 }
 

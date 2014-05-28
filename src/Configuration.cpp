@@ -1,22 +1,30 @@
 #include "Configuration.hpp"
 
+#include <cstdlib>
+#include <iostream>
 #include <fstream>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include "tclap/CmdLine.h"
 #include "json/json.h"
 
+#include "CommandLineConfiguration.hpp"
 #include "SequentialEventDispatcher.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
-                // Valid options are "sequential" and "time-warp"
-                "simulation-type": "sequential"
 
-                })x";
+// If max-sim-time > 0, the simualtion will halt once the time has been reached
+"max-sim-time":0,
+
+// Valid options are "sequential" and "time-warp"
+"simulation-type": "sequential"
+
+})x";
 
 
 // Recursively copy the values of b into a. Both a and b must be objects.
@@ -32,25 +40,23 @@ void update(Json::Value& a, Json::Value& b) {
     }
 }
 
-void addParameters(TCLAP::CmdLine& cmd_line, const std::vector<TCLAP::Arg*>& args) {
-    for (auto arg : args) {
-        cmd_line.add(arg);
-    }
-}
-
 Json::Value parseJsonFile(std::string filename) {
     Json::Reader reader;
     std::ifstream input(filename);
+
     if (!input.is_open()) {
         throw std::runtime_error(std::string("Could not open configuration file ") + filename);
     }
+
     Json::Value root;
     auto success = reader.parse(input, root);
     input.close();
+
     if (!success) {
         throw std::runtime_error(std::string("Failed to parse configuration\n") +
                                  reader.getFormattedErrorMessages());
     }
+
     return root;
 }
 
@@ -59,7 +65,8 @@ Json::Value parseJsonFile(std::string filename) {
 namespace warped {
 
 Configuration::Configuration(const std::string& config_file_name, unsigned int max_sim_time)
-    : config_file_name_(config_file_name), max_sim_time_(max_sim_time), root_(nullptr) {}
+    : config_file_name_(config_file_name), max_sim_time_(max_sim_time), root_(nullptr)
+{ readUserConfig(); }
 
 Configuration::Configuration(const std::string& model_description, int argc,
                              const char* const* argv,
@@ -74,9 +81,15 @@ Configuration::Configuration(const std::string& model_description, int argc,
 
 Configuration::~Configuration() = default;
 
+void Configuration::readUserConfig() {
+    if (!config_file_name_.empty()) {
+        auto root2 = parseJsonFile(config_file_name_);
+        update(*root_, root2);
+    }
+}
+
 void Configuration::init(const std::string& model_description, int argc, const char* const* argv,
                          const std::vector<TCLAP::Arg*>& cmd_line_args) {
-    TCLAP::CmdLine cmd_line(model_description);
     Json::Reader reader;
 
     if (!reader.parse(DEFAULT_CONFIG, *root_)) {
@@ -84,29 +97,25 @@ void Configuration::init(const std::string& model_description, int argc, const c
                                  reader.getFormattedErrorMessages());
     }
 
-    TCLAP::ValueArg<std::string> config_arg("c", "config", "Warped configuration file",
-                                            false, config_file_name_, "file", cmd_line);
-    TCLAP::ValueArg<unsigned int> max_sim_time_arg("t", "max-sim-time",
-                                                   "specify a simulation end time",
-                                                   false, max_sim_time_, "time", cmd_line);
-    addParameters(cmd_line, cmd_line_args);
-    cmd_line.parse(argc, argv);
+    // Update the JSON root with any command line args given
+    bool should_dump;
+    CommandLineConfiguration clc(*root_);
+    std::tie(should_dump, config_file_name_) = clc.parse(model_description, argc, argv, cmd_line_args);
 
-    max_sim_time_ = max_sim_time_arg.getValue();
-    config_file_name_ = config_arg.getValue();
+    readUserConfig();
 
-    if (!config_file_name_.empty()) {
-        auto root2 = parseJsonFile(config_file_name_);
-        update(*root_, root2);
+    if (should_dump) {
+        std::cout << *root_ << std::endl;
+        std::exit(0);
     }
-
 }
 
-std::unique_ptr<EventDispatcher> Configuration::make_dispatcher() {
+std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
     if ((*root_)["simulation-type"] != "sequential") {
-        //TODO: return a TimeWarpEventDispatcer
+        //TODO: Create, configure, and return a TimeWarpEventDispatcher
     }
-    return std::unique_ptr<EventDispatcher>{new SequentialEventDispatcher{max_sim_time_}};
+
+    return std::unique_ptr<EventDispatcher> {new SequentialEventDispatcher{max_sim_time_}};
 }
 
 } // namespace warped
