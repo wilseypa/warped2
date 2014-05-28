@@ -9,8 +9,7 @@
 #include "Event.hpp"
 #include "ObjectState.hpp"
 
-WARPED_DEFINE_OBJECT_STATE_SUBCLASS(test_ObjectState) {
-public:
+WARPED_DEFINE_OBJECT_STATE_STRUCT(test_ObjectState) {
     test_ObjectState(int x): x(x) {}
     int x;
 };
