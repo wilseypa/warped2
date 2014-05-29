@@ -4467,11 +4467,14 @@ StyledStreamWriter::unindent()
 void 
 StyledStreamWriter::writeCommentBeforeValue( const Value &root )
 {
-   if ( !root.hasComment( commentBefore ) )
-      return;
-   std::istringstream iss(root.getComment( commentBefore ));
-   for(std::string line; std::getline(iss, line);) 
-      writeWithIndent(trim(line));
+   if (!root.hasComment(commentBefore))
+      return; 
+   std::istringstream iss(root.getComment(commentBefore));
+   for (std::string line; std::getline(iss, line);) {
+      if (!line.empty()) {
+         writeWithIndent(trim(line));
+      }
+   }
 }
 
 
