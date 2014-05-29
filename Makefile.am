@@ -25,6 +25,7 @@ WARPED2_CPP_FILES = \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
     src/Simulation.cpp \
+    src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
     src/TimeWarpEventDispatcher.cpp
 
@@ -46,7 +47,7 @@ include_HEADERS = \
 # endif
 
 libwarped_la_LIBADD = $(top_builddir)/deps/json/libjsoncpp.la
-libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic
+libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror
 
 # Use -isystem here instead of -I to disable warnings for third party code
 libwarped_la_CPPFLAGS=-isystem$(top_srcdir)/deps
