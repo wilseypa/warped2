@@ -20,14 +20,14 @@
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
 
-// If max-sim-time > 0, the simualtion will halt once the time has been reached
+// If max-sim-time > 0, the simulation will halt once the time has been reached
 "max-sim-time":0,
 
 // Valid options are "sequential" and "time-warp"
 "simulation-type": "sequential",
 
 // Valid options are "default" and "round-robin". "default" will use user
-// provided provided if given, else "round-robin".
+// provided partitioning if given, else "round-robin".
 "partitioning": "default"
 
 })x";
