@@ -9,6 +9,8 @@ WARPED2_HPP_FILES = \
     src/EventDispatcher.hpp \
     src/LTSFQueue.hpp \
     src/ObjectState.hpp \
+    src/Partitioner.hpp \
+    src/RoundRobinPartitioner.hpp \
     src/SequentialEventDispatcher.hpp \
     src/serialization.hpp \
     src/Simulation.hpp \
@@ -18,6 +20,8 @@ WARPED2_HPP_FILES = \
 WARPED2_CPP_FILES = \
     src/CommandLineConfiguration.cpp \
     src/Configuration.cpp \
+    src/Partitioner.cpp \
+    src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
     src/Simulation.cpp \
     src/STLLTSFQueue.cpp
@@ -35,7 +39,7 @@ include_HEADERS = \
 # libwarped_la_LIBADD = -lmpich -lmpl -lpthread 
 # else 
 # if HAVE_MPI
-# libwarped_la_LIBADD = -lmpi
+# libwarped_la_LIBADD = -lmpi -lpthread
 # endif
 # endif
 

@@ -10,6 +10,7 @@ WARPED_TEST_PROGS = \
     test_CommandLineConfiguration \
     test_Event \
     test_ObjectState \
+    test_RoundRobinPartitioner \
     test_serialization \
     test_Simulation \
     test_SimulationObject \
