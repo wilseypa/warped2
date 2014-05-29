@@ -21,7 +21,7 @@ public:
 
     // This method will call createInitialEvents() on all objects, then
     // process events until a termination condition is reached.
-    virtual void startSimulation(std::vector<SimulationObject*>& objects) = 0;
+    virtual void startSimulation(const std::vector<SimulationObject*>& objects) = 0;
 
 protected:
     const unsigned int max_sim_time_;

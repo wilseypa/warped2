@@ -13,7 +13,7 @@ class SimulationObject;
 class SequentialEventDispatcher : public EventDispatcher {
 public:
     SequentialEventDispatcher(unsigned int max_sim_time);
-    void startSimulation(std::vector<SimulationObject*>& objects);
+    void startSimulation(const std::vector<SimulationObject*>& objects);
 };
 
 } // namespace warped

@@ -37,7 +37,7 @@ public:
     //
     // If a Time Warp simulation is run, the objects will be automatically
     // partitioned.
-    void simulate(std::vector<SimulationObject*>& objects);
+    void simulate(const std::vector<SimulationObject*>& objects);
 
     // The number of partitions that are required.
     // unsigned int requiredNumberOfPartitions(); // TODO
@@ -47,7 +47,7 @@ public:
     // Each vector of SimulationObjects describes one partition. If the number
     // of partitions is not equal to the number returned by
     // requiredNumberOfPartitions(), an exception will be thrown.
-    // void simulate(std::vector<std::vector<std::unique_ptr<SimulationObject>>> objects); // TODO
+    // void simulate(std::vector<std::vector<SimulationObject*>> objects); // TODO
 
 private:
     Configuration config_;
