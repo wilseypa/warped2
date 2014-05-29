@@ -16,7 +16,7 @@ struct ObjectState;
 // SimulationObjects.
 class SimulationObject {
 public:
-    SimulationObject(const std::string& name) : name_(name) {}
+    SimulationObject(const std::string& name);
     virtual ~SimulationObject() {}
 
     // Return the state of this object.
@@ -38,7 +38,7 @@ public:
     // Create events before the simulation starts.
     //
     // This is an optional method that is called before the simulation begins.
-    virtual std::vector<std::unique_ptr<Event>> createInitialEvents()  { return {}; }
+    virtual std::vector<std::unique_ptr<Event>> createInitialEvents();
 
     const std::string name_;
 };
