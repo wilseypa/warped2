@@ -8,7 +8,7 @@
 namespace warped {
 
 class Event;
-class ObjectState;
+struct ObjectState;
 
 // SimulationObjects are the core of the simulation. All models must define at
 // least one class implementing this interface. Each SimulationObject has a
