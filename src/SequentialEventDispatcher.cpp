@@ -1,5 +1,6 @@
 #include "SequentialEventDispatcher.hpp"
 
+#include <stdexcept>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -13,12 +14,17 @@ namespace warped {
 SequentialEventDispatcher::SequentialEventDispatcher(unsigned int max_sim_time)
     : EventDispatcher(max_sim_time) {}
 
-void SequentialEventDispatcher::startSimulation(const std::vector<SimulationObject*>& objects) {
+void SequentialEventDispatcher::startSimulation(
+    const std::vector<std::vector<SimulationObject*>>& objects) {
+    if (objects.size() != 1) {
+        throw std::runtime_error(std::string("Sequention simualtion only supports 1 partition."));
+    }
+    
     std::unordered_map<std::string, SimulationObject*> objects_by_name;
     STLLTSFQueue events;
     unsigned int current_sim_time = 0;
 
-    for (auto& ob : objects) {
+    for (auto& ob : objects[0]) {
         events.push(ob->createInitialEvents());
         objects_by_name[ob->name_] = ob;
     }

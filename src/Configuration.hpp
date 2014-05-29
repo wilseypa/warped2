@@ -11,6 +11,7 @@ namespace Json { class Value; }
 namespace warped {
 
 class EventDispatcher;
+class Partitioner;
 
 class Configuration {
 public:
@@ -20,6 +21,8 @@ public:
     Configuration(const std::string& config_file_name, unsigned int max_time);
     ~Configuration();
     std::unique_ptr<EventDispatcher> makeDispatcher();
+    std::unique_ptr<Partitioner> makePartitioner();
+    std::unique_ptr<Partitioner> makePartitioner(std::unique_ptr<Partitioner> user_partitioner);
 
 private:
     void init(const std::string& model_description, int argc, const char* const* argv,

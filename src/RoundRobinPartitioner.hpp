@@ -9,7 +9,7 @@ namespace warped {
 
 class SimulationObject;
 
-class RoundRobinPartitioner {
+class RoundRobinPartitioner : public Partitioner {
 public:
     std::vector<std::vector<SimulationObject*>> partition(
              const std::vector<SimulationObject*>& objects,

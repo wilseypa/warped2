@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "EventDispatcher.hpp"
+#include "Partitioner.hpp"
 
 class SimulationObject;
 
@@ -22,7 +23,10 @@ Simulation::Simulation(const std::string& config_file_name, unsigned int max_sim
 
 void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
     std::unique_ptr<EventDispatcher> dispatcher = config_.makeDispatcher();
-    dispatcher->startSimulation(objects);
+    // TODO: get the actual number of partitions for parallel simulations
+    unsigned int num_partitions = 1;
+    auto partitioned_objects = config_.makePartitioner()->partition(objects, num_partitions);
+    dispatcher->startSimulation(partitioned_objects);
 }
 
 } // namepsace warped

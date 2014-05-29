@@ -12,14 +12,14 @@ namespace TCLAP { class Arg; }
 namespace warped {
 class SimulationObject;
 
-// The main entry point into the simulation. 
+// The main entry point into the simulation.
 //
 // This class sets up the simulation and handles configuration and optionally
 // command line processing.
 class Simulation {
 public:
     // This constructor will take care of processing any command line
-    // arguments automatically. 
+    // arguments automatically.
     //
     // The model_description is a short description of the model that will be
     // displayed on the command line.
@@ -39,15 +39,12 @@ public:
     // partitioned.
     void simulate(const std::vector<SimulationObject*>& objects);
 
-    // The number of partitions that are required.
-    // unsigned int requiredNumberOfPartitions(); // TODO
-
     // A model can perform its own partitioning by calling this overload of simulate().
     //
-    // Each vector of SimulationObjects describes one partition. If the number
-    // of partitions is not equal to the number returned by
-    // requiredNumberOfPartitions(), an exception will be thrown.
-    // void simulate(std::vector<std::vector<SimulationObject*>> objects); // TODO
+    // The user supplied partition may not be used if a specific partitioner
+    // is configured.
+    // void simulate(const std::vector<SimulationObject*>& objects,
+    //               std::unique_ptr<Partitioner> partitioner); // TODO
 
 private:
     Configuration config_;

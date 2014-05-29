@@ -13,6 +13,7 @@
 #include "json/json.h"
 
 #include "CommandLineConfiguration.hpp"
+#include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
 
 namespace {
@@ -22,7 +23,11 @@ const static std::string DEFAULT_CONFIG = R"x({
 "max-sim-time":0,
 
 // Valid options are "sequential" and "time-warp"
-"simulation-type": "sequential"
+"simulation-type": "sequential",
+
+// Valid options are "default" and "round-robin". "default" will use user
+// provided provided if given, else "round-robin".
+"partitioning": "default"
 
 })x";
 
@@ -111,11 +116,28 @@ void Configuration::init(const std::string& model_description, int argc, const c
 }
 
 std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
-    if ((*root_)["simulation-type"] != "sequential") {
+    if ((*root_)["simulation-type"].asString() != "sequential") {
         //TODO: Create, configure, and return a TimeWarpEventDispatcher
     }
 
     return std::unique_ptr<EventDispatcher> {new SequentialEventDispatcher{max_sim_time_}};
+}
+
+std::unique_ptr<Partitioner> Configuration::makePartitioner() {
+    auto partitioner_type = (*root_)["partitioning"].asString();
+    if (partitioner_type == "default" || partitioner_type == "round-robin") {
+        return std::unique_ptr<Partitioner> {new RoundRobinPartitioner{}};
+    }
+    throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
+}
+
+std::unique_ptr<Partitioner>
+Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
+    const auto& partitioner_type = (*root_)["partitioning"];
+    if (partitioner_type == "default") {
+        return std::move(user_partitioner);
+    }
+    return makePartitioner();
 }
 
 } // namespace warped
