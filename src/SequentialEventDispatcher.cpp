@@ -13,21 +13,21 @@ namespace warped {
 SequentialEventDispatcher::SequentialEventDispatcher(unsigned int max_sim_time)
     : EventDispatcher(max_sim_time) {}
 
-void SequentialEventDispatcher::startSimulation(std::vector<SimulationObject*>& objects) {
-    std::unordered_map<std::string, SimulationObject*> objects_;
-    STLLTSFQueue events_;
+void SequentialEventDispatcher::startSimulation(const std::vector<SimulationObject*>& objects) {
+    std::unordered_map<std::string, SimulationObject*> objects_by_name;
+    STLLTSFQueue events;
     unsigned int current_sim_time = 0;
 
     for (auto& ob : objects) {
-        events_.push(ob->createInitialEvents());
-        objects_[ob->name_] = ob;
+        events.push(ob->createInitialEvents());
+        objects_by_name[ob->name_] = ob;
     }
 
-    while (current_sim_time < max_sim_time_ && !events_.empty()) {
-        auto event = events_.pop();
+    while (current_sim_time < max_sim_time_ && !events.empty()) {
+        auto event = events.pop();
         current_sim_time = event->timestamp();
-        auto receiver = objects_[event->receiverName()];
-        events_.push(receiver->receiveEvent(*event.get()));
+        auto receiver = objects_by_name[event->receiverName()];
+        events.push(receiver->receiveEvent(*event.get()));
     }
 }
 
