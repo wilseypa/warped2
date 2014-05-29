@@ -15,6 +15,7 @@
 #include "CommandLineConfiguration.hpp"
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
+#include "TimeWarpEventDispatcher.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
@@ -116,10 +117,17 @@ void Configuration::init(const std::string& model_description, int argc, const c
 }
 
 std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
-    if ((*root_)["simulation-type"].asString() != "sequential") {
+    if ((*root_)["simulation-type"].asString() == "time-warp") {
         //TODO: Create, configure, and return a TimeWarpEventDispatcher
+        // This is just a rough idea of how the dispatcher could be configured
+        // if ((*root_)["ltsf-queue"].asString() == "ladder-queue" {
+        //     std::unique_ptr<LTSFQueue> queue{new LadderQueue{}};
+        // }
+        // return std::unique_ptr<EventDispatcher>{new TimeWarpEventDispatcher{
+        //     max_sim_time_, std::move(queue)}};
     }
 
+    // Return a SequentialEventDispatcher by default
     return std::unique_ptr<EventDispatcher> {new SequentialEventDispatcher{max_sim_time_}};
 }
 
