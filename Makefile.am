@@ -15,7 +15,8 @@ WARPED2_HPP_FILES = \
     src/serialization.hpp \
     src/Simulation.hpp \
     src/SimulationObject.hpp \
-    src/STLLTSFQueue.hpp
+    src/STLLTSFQueue.hpp \
+    src/TimeWarpEventDispatcher.hpp
 
 WARPED2_CPP_FILES = \
     src/CommandLineConfiguration.cpp \
@@ -24,7 +25,8 @@ WARPED2_CPP_FILES = \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
     src/Simulation.cpp \
-    src/STLLTSFQueue.cpp
+    src/STLLTSFQueue.cpp \
+    src/TimeWarpEventDispatcher.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED2_HPP_FILES) \
