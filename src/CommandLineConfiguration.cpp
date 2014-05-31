@@ -10,20 +10,9 @@
 #include "tclap/CmdLine.h"
 #include "json/json.h"
 
-namespace {
+#include "utility/strings.hpp"
 
-// Remove chars from both ends of a string
-std::string trim(std::string str, std::string chars = " \t\r\n") {
-    auto start = str.find_first_not_of(chars);
-    if (start == std::string::npos) {
-        start = 0;
-    }
-    auto len = str.find_last_not_of(chars);
-    if (len != std::string::npos) {
-        len = len - start + 1;
-    }
-    return str.substr(start, len);
-}
+namespace {
 
 // Create TCLAP args from a json doc and add them to a CmdLine
 std::vector<std::unique_ptr<TCLAP::Arg>> createArgs(const std::string& current_path,
@@ -37,15 +26,15 @@ std::unordered_map<std::string, Json::Value*>& values_by_name) {
     for (const auto& key : root.getMemberNames()) {
         auto& value = root[key];
         if (value.isObject()) {
-            createArgs(current_path + trim(key) + "-", value, cmd_line, values_by_name);
+            createArgs(current_path + warped::trim(key) + "-", value, cmd_line, values_by_name);
         } else {
-            arg_name = current_path + trim(key);
+            arg_name = current_path + warped::trim(key);
             // Create the command line help by joining the lines of the JSON
             // comment, discarding the comment tokens
             arg_desc = "";
             std::istringstream iss(value.getComment(Json::CommentPlacement::commentBefore));
             for (std::string line; std::getline(iss, line);) {
-                arg_desc += trim(line, " \t\r\n/*") + " ";
+                arg_desc += warped::trim(line, " \t\r\n/*") + " ";
             }
             if (value.isString()) {
                 args.emplace_back(new TCLAP::ValueArg<std::string> {"", arg_name, arg_desc, false,
