@@ -2,23 +2,32 @@ SUBDIRS = deps test
 
 lib_LTLIBRARIES = libwarped.la
 
-WARPED2_HPP_FILES = \
-    src/CommandLineConfiguration.hpp \
+# These are the headers that will be installed. Only list headers included
+# (directly or indirectly) through warped.hpp
+WARPED_INSTALL_HPP_FILES = \
     src/Configuration.hpp \
     src/Event.hpp \
-    src/EventDispatcher.hpp \
-    src/LTSFQueue.hpp \
     src/ObjectState.hpp \
     src/Partitioner.hpp \
-    src/RoundRobinPartitioner.hpp \
-    src/SequentialEventDispatcher.hpp \
     src/serialization.hpp \
     src/Simulation.hpp \
-    src/SimulationObject.hpp \
-    src/STLLTSFQueue.hpp \
-    src/TimeWarpEventDispatcher.hpp
+    src/SimulationObject.hpp
 
-WARPED2_CPP_FILES = \
+# All other headers are listed in this variable
+WARPED_NOINST_HPP_FILES = \
+    src/CommandLineConfiguration.hpp \
+    src/EventDispatcher.hpp \
+    src/LTSFQueue.hpp \
+    src/RoundRobinPartitioner.hpp \
+    src/SequentialEventDispatcher.hpp \
+    src/STLLTSFQueue.hpp \
+    src/TimeWarpEventDispatcher.hpp \
+    src/utility/memory.hpp \
+    src/utility/strings.hpp \
+    src/utility/warnings.hpp
+
+# All cpp files are listed in this variable
+WARPED_CPP_FILES = \
     src/CommandLineConfiguration.cpp \
     src/Configuration.cpp \
     src/Partitioner.cpp \
@@ -30,11 +39,12 @@ WARPED2_CPP_FILES = \
     src/TimeWarpEventDispatcher.cpp
 
 libwarped_la_SOURCES = \
-    $(WARPED2_HPP_FILES) \
-    $(WARPED2_CPP_FILES)
+    $(WARPED_INSTALL_HPP_FILES) \
+    $(WARPED_NOINST_HPP_FILES) \
+    $(WARPED_CPP_FILES)
 
 include_HEADERS = \
-    $(WARPED2_HPP_FILES) \
+    $(WARPED_INSTALL_HPP_FILES) \
     src/warped.hpp
 
 # When MPI support is added, uncomment these next blocks
