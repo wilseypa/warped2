@@ -88,9 +88,9 @@ describing its usage and purpose.
 
 ## Memory semantics
 
-In general, prefer to allocate memory on the stack using local or class variables instead of pointers. Heap should only be used when necessary (e.g. to enable polymorphism).
+In general, prefer to allocate memory on the stack using local or class variables instead of pointers. The heap should only be used when necessary (e.g. to enable polymorphism).
 
-C++11 Smart pointers allow you to avoid manual memory management. Read the [Rule of Zero](http://flamingdangerzone.com/cxx11/2012/08/15/rule-of-zero.html) for an explanation on some modern memory managment techniques. Smart pointers should be used instead of storing raw pointers whenever possible. There are many tutorials on the usage of smart pointers, but a quick recap of when to use the various pointer types:
+C++11 Smart pointers allow you to avoid manual memory management. Read the [Rule of Zero](http://flamingdangerzone.com/cxx11/2012/08/15/rule-of-zero.html) for an explanation on some modern memory management techniques. Smart pointers should be used instead of storing raw pointers whenever possible. There are many tutorials on the usage of smart pointers, but a quick summary of the various pointer types and when to use them:
 
 <table>
   <tr>
@@ -124,6 +124,8 @@ C++11 Smart pointers allow you to avoid manual memory management. Read the [Rule
     <td>A non-owning pointer to a shared pointer.</td>
   </tr>
 </table>
+
+Most importantly, there is never a reason to allocate into a raw pointer, and there is almost never a reason to use `new` at all (see [GotW #102](http://herbsutter.com/gotw/_102/)). [`std::make_unique`](http://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique) should be used instead of `new` whenever possible. `std::make_unique` is a C++14, however. Until C++14 becomes standard, use the `warped::make_unique` implementation in `utility/memory.hpp`.
 
 ##Releases
 
