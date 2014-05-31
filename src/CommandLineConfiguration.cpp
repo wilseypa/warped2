@@ -10,6 +10,7 @@
 #include "tclap/CmdLine.h"
 #include "json/json.h"
 
+#include "utility/memory.hpp"
 #include "utility/strings.hpp"
 
 namespace {
@@ -37,22 +38,17 @@ std::unordered_map<std::string, Json::Value*>& values_by_name) {
                 arg_desc += warped::trim(line, " \t\r\n/*") + " ";
             }
             if (value.isString()) {
-                args.emplace_back(new TCLAP::ValueArg<std::string> {"", arg_name, arg_desc, false,
-                                                                    value.asString(),
-                                                                    "string", cmd_line
-                                                                   });
+                args.push_back(warped::make_unique<TCLAP::ValueArg<std::string>>(
+                                   "", arg_name, arg_desc, false, value.asString(), "string", cmd_line));
             } else if (value.isBool()) {
-                args.emplace_back(new TCLAP::ValueArg<bool> {"", arg_name, arg_desc, false,
-                                                             value.asBool(), "bool", cmd_line
-                                                            });
+                args.push_back(warped::make_unique<TCLAP::ValueArg<bool>>(
+                                   "", arg_name, arg_desc, false, value.asBool(), "bool", cmd_line));
             }  else if (value.isDouble()) {
-                args.emplace_back(new TCLAP::ValueArg<double> {"", arg_name, arg_desc, false,
-                                                               value.asDouble(), "float", cmd_line
-                                                              });
+                args.push_back(warped::make_unique<TCLAP::ValueArg<double>>(
+                                   "", arg_name, arg_desc, false, value.asDouble(), "float", cmd_line));
             } else if (value.isInt()) {
-                args.emplace_back(new TCLAP::ValueArg<int> {"", arg_name, arg_desc, false,
-                                                            value.asInt(), "int", cmd_line
-                                                           });
+                args.push_back(warped::make_unique<TCLAP::ValueArg<int>>(
+                                   "", arg_name, arg_desc, false, value.asInt(), "int", cmd_line));
             } else {
                 throw std::runtime_error(std::string("Configuration key ") + arg_name +
                                          " contains unsupported type.");

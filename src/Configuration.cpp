@@ -87,12 +87,12 @@ Configuration::Configuration(const std::string& config_file_name, unsigned int m
 Configuration::Configuration(const std::string& model_description, int argc,
                              const char* const* argv,
                              const std::vector<TCLAP::Arg*>& cmd_line_args)
-    : config_file_name_(""), max_sim_time_(0), root_(new Json::Value)
+    : config_file_name_(""), max_sim_time_(0), root_(make_unique<Json::Value>())
 { init(model_description, argc, argv, cmd_line_args); }
 
 Configuration::Configuration(const std::string& model_description, int argc,
                              const char* const* argv)
-    : config_file_name_(""), max_sim_time_(0), root_(new Json::Value)
+    : config_file_name_(""), max_sim_time_(0), root_(make_unique<Json::Value>())
 { init(model_description, argc, argv, {}); }
 
 Configuration::~Configuration() = default;
@@ -131,10 +131,9 @@ std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
         //TODO: Create, configure, and return a TimeWarpEventDispatcher
         // This is just a rough idea of how the dispatcher could be configured
         // if ((*root_)["ltsf-queue"].asString() == "ladder-queue" {
-        //     std::unique_ptr<LTSFQueue> queue{new LadderQueue{}};
+        //     std::unique_ptr<LTSFQueue> queue = make_unique<LadderQueue>();
         // }
-        // return std::unique_ptr<EventDispatcher>{new TimeWarpEventDispatcher{
-        //     max_sim_time_, std::move(queue)}};
+        // return make_unique<TimeWarpEventDispatcher>(max_sim_time_, std::move(queue));
     }
 
     // Return a SequentialEventDispatcher by default
@@ -148,13 +147,13 @@ std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
     } else {
         stats = make_unique<NullEventStatistics>();
     }
-    return std::unique_ptr<EventDispatcher> {new SequentialEventDispatcher{max_sim_time_, std::move(stats)}};
+    return make_unique<SequentialEventDispatcher>(max_sim_time_, std::move(stats));
 }
 
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
     auto partitioner_type = (*root_)["partitioning"].asString();
     if (partitioner_type == "default" || partitioner_type == "round-robin") {
-        return std::unique_ptr<Partitioner> {new RoundRobinPartitioner{}};
+        return make_unique<RoundRobinPartitioner>();
     }
     throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
 }
