@@ -17,7 +17,9 @@ WARPED_INSTALL_HPP_FILES = \
 WARPED_NOINST_HPP_FILES = \
     src/CommandLineConfiguration.hpp \
     src/EventDispatcher.hpp \
+    src/EventStatistics.hpp \
     src/LTSFQueue.hpp \
+    src/NullEventStatistics.hpp \
     src/RoundRobinPartitioner.hpp \
     src/SequentialEventDispatcher.hpp \
     src/STLLTSFQueue.hpp \
@@ -30,6 +32,7 @@ WARPED_NOINST_HPP_FILES = \
 WARPED_CPP_FILES = \
     src/CommandLineConfiguration.cpp \
     src/Configuration.cpp \
+    src/EventStatistics.cpp \
     src/Partitioner.cpp \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \

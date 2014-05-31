@@ -1,33 +1,43 @@
 #include "Configuration.hpp"
 
 #include <cstdlib>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <tuple>
+#include <utility>
 #include <vector>
 
 #include "tclap/CmdLine.h"
 #include "json/json.h"
 
 #include "CommandLineConfiguration.hpp"
+#include "NullEventStatistics.hpp"
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
 #include "TimeWarpEventDispatcher.hpp"
+#include "utility/memory.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
 
 // If max-sim-time > 0, the simulation will halt once the time has been reached
-"max-sim-time":0,
+"max - sim - time":0,
 
-// Valid options are "sequential" and "time-warp"
-"simulation-type": "sequential",
+// Valid options are "sequential" and "time - warp"
+"simulation - type": "sequential",
+
+"statistics": {
+// Valid options are "none", "json", "graphviz", and "metis"
+"type": "none",
+// If statistics-type is not "none", save the output in this file
+"file": "statistics.out"
+},
 
 // Valid options are "default" and "round-robin". "default" will use user
-// provided partitioning if given, else "round-robin".
+// provided partitioning if given, else "round - robin".
 "partitioning": "default"
 
 })x";
@@ -128,7 +138,17 @@ std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
     }
 
     // Return a SequentialEventDispatcher by default
-    return std::unique_ptr<EventDispatcher> {new SequentialEventDispatcher{max_sim_time_}};
+    std::unique_ptr<EventStatistics> stats;
+    if ((*root_)["statistics"]["type"].asString() == "json") {
+        // stats = make_unique<JSONEventStatistics>((*root_)["statistics"]["file"]); // TODO
+    } else if ((*root_)["statistics"]["type"].asString() == "graphviz") {
+        // stats = make_unique<AggregateEventStatistics>("graphviz", (*root_)["statistics"]["file"]); // TODO
+    } else if ((*root_)["statistics"]["type"].asString() == "metis") {
+        // stats = make_unique<AggregateEventStatistics>("metis", (*root_)["statistics"]["file"]); // TODO
+    } else {
+        stats = make_unique<NullEventStatistics>();
+    }
+    return std::unique_ptr<EventDispatcher> {new SequentialEventDispatcher{max_sim_time_, std::move(stats)}};
 }
 
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
