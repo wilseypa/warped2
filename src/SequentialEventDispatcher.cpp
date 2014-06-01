@@ -38,7 +38,7 @@ void SequentialEventDispatcher::startSimulation(
         auto receiver = objects_by_name[event->receiverName()];
         auto new_events = receiver->receiveEvent(*event.get());
         stats_->record(event->receiverName(), current_sim_time, new_events);
-        events.push(new_events);
+        events.push(std::move(new_events));
     }
 }
 

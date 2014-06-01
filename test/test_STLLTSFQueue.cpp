@@ -2,6 +2,7 @@
 #include "catch.hpp"
 
 #include <memory>
+#include <utility>
 
 #include "STLLTSFQueue.hpp"
 #include "Event.hpp"
@@ -77,7 +78,7 @@ TEST_CASE("Queue events are sorted by timestamp", "[STLLTSFQueue][LTSFQueue]") {
         v.emplace_back(new test_Event {"2", 5});
         v.emplace_back(new test_Event {"3", 15});
 
-        q.push(v);
+        q.push(std::move(v));
         REQUIRE(!q.empty());
         REQUIRE(q.size() == 3);
         REQUIRE(q.peek() != nullptr);
@@ -103,7 +104,7 @@ TEST_CASE("Queue events are sorted by timestamp", "[STLLTSFQueue][LTSFQueue]") {
         v.emplace_back(new test_Event {"2", 5});
         v.emplace_back(new test_Event {"3", 10});
 
-        q.push(v);
+        q.push(std::move(v));
         REQUIRE(!q.empty());
         REQUIRE(q.size() == 3);
         REQUIRE(q.peek() != nullptr);

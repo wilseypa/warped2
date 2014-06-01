@@ -42,12 +42,6 @@ void STLLTSFQueue::push(std::unique_ptr<Event> event) {
     queue_.push(event.release());
 }
 
-void STLLTSFQueue::push(std::vector<std::unique_ptr<Event>>& events) {
-    for (auto& event: events) {
-        queue_.push(event.release());
-    }
-}
-
 void STLLTSFQueue::push(std::vector<std::unique_ptr<Event>>&& events) {
     for (auto& event: events) {
         queue_.push(event.release());

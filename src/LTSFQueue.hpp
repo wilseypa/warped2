@@ -14,8 +14,7 @@ class Event;
 // The interface for Warped LTSF queues differs slightly from STL queues. LTSF
 // Queues own the events they store, and so must give up ownership of the
 // events when pop() is called instead of simply deleting the objects like STL
-// queues do. Although this is technically not exception-safe, this isn't an
-// issue in practice.
+// queues do.
 class LTSFQueue {
 public:
     virtual ~LTSFQueue() {}
@@ -31,14 +30,16 @@ public:
     virtual Event* peek() const = 0;
 
     // Remove the lowest timestamped event from the queue and give ownership
-    // to the caller.
+    // to the caller. It is undefined behavior to call this function when
+    // size() == 0.
     virtual std::unique_ptr<Event> pop() = 0;
 
-    // Add one event to the queue.
+    // Add one event to the queue. Ownership of the event is transferred to
+    // the queue.
     virtual void push(std::unique_ptr<Event> event) = 0;
 
-    // Add multiple events to the queue at once.
-    virtual void push(std::vector<std::unique_ptr<Event>>& events) = 0;
+    // Add multiple events to the queue at once. Ownership of all events is
+    // transfered to the queue.
     virtual void push(std::vector<std::unique_ptr<Event>>&& events) = 0;
 };
 

@@ -22,7 +22,6 @@ public:
     Event* peek() const;
     std::unique_ptr<Event> pop();
     void push(std::unique_ptr<Event> event);
-    void push(std::vector<std::unique_ptr<Event>>& events);
     void push(std::vector<std::unique_ptr<Event>>&& events);
 
 private:
