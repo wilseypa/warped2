@@ -3,11 +3,12 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace warped {
 
-void EventStatistics::writeToFile(const std::string& filename) {
-    std::ofstream ofs(filename, std::ofstream::out);
+void EventStatistics::writeToFile() {
+    std::ofstream ofs(filename_, std::ofstream::out);
     ofs << *this;
 }
 
