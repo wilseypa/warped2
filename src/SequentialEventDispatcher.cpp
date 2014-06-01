@@ -28,7 +28,9 @@ void SequentialEventDispatcher::startSimulation(
     unsigned int current_sim_time = 0;
 
     for (auto& ob : objects[0]) {
-        events.push(ob->createInitialEvents());
+        auto new_events = ob->createInitialEvents();
+        stats_->record(ob->name_, current_sim_time, new_events);
+        events.push(std::move(new_events));
         objects_by_name[ob->name_] = ob;
     }
 
@@ -40,6 +42,8 @@ void SequentialEventDispatcher::startSimulation(
         stats_->record(event->receiverName(), current_sim_time, new_events);
         events.push(std::move(new_events));
     }
+
+    stats_->writeToFile();
 }
 
 } // namespace warped

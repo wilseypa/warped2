@@ -14,6 +14,7 @@
 #include "json/json.h"
 
 #include "CommandLineConfiguration.hpp"
+#include "IndividualEventStatistics.hpp"
 #include "NullEventStatistics.hpp"
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
@@ -24,20 +25,20 @@ namespace {
 const static std::string DEFAULT_CONFIG = R"x({
 
 // If max-sim-time > 0, the simulation will halt once the time has been reached
-"max - sim - time":0,
+"max-sim-time":0,
 
-// Valid options are "sequential" and "time - warp"
-"simulation - type": "sequential",
+// Valid options are "sequential" and "time-warp"
+"simulation-type": "sequential",
 
 "statistics": {
-// Valid options are "none", "json", "graphviz", and "metis"
-"type": "none",
-// If statistics-type is not "none", save the output in this file
-"file": "statistics.out"
+    // Valid options are "none", "json", "graphviz", and "metis"
+    "type": "none",
+    // If statistics-type is not "none", save the output in this file
+    "file": "statistics.out"
 },
 
 // Valid options are "default" and "round-robin". "default" will use user
-// provided partitioning if given, else "round - robin".
+// provided partitioning if given, else "round-robin".
 "partitioning": "default"
 
 })x";
@@ -138,12 +139,14 @@ std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
 
     // Return a SequentialEventDispatcher by default
     std::unique_ptr<EventStatistics> stats;
-    if ((*root_)["statistics"]["type"].asString() == "json") {
-        // stats = make_unique<JSONEventStatistics>((*root_)["statistics"]["file"]); // TODO
-    } else if ((*root_)["statistics"]["type"].asString() == "graphviz") {
-        // stats = make_unique<AggregateEventStatistics>("graphviz", (*root_)["statistics"]["file"]); // TODO
-    } else if ((*root_)["statistics"]["type"].asString() == "metis") {
-        // stats = make_unique<AggregateEventStatistics>("metis", (*root_)["statistics"]["file"]); // TODO
+    auto statistics_type = (*root_)["statistics"]["type"].asString();
+    auto statistics_file = (*root_)["statistics"]["file"].asString();
+    if (statistics_type == "json") {
+        stats = make_unique<IndividualEventStatistics>(statistics_file);
+        // } else if (statistics_type == "graphviz") {
+        // stats = make_unique<AggregateEventStatistics>("graphviz", statistics_file); // TODO
+        // } else if (statistics_type == "metis") {
+        // stats = make_unique<AggregateEventStatistics>("metis", statistics_file); // TODO
     } else {
         stats = make_unique<NullEventStatistics>();
     }

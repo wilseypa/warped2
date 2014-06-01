@@ -18,6 +18,7 @@ WARPED_NOINST_HPP_FILES = \
     src/CommandLineConfiguration.hpp \
     src/EventDispatcher.hpp \
     src/EventStatistics.hpp \
+    src/IndividualEventStatistics.hpp \
     src/LTSFQueue.hpp \
     src/NullEventStatistics.hpp \
     src/RoundRobinPartitioner.hpp \
@@ -32,6 +33,7 @@ WARPED_NOINST_HPP_FILES = \
 WARPED_CPP_FILES = \
     src/CommandLineConfiguration.cpp \
     src/Configuration.cpp \
+    src/IndividualEventStatistics.cpp \
     src/EventStatistics.cpp \
     src/Partitioner.cpp \
     src/RoundRobinPartitioner.cpp \
