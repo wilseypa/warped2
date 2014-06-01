@@ -1,3 +1,6 @@
+#ifndef EVENT_STATISTICS_HPP
+#define EVENT_STATISTICS_HPP
+
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -27,3 +30,5 @@ private:
 };
 
 } // namespace warped
+
+#endif

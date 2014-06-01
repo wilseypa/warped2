@@ -1,3 +1,6 @@
+#ifndef WARPED_UTILITY_MEMORY_HPP
+#define WARPED_UTILITY_MEMORY_HPP
+
 #include <memory>
 #include <utility>
 
@@ -12,3 +15,5 @@ std::unique_ptr<T> make_unique(Args&& ...args) {
 }
 
 } // namespace warped
+
+#endif

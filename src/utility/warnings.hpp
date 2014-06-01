@@ -1,3 +1,5 @@
+#ifndef WARPED_UTILITY_WARNINGS_HPP
+#define WARPED_UTILITY_WARNINGS_HPP
 
 namespace warped {
 
@@ -5,3 +7,5 @@ namespace warped {
 template<class... T> void unused(T&& ...) {}
 
 } // namespace warped
+
+#endif

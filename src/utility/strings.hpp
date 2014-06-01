@@ -1,3 +1,6 @@
+#ifndef WARPED_UTILITY_STRINGS_HPP
+#define WARPED_UTILITY_STRINGS_HPP
+
 // This header includes functions for manipulating std::strings
 
 #include <string>
@@ -52,3 +55,5 @@ std::string rtrim(const std::string& str, std::string chars = " \t\r\n") {
 }
 
 } // namespace warped
+
+#endif

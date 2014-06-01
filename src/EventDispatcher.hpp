@@ -1,5 +1,5 @@
-#ifndef EVENT_DISPATCHER_H
-#define EVENT_DISPATCHER_H
+#ifndef EVENT_DISPATCHER_HPP
+#define EVENT_DISPATCHER_HPP
 
 #include <limits>
 #include <vector>

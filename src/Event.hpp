@@ -1,5 +1,5 @@
-#ifndef WARPED_EVENT_H
-#define WARPED_EVENT_H
+#ifndef WARPED_EVENT_HPP
+#define WARPED_EVENT_HPP
 
 #include <string>
 

@@ -1,3 +1,6 @@
+#ifndef WARPED_SERIALIZATION_HPP
+#define WARPED_SERIALIZATION_HPP
+
 // Macros used in Event serialization.
 
 #include "cereal/archives/binary.hpp"
@@ -13,3 +16,4 @@
 // of the class definition.
 #define WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS CEREAL_REGISTER_TYPE
     
+#endif

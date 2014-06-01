@@ -1,5 +1,5 @@
-#ifndef CONFIGURATION_H
-#define CONFIGURATION_H
+#ifndef WARPED_CONFIGURATION_HPP
+#define WARPED_CONFIGURATION_HPP
 
 #include <memory>
 #include <string>

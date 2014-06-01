@@ -1,4 +1,3 @@
-
 #ifndef STLLTSF_QUEUE_HPP
 #define STLLTSF_QUEUE_HPP
 
