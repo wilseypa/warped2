@@ -16,18 +16,17 @@
 namespace {
 
 // Create TCLAP args from a json doc and add them to a CmdLine
-std::vector<std::unique_ptr<TCLAP::Arg>> createArgs(const std::string& current_path,
-                                                    Json::Value& root,
-                                                    TCLAP::CmdLine& cmd_line,
-std::unordered_map<std::string, Json::Value*>& values_by_name) {
+void createArgs(const std::string& current_path, Json::Value& root, TCLAP::CmdLine& cmd_line,
+                std::unordered_map<std::string, Json::Value*>& values_by_name,
+                std::vector<std::unique_ptr<TCLAP::Arg>>& args) {
     std::string arg_name;
     std::string arg_desc;
-    std::vector<std::unique_ptr<TCLAP::Arg>> args;
 
     for (const auto& key : root.getMemberNames()) {
         auto& value = root[key];
         if (value.isObject()) {
-            createArgs(current_path + warped::trim(key) + "-", value, cmd_line, values_by_name);
+            createArgs(current_path + warped::trim(key) + "-",
+                       value, cmd_line, values_by_name, args);
         } else {
             arg_name = current_path + warped::trim(key);
             // Create the command line help by joining the lines of the JSON
@@ -57,8 +56,6 @@ std::unordered_map<std::string, Json::Value*>& values_by_name) {
             values_by_name[arg_name] = &value;
         }
     }
-
-    return args;
 }
 
 // Get the values from command line args and update the parsed JSON doc
@@ -92,7 +89,8 @@ std::pair<bool, std::string> CommandLineConfiguration::parse(
 
     // Add JSON specified args
     std::unordered_map<std::string, Json::Value*> values_by_name;
-    auto args = createArgs("", *root_, cmd_line, values_by_name);
+    std::vector<std::unique_ptr<TCLAP::Arg>> args;
+    createArgs("", *root_, cmd_line, values_by_name, args);
 
     // Add default args
     TCLAP::ValueArg<std::string> config_arg("c", "config", "Warped configuration file",

@@ -36,7 +36,7 @@ TEST_CASE("The CommandLineConfiguration parses arguments correctly", "[CommandLi
         REQUIRE(ret.second == "test_filename");
     }
 
-    SECTION("JSON command line arguments") {
+    SECTION("Flat JSON command line arguments") {
         root["s"] = "s_val";
         root["b"] = false;
         root["d"] = 1.0;
@@ -58,6 +58,27 @@ TEST_CASE("The CommandLineConfiguration parses arguments correctly", "[CommandLi
         SECTION("int value") {
             REQUIRE(root["i"].isInt());
             REQUIRE(root["i"].asInt() == 2);
+        }
+    }
+
+    SECTION("Nested JSON command line arguments") {
+        root["a"] = 2;
+        root["b"]["b"] = 3;
+        root["b"]["c"]["c"] = 4;
+
+        std::vector<const char*> v {"prog", "--a", "22", "--b-b", "33", "--b-c-c", "44"};
+        config.parse("model", (int)v.size(), v.data(), user_args);
+        SECTION("no nesting") {
+            REQUIRE(root["a"].isInt());
+            REQUIRE(root["a"].asInt() == 22);
+        }
+        SECTION("one nesting level") {
+            REQUIRE(root["b"]["b"].isInt());
+            REQUIRE(root["b"]["b"].asInt() == 33);
+        }
+        SECTION("two nesting levels") {
+            REQUIRE(root["b"]["c"]["c"].isInt());
+            REQUIRE(root["b"]["c"]["c"].asInt() == 44);
         }
     }
 
