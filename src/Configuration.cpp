@@ -13,6 +13,7 @@
 #include "tclap/CmdLine.h"
 #include "json/json.h"
 
+#include "AggregateEventStatistics.hpp"
 #include "CommandLineConfiguration.hpp"
 #include "IndividualEventStatistics.hpp"
 #include "NullEventStatistics.hpp"
@@ -143,10 +144,12 @@ std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
     auto statistics_file = (*root_)["statistics"]["file"].asString();
     if (statistics_type == "json") {
         stats = make_unique<IndividualEventStatistics>(statistics_file);
-        // } else if (statistics_type == "graphviz") {
-        // stats = make_unique<AggregateEventStatistics>("graphviz", statistics_file); // TODO
-        // } else if (statistics_type == "metis") {
-        // stats = make_unique<AggregateEventStatistics>("metis", statistics_file); // TODO
+    } else if (statistics_type == "graphviz") {
+        auto type = AggregateEventStatistics::OutputType::Graphviz;
+        stats = make_unique<AggregateEventStatistics>(statistics_file, type);
+    } else if (statistics_type == "metis") {
+        auto type = AggregateEventStatistics::OutputType::Metis;
+        stats = make_unique<AggregateEventStatistics>(statistics_file, type);
     } else {
         stats = make_unique<NullEventStatistics>();
     }

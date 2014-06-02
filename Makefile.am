@@ -15,6 +15,7 @@ WARPED_INSTALL_HPP_FILES = \
 
 # All other headers are listed in this variable
 WARPED_NOINST_HPP_FILES = \
+    src/AggregateEventStatistics.hpp \
     src/CommandLineConfiguration.hpp \
     src/EventDispatcher.hpp \
     src/EventStatistics.hpp \
@@ -31,6 +32,7 @@ WARPED_NOINST_HPP_FILES = \
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
+    src/AggregateEventStatistics.cpp \
     src/CommandLineConfiguration.cpp \
     src/Configuration.cpp \
     src/IndividualEventStatistics.cpp \
