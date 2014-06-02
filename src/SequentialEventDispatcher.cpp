@@ -2,11 +2,13 @@
 
 #include <memory>
 #include <stdexcept>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 #include "Event.hpp"
+#include "EventDispatcher.hpp"
 #include "EventStatistics.hpp"
 #include "SimulationObject.hpp"
 #include "STLLTSFQueue.hpp"

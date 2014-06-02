@@ -4,11 +4,11 @@
 #include <memory>
 #include <string>
 #include <utility>
-#include <vector>
 
 #include "json/json.h"
 
 #include "Event.hpp"
+#include "EventStatistics.hpp"
 #include "utility/memory.hpp"
 
 namespace warped {

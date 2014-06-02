@@ -1,13 +1,12 @@
 #include "Simulation.hpp"
 
-#include <iostream>
 #include <memory>
 #include <vector>
 
+#include "Configuration.hpp"
 #include "EventDispatcher.hpp"
 #include "Partitioner.hpp"
-
-class SimulationObject;
+#include "SimulationObject.hpp"
 
 namespace warped {
 

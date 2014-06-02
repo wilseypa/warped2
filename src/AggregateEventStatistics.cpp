@@ -7,6 +7,7 @@
 
 #include "AggregateEventStatistics.hpp"
 #include "Event.hpp"
+#include "EventStatistics.hpp"
 #include "utility/warnings.hpp"
 
 namespace warped {

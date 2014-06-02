@@ -1,7 +1,6 @@
 #ifndef SIMULATION_HPP
 #define SIMULATION_HPP
 
-#include <memory>
 #include <string>
 #include <vector>
 

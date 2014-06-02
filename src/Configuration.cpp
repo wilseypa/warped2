@@ -10,13 +10,15 @@
 #include <utility>
 #include <vector>
 
-#include "tclap/CmdLine.h"
 #include "json/json.h"
 
 #include "AggregateEventStatistics.hpp"
 #include "CommandLineConfiguration.hpp"
+#include "EventDispatcher.hpp"
+#include "EventStatistics.hpp"
 #include "IndividualEventStatistics.hpp"
 #include "NullEventStatistics.hpp"
+#include "Partitioner.hpp"
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
 #include "TimeWarpEventDispatcher.hpp"

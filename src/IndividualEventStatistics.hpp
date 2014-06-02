@@ -4,7 +4,6 @@
 #include <iosfwd>
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "EventStatistics.hpp"
 
