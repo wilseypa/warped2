@@ -9,6 +9,7 @@ AM_DEFAULT_SOURCE_EXT = .cpp
 WARPED_TEST_PROGS = \
     test_CommandLineConfiguration \
     test_Event \
+    test_IndividualEventStatistics \
     test_ObjectState \
     test_RoundRobinPartitioner \
     test_serialization \
