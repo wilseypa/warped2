@@ -1,6 +1,6 @@
 CPPFLAGS = -I$(top_srcdir)/deps -I$(top_srcdir)/src
-LDFLAGS=-static
-LDADD=$(top_builddir)/libwarped.la
+LDFLAGS = -static
+LDADD = $(top_builddir)/libwarped.la
 
 # With a default ext specified, we can skip defining SOURCES for a progarm
 # that has only one file  
@@ -17,7 +17,7 @@ WARPED_TEST_PROGS = \
     test_SimulationObject \
     test_STLLTSFQueue
 
-noinst_HEADERS = catch.hpp
+noinst_HEADERS = catch.hpp mocks.hpp
 
 TESTS = $(WARPED_TEST_PROGS)
 check_PROGRAMS = $(WARPED_TEST_PROGS)

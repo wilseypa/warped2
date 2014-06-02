@@ -2,26 +2,11 @@
 #include "catch.hpp"
 
 #include <memory>
+#include <sstream>
 
-#include "serialization.hpp"
 #include "Event.hpp"
-
-
-struct test_Event : public warped::Event {
-    test_Event() = default;
-    test_Event(const std::string& receiver_name, unsigned int receive_time, int x)
-        : receiver_name_(receiver_name), receive_time_(receive_time), x(x) {}
-
-    const std::string& receiverName() const {return receiver_name_;}
-    unsigned int timestamp() const {return receive_time_;}
-
-    int x;
-    std::string receiver_name_;
-    unsigned int receive_time_;
-
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(receiver_name_, receive_time_, x);
-};
-WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(test_Event);
+#include "mocks.hpp"
+#include "serialization.hpp"
 
 TEST_CASE("Events can be serialized", "[serialization][Event]") {
     std::stringstream ss;

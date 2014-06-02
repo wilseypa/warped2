@@ -4,11 +4,7 @@
 #include <memory>
 
 #include "ObjectState.hpp"
-
-WARPED_DEFINE_OBJECT_STATE_STRUCT(test_ObjectState) {
-    test_ObjectState(int x): x(x) {}
-    int x;
-};
+#include "mocks.hpp"
 
 TEST_CASE("The State can be derived from", "[ObjectState]") {
     test_ObjectState s1 {1};

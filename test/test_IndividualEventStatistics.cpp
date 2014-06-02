@@ -10,18 +10,7 @@
 #include "Event.hpp"
 #include "IndividualEventStatistics.hpp"
 #include "utility/memory.hpp"
-
-struct test_Event : public warped::Event {
-    test_Event() = default;
-    test_Event(const std::string& receiver_name, unsigned int receive_time)
-        : receiver_name_(receiver_name), receive_time_(receive_time) {}
-
-    const std::string& receiverName() const {return receiver_name_;}
-    unsigned int timestamp() const {return receive_time_;}
-
-    std::string receiver_name_;
-    unsigned int receive_time_;
-};
+#include "mocks.hpp"
 
 TEST_CASE("IndividualEventStatistics are collected", "[IndividualEventStatistics]") {
     warped::IndividualEventStatistics stats{""};
