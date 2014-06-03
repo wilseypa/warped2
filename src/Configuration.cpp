@@ -19,6 +19,7 @@
 #include "IndividualEventStatistics.hpp"
 #include "NullEventStatistics.hpp"
 #include "Partitioner.hpp"
+#include "ProfileGuidedPartitioner.hpp"
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
 #include "TimeWarpEventDispatcher.hpp"
@@ -40,9 +41,15 @@ const static std::string DEFAULT_CONFIG = R"x({
     "file": "statistics.out"
 },
 
-// Valid options are "default" and "round-robin". "default" will use user
-// provided partitioning if given, else "round-robin".
-"partitioning": "default"
+"partitioning" {
+    // Valid options are "default", "round-robin" and "profile-guided".
+    // "default" will use user provided partitioning if given, else
+    // "round-robin".
+    "type":"default",
+    // The path to the statistics file that was created from a previous run.
+    // Only used if "partitioning-type" is "provided-guided".
+    "file":"statistics.out"
+}
 
 })x";
 
@@ -159,9 +166,16 @@ std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
 }
 
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
-    auto partitioner_type = (*root_)["partitioning"].asString();
+    auto partitioner_type = (*root_)["partitioning"]["type"].asString();
     if (partitioner_type == "default" || partitioner_type == "round-robin") {
         return make_unique<RoundRobinPartitioner>();
+    } else if (partitioner_type == "profile-guided") {
+        auto filename = (*root_)["partitioning"]["file"].asString();
+        std::ifstream input(filename);
+        if (!input.is_open()) {
+            throw std::runtime_error(std::string("Could not open statistics file ") + filename);
+        }
+        return make_unique<ProfileGuidedPartitioner>(input);
     }
     throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
 }

@@ -24,6 +24,7 @@ WARPED_NOINST_HPP_FILES = \
     src/IndividualEventStatistics.hpp \
     src/LTSFQueue.hpp \
     src/NullEventStatistics.hpp \
+    src/ProfileGuidedPartitioner.hpp \
     src/RoundRobinPartitioner.hpp \
     src/SequentialEventDispatcher.hpp \
     src/STLLTSFQueue.hpp \
@@ -40,6 +41,7 @@ WARPED_CPP_FILES = \
     src/EventStatistics.cpp \
     src/IndividualEventStatistics.cpp \
     src/Partitioner.cpp \
+    src/ProfileGuidedPartitioner.cpp \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
     src/Simulation.cpp \
