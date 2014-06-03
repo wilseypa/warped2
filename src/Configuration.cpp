@@ -29,26 +29,27 @@ namespace {
 const static std::string DEFAULT_CONFIG = R"x({
 
 // If max-sim-time > 0, the simulation will halt once the time has been reached
-"max-sim-time":0,
+"max-sim-time": 0,
 
 // Valid options are "sequential" and "time-warp"
 "simulation-type": "sequential",
 
 "statistics": {
-    // Valid options are "none", "json", "graphviz", and "metis"
+    // Valid options are "none", "json", "csv", "graphviz", and "metis".
+    // "json" and "csv" are individual statistics, others are aggregate.
     "type": "none",
     // If statistics-type is not "none", save the output in this file
     "file": "statistics.out"
 },
 
-"partitioning" {
+"partitioning": {
     // Valid options are "default", "round-robin" and "profile-guided".
     // "default" will use user provided partitioning if given, else
     // "round-robin".
-    "type":"default",
+    "type": "default",
     // The path to the statistics file that was created from a previous run.
     // Only used if "partitioning-type" is "provided-guided".
-    "file":"statistics.out"
+    "file": "statistics.out"
 }
 
 })x";
@@ -152,7 +153,11 @@ std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
     auto statistics_type = (*root_)["statistics"]["type"].asString();
     auto statistics_file = (*root_)["statistics"]["file"].asString();
     if (statistics_type == "json") {
-        stats = make_unique<IndividualEventStatistics>(statistics_file);
+        auto type = IndividualEventStatistics::OutputType::Json;
+        stats = make_unique<IndividualEventStatistics>(statistics_file, type);
+    } else if (statistics_type == "csv") {
+        auto type = IndividualEventStatistics::OutputType::Csv;
+        stats = make_unique<IndividualEventStatistics>(statistics_file, type);
     } else if (statistics_type == "graphviz") {
         auto type = AggregateEventStatistics::OutputType::Graphviz;
         stats = make_unique<AggregateEventStatistics>(statistics_file, type);
