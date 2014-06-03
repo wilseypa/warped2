@@ -1,5 +1,5 @@
-#ifndef OBJECT_STATE_H
-#define OBJECT_STATE_H
+#ifndef OBJECT_STATE_HPP
+#define OBJECT_STATE_HPP
 
 #include <memory>
 
