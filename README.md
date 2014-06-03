@@ -1,4 +1,4 @@
-# WAPRED [![Build Status](https://api.travis-ci.org/wilseypa/warped.png)](https://travis-ci.org/wilseypa/warped)
+# WAPRED [![Build Status](http://img.shields.io/travis/wilseypa/warped2/master.svg)](https://travis-ci.org/wilseypa/warped2)
 
 A Parallel & Distributed Discrete Simulation Library
 
@@ -10,7 +10,7 @@ WARPED is built with Autotools and a C++11 compiler (see [here](http://lektionde
 
 To build from the git repository, first clone a local copy.
 
-	git clone https://github.com/wilseypa/pdes.git $HOME/warped
+	git clone https://github.com/wilseypa/warped2.git $HOME/warped
 
 You can run the Autotools build without any options, although specifying a prefix (install location) is recommended.
 
