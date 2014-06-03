@@ -23,11 +23,13 @@ dnl Once MPI support is added, uncomment the next two lines
 dnl m4_include([m4/check_lib_mpi.m4])
 dnl CHECK_LIB_MPI
 
-AC_CONFIG_FILES([Makefile])
-AC_CONFIG_FILES([deps/Makefile])
 AC_CONFIG_FILES([deps/cereal/Makefile])
 AC_CONFIG_FILES([deps/json/Makefile])
+AC_CONFIG_FILES([deps/Makefile])
+AC_CONFIG_FILES([deps/metis/GKlib/Makefile])
+AC_CONFIG_FILES([deps/metis/libmetis/Makefile])
+AC_CONFIG_FILES([deps/metis/Makefile])
 AC_CONFIG_FILES([deps/tclap/Makefile])
+AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([test/Makefile])
-
 AC_OUTPUT

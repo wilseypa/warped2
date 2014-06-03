@@ -3,7 +3,8 @@ SUBDIRS = deps test
 lib_LTLIBRARIES = libwarped.la
 
 # These are the headers that will be installed. Only list headers included
-# (directly or indirectly) through warped.hpp
+# (directly or indirectly) through warped.hpp. Keep all these source listings
+# sorted.
 WARPED_INSTALL_HPP_FILES = \
     src/Configuration.hpp \
     src/Event.hpp \
@@ -11,7 +12,8 @@ WARPED_INSTALL_HPP_FILES = \
     src/Partitioner.hpp \
     src/serialization.hpp \
     src/Simulation.hpp \
-    src/SimulationObject.hpp
+    src/SimulationObject.hpp \
+    src/warped.hpp
 
 # All other headers are listed in this variable
 WARPED_NOINST_HPP_FILES = \
@@ -35,8 +37,8 @@ WARPED_CPP_FILES = \
     src/AggregateEventStatistics.cpp \
     src/CommandLineConfiguration.cpp \
     src/Configuration.cpp \
-    src/IndividualEventStatistics.cpp \
     src/EventStatistics.cpp \
+    src/IndividualEventStatistics.cpp \
     src/Partitioner.cpp \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
@@ -50,9 +52,7 @@ libwarped_la_SOURCES = \
     $(WARPED_NOINST_HPP_FILES) \
     $(WARPED_CPP_FILES)
 
-include_HEADERS = \
-    $(WARPED_INSTALL_HPP_FILES) \
-    src/warped.hpp
+include_HEADERS = $(WARPED_INSTALL_HPP_FILES)
 
 # When MPI support is added, uncomment these next blocks
 # if HAVE_MPICH
@@ -63,7 +63,10 @@ include_HEADERS = \
 # endif
 # endif
 
-libwarped_la_LIBADD = $(top_builddir)/deps/json/libjsoncpp.la
+libwarped_la_LIBADD = \
+    $(top_builddir)/deps/json/libjsoncpp.la \
+    $(top_builddir)/deps/metis/libmetis/libmetis.la
+
 libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror
 
 # Use -isystem here instead of -I to disable warnings for third party code
