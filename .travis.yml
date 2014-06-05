@@ -1,0 +1,15 @@
+language: cpp
+compiler:
+  - gcc
+  - clang
+before_install:
+  - sudo apt-get update -qq
+  - sudo apt-get install -qq mpich2 libmpich2-dev libtool automake 
+  - mkdir -p $HOME/lib
+script: 
+  - autoreconf -i 
+  - ./configure --prefix=$HOME/lib/warped 
+  - make -j5
+  - make check 
+  - make install 
+  - make distcheck -j5
