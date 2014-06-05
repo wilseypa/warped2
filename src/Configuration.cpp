@@ -139,6 +139,10 @@ void Configuration::init(const std::string& model_description, int argc, const c
 }
 
 std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
+    if ((*root_)["max-sim-time"].isUInt()) {
+        max_sim_time_ = (*root_)["max-sim-time"].asUInt();
+    }
+
     if ((*root_)["simulation-type"].asString() == "time-warp") {
         //TODO: Create, configure, and return a TimeWarpEventDispatcher
         // This is just a rough idea of how the dispatcher could be configured
