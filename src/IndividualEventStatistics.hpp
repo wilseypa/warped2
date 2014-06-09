@@ -21,10 +21,10 @@ public:
         entry() = default;
         entry(std::string s, std::string d, unsigned int st, unsigned int rt)
             : source(s), dest(d), send_time(st), receive_time(rt) {}
-        const std::string source;
-        const std::string dest;
-        const unsigned int send_time;
-        const unsigned int receive_time;
+        std::string source;
+        std::string dest;
+        unsigned int send_time;
+        unsigned int receive_time;
     };
 
     IndividualEventStatistics(std::string filename, OutputType output_type);
