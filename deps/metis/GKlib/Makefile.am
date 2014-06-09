@@ -53,3 +53,5 @@ noinst_LTLIBRARIES = libgk.la
 libgk_la_SOURCES = \
     $(GKLIB_H_FILES) \
     $(GKLIB_C_FILES)
+
+libgk_la_CXXFLAGS = -w

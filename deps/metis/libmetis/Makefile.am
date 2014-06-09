@@ -51,6 +51,7 @@ noinst_LTLIBRARIES = libmetis.la
 
 libmetis_la_CPPFLAGS = -I$(top_srcdir)/deps/metis/include -I$(top_srcdir)/deps/metis/GKlib
 libmetis_la_LIBADD = $(top_builddir)/deps/metis/GKlib/libgk.la
+libmetis_la_CXXFLAGS = -w
 
 libmetis_la_SOURCES = \
     $(LIBMETIS_H_FILES) \
