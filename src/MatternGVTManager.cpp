@@ -1,12 +1,12 @@
 #include "MatternGVTManager.hpp"
 #include "MatternGVTControlMessage.hpp"
 
-#include <numeric_limits>   // for infinity (std::numeric_limits<uint64_t>::max())
+#include <limits>   // for infinity (std::numeric_limits<uint64_t>::max())
 #include <algorithm>    // for std::min()
 
 namespace warped {
 
-uint64_t MatternGVTManager::infinity() {
+uint64_t MatternGVTManager::infinityVT() {
     return std::numeric_limits<uint64_t>::max();
 }
 
@@ -19,22 +19,27 @@ void MatternGVTManager::sendGVTUpdate() {
 void MatternGVTManager::calculateGVT() {
 
     if (num_partitions_ > 1) {
-        if (gVT_calc_initiated == false) {
-            color = RED;
-            min_red_message_timestamp = infinityVT();
-            white_msg_counter = 0;
+        if (gVT_calc_initiated_ == false) {
+            color_ = MatternMsgColor::RED;
+            min_red_msg_timestamp_ = infinityVT();
+            white_msg_counter_ = 0;
 
-            sendMatternControlMessage(lVt, infinityVT(), white_msg_counter, 1);
-            gVT_calc_initiated = true;
+            uint64_t T = 0;//getLastEventScheduledTime();
+            sendMatternControlMessage(T, infinityVT(), white_msg_counter_, 1);
+            gVT_calc_initiated_ = true;
         }
     } else {
-        gVT = 0;//getLastEventScheduledTime();
-    {
+        gVT_ = 0;//getLastEventScheduledTime();
+    }
 }
 
 void MatternGVTManager::sendMatternControlMessage(uint64_t m_clock, uint64_t m_send, uint32_t count,
                                                   uint32_t P) {
-
+    //TODO dummies
+    m_clock = 0;
+    m_send = 0;
+    count = 0;
+    P = 0;
 }
 
 void MatternGVTManager::receiveMatternControlMessage(
@@ -42,16 +47,16 @@ void MatternGVTManager::receiveMatternControlMessage(
 
     if (node_id_ == 0) {
         // Initiator received the message
-        white_msg_counter = white_msg_counter + msg->count();
+        white_msg_counter_ = white_msg_counter_ + msg->count();
         if (white_msg_counter_ == 0 && msg_round_ > 1) {
             // At this point all white messages are accounted for so we can
             // calculate the GVT now
-            gVT = std::min(msg->mClock(), msg->mSend());
-            gVT_calc_initiated = false;
+            gVT_ = std::min(msg->mClock(), msg->mSend());
+            gVT_calc_initiated_ = false;
 
             // Reset to white, so another calculation can be made
-            white_msg_counter = 0;
-            color = WHITE;
+            white_msg_counter_ = 0;
+            color_ = MatternMsgColor::WHITE;
             msg_round_ = 0;
 
         } else {
@@ -62,12 +67,12 @@ void MatternGVTManager::receiveMatternControlMessage(
 
     } else {
         // A node other than the initiator is now receiving a control message
-        if (color == WHITE) {
-            min_red_msg_timestamp = infinityVT();
-            color = RED;
+        if (color_ == MatternMsgColor::WHITE) {
+            min_red_msg_timestamp_ = infinityVT();
+            color_ = MatternMsgColor::RED;
         }
 
-        white_msg_counter_ = white_msg_counter + msg->count();
+        white_msg_counter_ = white_msg_counter_ + msg->count();
 
         uint64_t T = 0;//getLastEventScheduledTime();
         sendMatternControlMessage(std::min(msg->mClock(), T),
@@ -80,4 +85,3 @@ void MatternGVTManager::receiveMatternControlMessage(
 
 } // namespace warped
 
-#endif

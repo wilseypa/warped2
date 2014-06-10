@@ -1,6 +1,10 @@
 #ifndef MATTERN_GVT_CONTROL_MESSAGE
 #define MATTERN_GVT_CONTROL_MESSAGE
 
+#include <cstdint> // for uint32_t and uint64_t
+
+#include "serialization.hpp"
+
 namespace warped {
 
 class MatternGVTControlMessage {
@@ -14,9 +18,9 @@ private:
     uint64_t m_send_;
     uint32_t count_;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(m_clock, m_send, count)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(m_clock_, m_send_, count_);
 };
-//WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS CEREAL_REGISTER_TYPE
+//WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS
 
 } // warped namespace
 
