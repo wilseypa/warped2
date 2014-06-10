@@ -11,7 +11,7 @@ WARPED_INSTALL_HPP_FILES = \
     src/Partitioner.hpp \
     src/serialization.hpp \
     src/Simulation.hpp \
-    src/SimulationObject.hpp
+    src/SimulationObject.hpp 
 
 # All other headers are listed in this variable
 WARPED_NOINST_HPP_FILES = \
@@ -28,7 +28,10 @@ WARPED_NOINST_HPP_FILES = \
     src/TimeWarpEventDispatcher.hpp \
     src/utility/memory.hpp \
     src/utility/strings.hpp \
-    src/utility/warnings.hpp
+    src/utility/warnings.hpp \
+    src/GVTManager.hpp \
+    src/MatternGVTManager.hpp \
+    src/MatternGVTControlMessage.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -43,7 +46,8 @@ WARPED_CPP_FILES = \
     src/Simulation.cpp \
     src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
-    src/TimeWarpEventDispatcher.cpp
+    src/TimeWarpEventDispatcher.cpp \
+    src/MatternGVTManager.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \
