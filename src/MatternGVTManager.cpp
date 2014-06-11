@@ -1,5 +1,4 @@
 #include "MatternGVTManager.hpp"
-#include "MatternGVTControlMessage.hpp"
 
 #include <limits>   // for infinity (std::numeric_limits<uint64_t>::max())
 #include <algorithm>    // for std::min()
@@ -47,11 +46,11 @@ void MatternGVTManager::receiveMatternControlMessage(
 
     if (node_id_ == 0) {
         // Initiator received the message
-        white_msg_counter_ = white_msg_counter_ + msg->count();
+        white_msg_counter_ = white_msg_counter_ + msg->count;
         if (white_msg_counter_ == 0 && msg_round_ > 1) {
             // At this point all white messages are accounted for so we can
             // calculate the GVT now
-            gVT_ = std::min(msg->mClock(), msg->mSend());
+            gVT_ = std::min(msg->m_clock, msg->m_send);
             gVT_calc_initiated_ = false;
 
             // Reset to white, so another calculation can be made
@@ -61,8 +60,8 @@ void MatternGVTManager::receiveMatternControlMessage(
 
         } else {
             uint64_t T = 0;//getLastEventScheduledTime();
-            sendMatternControlMessage(T, std::min(msg->mSend(), min_red_msg_timestamp_),
-                                      white_msg_counter_+msg->count(), 1);
+            sendMatternControlMessage(T, std::min(msg->m_send, min_red_msg_timestamp_),
+                                      white_msg_counter_+msg->count, 1);
         }
 
     } else {
@@ -72,12 +71,12 @@ void MatternGVTManager::receiveMatternControlMessage(
             color_ = MatternMsgColor::RED;
         }
 
-        white_msg_counter_ = white_msg_counter_ + msg->count();
+        white_msg_counter_ = white_msg_counter_ + msg->count;
 
         uint64_t T = 0;//getLastEventScheduledTime();
-        sendMatternControlMessage(std::min(msg->mClock(), T),
-                                  std::min(msg->mSend(), min_red_msg_timestamp_),
-                                  white_msg_counter_+msg->count(), (node_id_ % num_partitions_)+1);
+        sendMatternControlMessage(std::min(msg->m_clock, T),
+                                  std::min(msg->m_send, min_red_msg_timestamp_),
+                                  white_msg_counter_+msg->count, (node_id_ % num_partitions_)+1);
 
         white_msg_counter_ = 0;
     }

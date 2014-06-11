@@ -2,7 +2,7 @@
 #define MATTERN_GVT_MANAGER_HPP
 
 #include "GVTManager.hpp"
-#include "MatternGVTControlMessage.hpp"
+#include "serialization.hpp"
 
 #include <cstdint> // for uint64_t and uint32_t
 #include <memory> // for unique_ptr
@@ -11,6 +11,16 @@ namespace warped {
 
 // Color of messages for matterns algorithm
 enum class MatternMsgColor { WHITE, RED };
+
+struct MatternGVTControlMessage {
+
+    uint64_t m_clock;
+    uint64_t m_send;
+    uint32_t count;
+
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(m_clock, m_send, count)
+
+};
 
 class MatternGVTManager : public GVTManager {
 public:
