@@ -4,7 +4,7 @@
 #include <memory>
 #include <sstream>
 
-#include "MatternGVTControlMessage.hpp"
+#include "MatternGVTManager.hpp"
 #include "serialization.hpp"
 
 TEST_CASE("Mattern GVT messages can be serialized", "[serialization]") {
@@ -25,7 +25,7 @@ TEST_CASE("Mattern GVT messages can be serialized", "[serialization]") {
 
     auto m = dynamic_cast<warped::MatternGVTControlMessage*>(msg2.get());
     REQUIRE(m != nullptr);
-    REQUIRE(m->mClock() == 1);
-    REQUIRE(m->mSend() == 5);
-    REQUIRE(m->count() == 10);
+    REQUIRE(m->m_clock == 1);
+    REQUIRE(m->m_send == 5);
+    REQUIRE(m->count == 10);
 }

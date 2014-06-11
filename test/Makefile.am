@@ -17,7 +17,7 @@ WARPED_TEST_PROGS = \
     test_Simulation \
     test_SimulationObject \
     test_STLLTSFQueue \
-    test_MatternGVTControlMessage
+    test_MatternGVTManager
 
 noinst_HEADERS = catch.hpp mocks.hpp
 
