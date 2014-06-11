@@ -3,6 +3,8 @@
 #include <limits>   // for infinity (std::numeric_limits<uint64_t>::max())
 #include <algorithm>    // for std::min()
 
+#include "utility/memory.hpp"
+
 namespace warped {
 
 uint64_t MatternGVTManager::infinityVT() {
@@ -24,7 +26,8 @@ void MatternGVTManager::calculateGVT() {
             white_msg_counter_ = 0;
 
             uint64_t T = 0;//getLastEventScheduledTime();
-            sendMatternControlMessage(T, infinityVT(), white_msg_counter_, 1);
+            sendMatternControlMessage(warped::make_unique<MatternGVTControlMessage>(T,
+                infinityVT(), white_msg_counter_) , 1);
             gVT_calc_initiated_ = true;
         }
     } else {
@@ -32,12 +35,10 @@ void MatternGVTManager::calculateGVT() {
     }
 }
 
-void MatternGVTManager::sendMatternControlMessage(uint64_t m_clock, uint64_t m_send, uint32_t count,
-                                                  uint32_t P) {
-    //TODO dummies
-    m_clock = 0;
-    m_send = 0;
-    count = 0;
+void MatternGVTManager::sendMatternControlMessage(
+    std::unique_ptr<MatternGVTControlMessage> msg, uint32_t P) {
+    //TODO
+    msg = nullptr;
     P = 0;
 }
 
@@ -60,8 +61,8 @@ void MatternGVTManager::receiveMatternControlMessage(
 
         } else {
             uint64_t T = 0;//getLastEventScheduledTime();
-            sendMatternControlMessage(T, std::min(msg->m_send, min_red_msg_timestamp_),
-                                      white_msg_counter_+msg->count, 1);
+            sendMatternControlMessage(warped::make_unique<MatternGVTControlMessage>(T,
+                std::min(msg->m_send, min_red_msg_timestamp_), white_msg_counter_+msg->count) , 1);
         }
 
     } else {
@@ -74,9 +75,9 @@ void MatternGVTManager::receiveMatternControlMessage(
         white_msg_counter_ = white_msg_counter_ + msg->count;
 
         uint64_t T = 0;//getLastEventScheduledTime();
-        sendMatternControlMessage(std::min(msg->m_clock, T),
-                                  std::min(msg->m_send, min_red_msg_timestamp_),
-                                  white_msg_counter_+msg->count, (node_id_ % num_partitions_)+1);
+        sendMatternControlMessage(warped::make_unique<MatternGVTControlMessage>
+            (std::min(msg->m_clock, T), std::min(msg->m_send, min_red_msg_timestamp_),
+            white_msg_counter_+msg->count), (node_id_ % num_partitions_)+1);
 
         white_msg_counter_ = 0;
     }
