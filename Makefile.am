@@ -47,7 +47,8 @@ WARPED_CPP_FILES = \
     src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
     src/TimeWarpEventDispatcher.cpp \
-    src/MatternGVTManager.cpp
+    src/MatternGVTManager.cpp \
+    src/TerminationManager.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \
