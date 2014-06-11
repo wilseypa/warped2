@@ -11,7 +11,7 @@ WARPED_INSTALL_HPP_FILES = \
     src/Partitioner.hpp \
     src/serialization.hpp \
     src/Simulation.hpp \
-    src/SimulationObject.hpp 
+    src/SimulationObject.hpp
 
 # All other headers are listed in this variable
 WARPED_NOINST_HPP_FILES = \
@@ -31,7 +31,7 @@ WARPED_NOINST_HPP_FILES = \
     src/utility/warnings.hpp \
     src/GVTManager.hpp \
     src/MatternGVTManager.hpp \
-    src/MatternGVTControlMessage.hpp
+    src/TerminationManager.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
