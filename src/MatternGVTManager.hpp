@@ -51,7 +51,6 @@ private:
     uint32_t node_id_;
 
     bool gVT_calc_initiated_ = false;
-    uint32_t msg_round_ = 0;
 };
 
 } // warped namespace
