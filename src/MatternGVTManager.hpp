@@ -1,11 +1,11 @@
 #ifndef MATTERN_GVT_MANAGER_HPP
 #define MATTERN_GVT_MANAGER_HPP
 
-#include "GVTManager.hpp"
-#include "serialization.hpp"
-
 #include <cstdint> // for uint64_t and uint32_t
 #include <memory> // for unique_ptr
+
+#include "GVTManager.hpp"
+#include "serialization.hpp"
 
 /*  This class implements the Mattern GVT algorithm and provides methods
  *  for initiating a calculation cycle and for processing received tokens
@@ -32,7 +32,7 @@ struct MatternGVTToken {
 
 class MatternGVTManager : public GVTManager {
 public:
-    explicit MatternGVTManager(uint32_t num_nodes, uint32_t node_id)
+    MatternGVTManager(uint32_t num_nodes, uint32_t node_id)
         : num_nodes_(num_nodes),
           node_id_(node_id) {}
 

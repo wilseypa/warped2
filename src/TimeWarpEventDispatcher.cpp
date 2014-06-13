@@ -17,8 +17,9 @@
 namespace warped {
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
-                                                 std::unique_ptr<LTSFQueue> events)
-    : EventDispatcher(max_sim_time), events_(std::move(events)) {}
+    std::unique_ptr<LTSFQueue> events ,std::unique_ptr<GVTManager> gvt_manager)
+    : EventDispatcher(max_sim_time), events_(std::move(events)),
+      gvt_manager_(std::move(gvt_manager)) {}
 
 // This function implementation is merely a speculation for how the this
 // function might work in the future. It's definitely incomplete, and may not

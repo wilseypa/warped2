@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "GVTManager.hpp"
+
 namespace TCLAP { class Arg; }
 namespace Json { class Value; }
 
@@ -37,6 +39,8 @@ public:
     // Create a partitioner if configured, or return the given user provided
     // partitioner.
     std::unique_ptr<Partitioner> makePartitioner(std::unique_ptr<Partitioner> user_partitioner);
+
+    std::unique_ptr<GVTManager> makeGVTManager();
 
 private:
     void init(const std::string& model_description, int argc, const char* const* argv,

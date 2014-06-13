@@ -41,6 +41,12 @@ public:
     virtual std::vector<std::unique_ptr<Event>> createInitialEvents();
 
     const std::string name_;
+
+    uint64_t getLVT() { return local_virtual_time_; }
+
+private:
+
+    uint64_t local_virtual_time_;
 };
 
 } // namespace warped

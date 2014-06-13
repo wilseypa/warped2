@@ -1,9 +1,9 @@
-#include "MatternGVTManager.hpp"
-
 #include <limits>   // for infinity (std::numeric_limits<uint64_t>::max())
 #include <algorithm>    // for std::min()
 
+#include "MatternGVTManager.hpp"
 #include "utility/memory.hpp"
+#include "TimeWarpEventDispatcher.hpp"
 
 /*  This class implements the Mattern GVT algorithm and provides methods
  *  for initiating a calculation cycle and for processing received tokens
@@ -29,13 +29,13 @@ void MatternGVTManager::calculateGVT() {
             min_red_msg_timestamp_ = infinityVT();
             white_msg_counter_ = 0;
 
-            uint64_t T = 0;//getLastEventScheduledTime();
-            sendMatternGVTToken(warped::make_unique<MatternGVTToken>(T,
-                infinityVT(), white_msg_counter_) , 1);
+            uint64_t T = TimeWarpEventDispatcher::getMinimumLVT();
+            sendMatternGVTToken(warped::make_unique<MatternGVTToken>(T, infinityVT(),
+                white_msg_counter_) , 1);
             gVT_calc_initiated_ = true;
         }
     } else {
-        gVT_ = 0;//getLastEventScheduledTime();
+        gVT_ = TimeWarpEventDispatcher::getMinimumLVT();
     }
 }
 
@@ -51,8 +51,7 @@ void MatternGVTManager::receiveMatternGVTToken(
 
     if (node_id_ == 0) {
         // Initiator received the message
-        white_msg_counter_ = white_msg_counter_ + msg->count;
-        if (white_msg_counter_ == 0) {
+        if (white_msg_counter_ + msg->count == 0) {
             // At this point all white messages are accounted for so we can
             // calculate the GVT now
             gVT_ = std::min(msg->m_clock, msg->m_send);
@@ -63,7 +62,7 @@ void MatternGVTManager::receiveMatternGVTToken(
             color_ = MatternMsgColor::WHITE;
 
         } else {
-            uint64_t T = 0;//getMinimumLVT();
+            uint64_t T = TimeWarpEventDispatcher::getMinimumLVT();
             // count is not zero so start another round
             sendMatternGVTToken(warped::make_unique<MatternGVTToken>(T,
                 std::min(msg->m_send, min_red_msg_timestamp_), white_msg_counter_+msg->count) , 1);
@@ -76,7 +75,7 @@ void MatternGVTManager::receiveMatternGVTToken(
             color_ = MatternMsgColor::RED;
         }
 
-        uint64_t T = 0;//getMinimumLVT();
+        uint64_t T = TimeWarpEventDispatcher::getMinimumLVT();
         // Pass the token on to the next node in the logical ring
         sendMatternGVTToken(warped::make_unique<MatternGVTToken>
             (std::min(msg->m_clock, T), std::min(msg->m_send, min_red_msg_timestamp_),

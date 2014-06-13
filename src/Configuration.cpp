@@ -23,6 +23,8 @@
 #include "SequentialEventDispatcher.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 #include "utility/memory.hpp"
+#include "GVTManager.hpp"
+#include "MatternGVTManager.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
@@ -173,6 +175,10 @@ Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
         return std::move(user_partitioner);
     }
     return makePartitioner();
+}
+
+std::unique_ptr<GVTManager> Configuration::makeGVTManager() {
+    return make_unique<MatternGVTManager>(0, 2); // TODO get these parameters from somewhere
 }
 
 } // namespace warped

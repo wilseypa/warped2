@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "EventDispatcher.hpp"
+#include "GVTManager.hpp"
 
 namespace warped {
 
@@ -26,9 +27,11 @@ class SimulationObject;
 class TimeWarpEventDispatcher : public EventDispatcher {
 public:
     TimeWarpEventDispatcher(unsigned int max_sim_time,
-                            std::unique_ptr<LTSFQueue> events);
+        std::unique_ptr<LTSFQueue> events, std::unique_ptr<GVTManager> gvt_manager);
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
+
+    static uint64_t getMinimumLVT() { return minimum_local_virtual_time_; }
 
 private:
     void processEvents();
@@ -36,6 +39,10 @@ private:
     std::atomic<unsigned int> current_sim_time_;
     const std::unique_ptr<LTSFQueue> events_;
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
+
+    static std::atomic<uint64_t> minimum_local_virtual_time_;
+
+    const std::unique_ptr<GVTManager> gvt_manager_;
 };
 
 } // namespace warped
