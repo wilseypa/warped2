@@ -46,6 +46,9 @@ const static std::string DEFAULT_CONFIG = R"x({
 // provided partitioning if given, else "round-robin".
 "partitioning": "default"
 
+// Only valid option is "mattern"
+"gvt-algorithm": "mattern"
+
 })x";
 
 

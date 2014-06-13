@@ -18,14 +18,14 @@ enum class MatternMsgColor { WHITE, RED };
 
 struct MatternGVTToken {
     MatternGVTToken() = default;
-    MatternGVTToken(uint64_t mc, uint64_t ms, uint32_t c) :
+    MatternGVTToken(unsigned int mc, unsigned int ms, unsigned int c) :
         m_clock(mc),
         m_send(ms),
         count(c) {}
 
-    uint64_t m_clock;
-    uint64_t m_send;
-    uint32_t count;
+    unsigned int m_clock;
+    unsigned int m_send;
+    unsigned int count;
 
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(m_clock, m_send, count)
 
@@ -33,11 +33,11 @@ struct MatternGVTToken {
 
 class MatternGVTManager : public GVTManager {
 public:
-    MatternGVTManager(uint32_t num_nodes, uint32_t node_id)
+    MatternGVTManager(unsigned int num_nodes, unsigned int node_id)
         : num_nodes_(num_nodes),
           node_id_(node_id) {}
 
-    // Starts the GVT calculation process by passing out a MatternGVTToken
+    // Starts the GVT calculation process
     void calculateGVT();
 
     // Called when a MatternGVTToken has been received
@@ -50,21 +50,22 @@ public:
     void decrementWhiteMsgCount() { white_msg_counter_--; }
 
 protected:
-    uint64_t infinityVT();
+    unsigned int infinityVT();
 
-    void sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg, uint32_t P);
+    void sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg, unsigned int P);
 
     void sendGVTUpdate();
 
 private:
     MatternMsgColor color_ = MatternMsgColor::WHITE;
-    uint32_t white_msg_counter_ = 0;
-    uint64_t min_red_msg_timestamp_ = infinityVT();
+    unsigned int white_msg_counter_ = 0;
+    unsigned int min_red_msg_timestamp_ = infinityVT();
 
-    uint32_t num_nodes_;
-    uint32_t node_id_;
+    unsigned int num_nodes_;
+    unsigned int  node_id_;
 
     bool gVT_calc_initiated_ = false;
+
 };
 
 } // warped namespace

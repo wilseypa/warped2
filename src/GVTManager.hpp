@@ -16,13 +16,13 @@ public:
 
     virtual void calculateGVT() = 0;
 
-    uint64_t getGVT() { return gVT_; }
+    unsigned int getGVT() { return gVT_; }
 
     void setGVT(uint64_t g) { gVT_ = g; }
 
 protected:
 
-    uint64_t gVT_;
+    unsigned int gVT_;
 
 };
 

@@ -31,16 +31,15 @@ public:
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
-    static uint64_t getMinimumLVT() { return minimum_local_virtual_time_; }
+    unsigned int getMinimumLVT() { return minimum_local_virtual_time_; }
 
 private:
     void processEvents();
 
-    std::atomic<unsigned int> current_sim_time_;
     const std::unique_ptr<LTSFQueue> events_;
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
 
-    static std::atomic<uint64_t> minimum_local_virtual_time_;
+    std::atomic<unsigned int> minimum_local_virtual_time_;
 
     const std::unique_ptr<GVTManager> gvt_manager_;
 };

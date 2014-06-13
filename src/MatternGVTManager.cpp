@@ -11,8 +11,8 @@
 
 namespace warped {
 
-uint64_t MatternGVTManager::infinityVT() {
-    return std::numeric_limits<uint64_t>::max();
+unsigned int MatternGVTManager::infinityVT() {
+    return std::numeric_limits<unsigned int>::max();
 }
 
 void MatternGVTManager::sendGVTUpdate() {
@@ -29,17 +29,17 @@ void MatternGVTManager::calculateGVT() {
             min_red_msg_timestamp_ = infinityVT();
             white_msg_counter_ = 0;
 
-            uint64_t T = TimeWarpEventDispatcher::getMinimumLVT();
+            unsigned int T = 0;//TODO getMinimumLVT();
             sendMatternGVTToken(warped::make_unique<MatternGVTToken>(T, infinityVT(),
                 white_msg_counter_) , 1);
             gVT_calc_initiated_ = true;
         }
     } else {
-        gVT_ = TimeWarpEventDispatcher::getMinimumLVT();
+        gVT_ = 0;//TODO getMinimumLVT();
     }
 }
 
-void MatternGVTManager::sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg, uint32_t P) {
+void MatternGVTManager::sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg, unsigned int P) {
     //TODO
     msg = nullptr;
     P = 0;
@@ -60,7 +60,7 @@ void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> 
             color_ = MatternMsgColor::WHITE;
 
         } else {
-            uint64_t T = TimeWarpEventDispatcher::getMinimumLVT();
+            unsigned int T = 0; //TODO TimeWarpEventDispatcher::getMinimumLVT();
             // count is not zero so start another round
             sendMatternGVTToken(warped::make_unique<MatternGVTToken>(T,
                 std::min(msg->m_send, min_red_msg_timestamp_), white_msg_counter_+msg->count) , 1);
@@ -73,7 +73,7 @@ void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> 
             color_ = MatternMsgColor::RED;
         }
 
-        uint64_t T = TimeWarpEventDispatcher::getMinimumLVT();
+        unsigned int T = 0;// TODO getMinimumLVT();
         // Pass the token on to the next node in the logical ring
         sendMatternGVTToken(warped::make_unique<MatternGVTToken>
             (std::min(msg->m_clock, T), std::min(msg->m_send, min_red_msg_timestamp_),

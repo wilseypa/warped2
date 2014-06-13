@@ -40,8 +40,6 @@ public:
     // partitioner.
     std::unique_ptr<Partitioner> makePartitioner(std::unique_ptr<Partitioner> user_partitioner);
 
-    std::unique_ptr<GVTManager> makeGVTManager();
-
 private:
     void init(const std::string& model_description, int argc, const char* const* argv,
               const std::vector<TCLAP::Arg*>& cmd_line_args);
@@ -50,6 +48,8 @@ private:
     std::string config_file_name_;
     unsigned int max_sim_time_;
     std::unique_ptr<Json::Value> root_;
+
+    std::unique_ptr<GVTManager> makeGVTManager();
 };
 
 } // namespace warped

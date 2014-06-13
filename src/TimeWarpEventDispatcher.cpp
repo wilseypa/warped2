@@ -51,9 +51,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 }
 
 void TimeWarpEventDispatcher::processEvents() {
-    while (current_sim_time_.load() < max_sim_time_ && !events_->empty()) {
-        // handle the events
-    }
+
 }
 
 } // namespace warped
