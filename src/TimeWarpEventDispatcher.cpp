@@ -33,12 +33,16 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         }
     }
 
+    // Create worker threads
     std::vector<std::thread> threads;
     for (unsigned int i = 0; i < std::thread::hardware_concurrency() - 1; ++i) {
         threads.push_back(std::thread {&TimeWarpEventDispatcher::processEvents, this});
     }
 
-    processEvents();
+    // Master thread main loop
+    while (gvt_manager_->getGVT() < max_sim_time_) {
+
+    }
 
     for (auto& t : threads) {
         t.join();
