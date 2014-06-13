@@ -17,6 +17,7 @@ namespace warped {
 enum class MatternMsgColor { WHITE, RED };
 
 struct MatternGVTToken {
+    MatternGVTToken() = default;
     MatternGVTToken(uint64_t mc, uint64_t ms, uint32_t c) :
         m_clock(mc),
         m_send(ms),

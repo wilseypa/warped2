@@ -2,8 +2,8 @@
 #include <algorithm>    // for std::min()
 
 #include "MatternGVTManager.hpp"
-#include "utility/memory.hpp"
-#include "TimeWarpEventDispatcher.hpp"
+#include "utility/memory.hpp"           // for make_unique
+#include "TimeWarpEventDispatcher.hpp"  // for getMinimumLVT
 
 /*  This class implements the Mattern GVT algorithm and provides methods
  *  for initiating a calculation cycle and for processing received tokens
@@ -39,15 +39,13 @@ void MatternGVTManager::calculateGVT() {
     }
 }
 
-void MatternGVTManager::sendMatternGVTToken(
-    std::unique_ptr<MatternGVTToken> msg, uint32_t P) {
+void MatternGVTManager::sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg, uint32_t P) {
     //TODO
     msg = nullptr;
     P = 0;
 }
 
-void MatternGVTManager::receiveMatternGVTToken(
-    std::unique_ptr<MatternGVTToken> msg) {
+void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg) {
 
     if (node_id_ == 0) {
         // Initiator received the message

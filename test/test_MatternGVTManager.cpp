@@ -9,9 +9,9 @@
 
 TEST_CASE("Mattern GVT messages can be serialized", "[serialization]") {
     std::stringstream ss;
-    std::unique_ptr<warped::MatternGVTControlMessage> msg
-                        {new warped::MatternGVTControlMessage{1, 5, 10}};
-    std::unique_ptr<warped::MatternGVTControlMessage> msg2;
+    std::unique_ptr<warped::MatternGVTToken> msg
+                        {new warped::MatternGVTToken{1, 5, 10}};
+    std::unique_ptr<warped::MatternGVTToken> msg2;
 
     {
         cereal::BinaryOutputArchive oarchive(ss);
@@ -23,7 +23,7 @@ TEST_CASE("Mattern GVT messages can be serialized", "[serialization]") {
         iarchive(msg2);
     }
 
-    auto m = dynamic_cast<warped::MatternGVTControlMessage*>(msg2.get());
+    auto m = dynamic_cast<warped::MatternGVTToken*>(msg2.get());
     REQUIRE(m != nullptr);
     REQUIRE(m->m_clock == 1);
     REQUIRE(m->m_send == 5);
