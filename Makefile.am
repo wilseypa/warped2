@@ -30,8 +30,7 @@ WARPED_NOINST_HPP_FILES = \
     src/utility/strings.hpp \
     src/utility/warnings.hpp \
     src/GVTManager.hpp \
-    src/MatternGVTManager.hpp \
-    src/TerminationManager.hpp
+    src/MatternGVTManager.hpp 
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -47,8 +46,7 @@ WARPED_CPP_FILES = \
     src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
     src/TimeWarpEventDispatcher.cpp \
-    src/MatternGVTManager.cpp \
-    src/TerminationManager.cpp
+    src/MatternGVTManager.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \
