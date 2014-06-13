@@ -1,8 +1,6 @@
 #ifndef GVT_MANAGER_HPP
 #define GVT_MANAGER_HPP
 
-#include <cstdint> // for uint64_t
-
 /* This class provides an interface for a specific GVT Manager that
  * implements a specific algorithm for calculating the GVT
  */

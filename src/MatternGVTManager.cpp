@@ -1,9 +1,8 @@
-#include <limits>   // for infinity (std::numeric_limits<uint64_t>::max())
+#include <limits>   // for infinity (std::numeric_limits<>::max())
 #include <algorithm>    // for std::min()
 
 #include "MatternGVTManager.hpp"
 #include "utility/memory.hpp"           // for make_unique
-#include "TimeWarpEventDispatcher.hpp"  // for getMinimumLVT
 
 /*  This class implements the Mattern GVT algorithm and provides methods
  *  for initiating a calculation cycle and for processing received tokens

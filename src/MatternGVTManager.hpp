@@ -1,7 +1,6 @@
 #ifndef MATTERN_GVT_MANAGER_HPP
 #define MATTERN_GVT_MANAGER_HPP
 
-#include <cstdint> // for uint64_t and uint32_t
 #include <memory> // for unique_ptr
 
 #include "GVTManager.hpp"
