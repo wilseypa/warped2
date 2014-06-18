@@ -63,10 +63,8 @@ std::unique_ptr<KernelMessage> MPICommunicationManager::dequeueMessage() {
     std::unique_ptr<KernelMessage> msg = nullptr;
     send_queue_mutex_.lock();
     if (!send_queue_.empty()) {
-        if (!send_queue_.empty()) {
-            msg = std::move(send_queue_.front());
-            send_queue_.pop_front();
-        }
+        msg = std::move(send_queue_.front());
+        send_queue_.pop_front();
     }
     send_queue_mutex_.unlock();
     return msg;

@@ -4,8 +4,6 @@
 #include <memory> // for std::unique_ptr
 #include <string> // for std::string
 
-#include "MatternGVTManager.hpp" // for MatternMsgColor
-
 namespace warped {
 
 struct EventMessage : public KernelMessage {
@@ -19,7 +17,7 @@ struct EventMessage : public KernelMessage {
     std::string additional_info;
     std::unique_ptr<Event> event;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(additional_info, event)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(senderID, receiverID, additional_info, event)
 };
 
 } // namespace warped
