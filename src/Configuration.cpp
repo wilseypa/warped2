@@ -181,7 +181,7 @@ Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
 }
 
 std::unique_ptr<GVTManager> Configuration::makeGVTManager() {
-    return make_unique<MatternGVTManager>(0, 2); // TODO get these parameters from somewhere
+    return make_unique<MatternGVTManager>();
 }
 
 } // namespace warped

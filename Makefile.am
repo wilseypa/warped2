@@ -30,7 +30,10 @@ WARPED_NOINST_HPP_FILES = \
     src/utility/strings.hpp \
     src/utility/warnings.hpp \
     src/GVTManager.hpp \
-    src/MatternGVTManager.hpp 
+    src/MatternGVTManager.hpp \
+    src/KernelMessage.hpp \
+    src/EventMessage.hpp \
+    src/MPICommunicationManager.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -46,7 +49,8 @@ WARPED_CPP_FILES = \
     src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
     src/TimeWarpEventDispatcher.cpp \
-    src/MatternGVTManager.cpp
+    src/MatternGVTManager.cpp \
+    src/MPICommunicationManager.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \
@@ -58,13 +62,13 @@ include_HEADERS = \
     src/warped.hpp
 
 # When MPI support is added, uncomment these next blocks
-# if HAVE_MPICH
-# libwarped_la_LIBADD = -lmpich -lmpl -lpthread 
-# else 
-# if HAVE_MPI
-# libwarped_la_LIBADD = -lmpi -lpthread
-# endif
-# endif
+if HAVE_MPICH
+    libwarped_la_LIBADD = -lmpich -lmpl -lpthread
+else
+if HAVE_MPI
+    libwarped_la_LIBADD = -lmpi -lpthread
+endif
+endif
 
 libwarped_la_LIBADD = $(top_builddir)/deps/json/libjsoncpp.la
 libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror

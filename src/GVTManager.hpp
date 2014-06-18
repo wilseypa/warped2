@@ -5,14 +5,17 @@
  * implements a specific algorithm for calculating the GVT
  */
 
-namespace {
+#include <functional>
+#include "MPICommunicationManager.hpp"
+
+namespace warped {
 
 class GVTManager {
 public:
 
     virtual void sendGVTUpdate() = 0;
 
-    virtual void calculateGVT() = 0;
+    virtual void calculateGVT(std::function<unsigned int()> f, MPICommunicationManager *mcm) = 0;
 
     unsigned int getGVT() { return gVT_; }
 

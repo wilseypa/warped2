@@ -2,9 +2,11 @@
 #define MATTERN_GVT_MANAGER_HPP
 
 #include <memory> // for unique_ptr
+#include <functional> // for std::function
 
 #include "GVTManager.hpp"
 #include "serialization.hpp"
+#include "KernelMessage.hpp"
 
 /*  This class implements the Mattern GVT algorithm and provides methods
  *  for initiating a calculation cycle and for processing received tokens
@@ -15,9 +17,11 @@ namespace warped {
 // Color of messages for matterns algorithm
 enum class MatternMsgColor { WHITE, RED };
 
-struct MatternGVTToken {
+struct MatternGVTToken : public KernelMessage {
     MatternGVTToken() = default;
-    MatternGVTToken(unsigned int mc, unsigned int ms, unsigned int c) :
+    MatternGVTToken(unsigned int sender, unsigned int receiver, unsigned int mc, unsigned int ms,
+                    unsigned int c) :
+        KernelMessage(sender, receiver),
         m_clock(mc),
         m_send(ms),
         count(c) {}
@@ -32,15 +36,14 @@ struct MatternGVTToken {
 
 class MatternGVTManager : public GVTManager {
 public:
-    MatternGVTManager(unsigned int num_nodes, unsigned int node_id)
-        : num_nodes_(num_nodes),
-          node_id_(node_id) {}
 
     // Starts the GVT calculation process
-    void calculateGVT();
+    void calculateGVT(std::function<unsigned int()> getMinimumLVT,
+        MPICommunicationManager *mpi_manager);
 
     // Called when a MatternGVTToken has been received
-    void receiveMatternGVTToken(std::unique_ptr<warped::MatternGVTToken> msg);
+    void receiveMatternGVTToken(std::unique_ptr<warped::MatternGVTToken> msg,
+        std::function<unsigned int()> getMinimumLVT, MPICommunicationManager *mpi_manager);
 
     // Called when a white message is sent
     void incrementWhiteMsgCount() { white_msg_counter_++; }
@@ -48,10 +51,14 @@ public:
     // Called when a white message is received
     void decrementWhiteMsgCount() { white_msg_counter_--; }
 
+    // Returns the color of this node, this is needed when receiving an event.
+    MatternMsgColor getColor() { return color_; }
+
 protected:
     unsigned int infinityVT();
 
-    void sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg, unsigned int P);
+    void sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg,
+        MPICommunicationManager *mpi_manager);
 
     void sendGVTUpdate();
 
@@ -59,9 +66,6 @@ private:
     MatternMsgColor color_ = MatternMsgColor::WHITE;
     unsigned int white_msg_counter_ = 0;
     unsigned int min_red_msg_timestamp_ = infinityVT();
-
-    unsigned int num_nodes_;
-    unsigned int  node_id_;
 
     bool gVT_calc_initiated_ = false;
 

@@ -14,6 +14,9 @@
 #include "Partitioner.hpp"
 #include "SimulationObject.hpp"
 
+// This is just to ensure that it compiles correctly
+#include "EventMessage.hpp"
+
 namespace warped {
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
@@ -26,6 +29,9 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
 // be the best approach at all.
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
+
+    mpi_manager_->initialize();
+
     for (auto& partition : objects) {
         for (auto& ob : partition) {
             events_->push(ob->createInitialEvents());
@@ -41,13 +47,18 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
     // Master thread main loop
     while (gvt_manager_->getGVT() < max_sim_time_) {
+        if (mpi_manager_->getID() == 0) {
+            gvt_manager_->calculateGVT(getMinimumLVT, mpi_manager_.get());
+        }
 
+        mpi_manager_->sendAllMessages();
     }
 
     for (auto& t : threads) {
         t.join();
     }
 
+    mpi_manager_->finalize();
 }
 
 void TimeWarpEventDispatcher::processEvents() {

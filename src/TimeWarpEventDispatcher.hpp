@@ -6,9 +6,12 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <array>
+#include <functional>   // for std::function
 
 #include "EventDispatcher.hpp"
 #include "GVTManager.hpp"
+#include "MPICommunicationManager.hpp"
 
 namespace warped {
 
@@ -31,8 +34,6 @@ public:
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
-    unsigned int getMinimumLVT() { return minimum_local_virtual_time_; }
-
 private:
     void processEvents();
 
@@ -42,6 +43,12 @@ private:
     std::atomic<unsigned int> minimum_local_virtual_time_;
 
     const std::unique_ptr<GVTManager> gvt_manager_;
+
+    std::function<unsigned int()> getMinimumLVT =
+        [=](){ return minimum_local_virtual_time_.load(); };
+
+    const std::unique_ptr<MPICommunicationManager> mpi_manager_;
+
 };
 
 } // namespace warped
