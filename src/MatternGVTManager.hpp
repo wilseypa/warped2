@@ -21,7 +21,7 @@ struct MatternGVTToken : public KernelMessage {
     MatternGVTToken() = default;
     MatternGVTToken(unsigned int sender, unsigned int receiver, unsigned int mc, unsigned int ms,
                     unsigned int c) :
-        KernelMessage(sender, receiver),
+        KernelMessage(sender, receiver, MessageType::MatternGVTToken),
         m_clock(mc),
         m_send(ms),
         count(c) {}
@@ -30,7 +30,8 @@ struct MatternGVTToken : public KernelMessage {
     unsigned int m_send;
     unsigned int count;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(m_clock, m_send, count)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<KernelMessage>(this), m_clock,
+                                         m_send, count)
 
 };
 

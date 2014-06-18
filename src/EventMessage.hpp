@@ -10,14 +10,15 @@ struct EventMessage : public KernelMessage {
     EventMessage() = default;
     EventMessage(unsigned int sender, unsigned int receiver, std::unique_ptr<Event> e,
         std::string add = "") :
-        KernelMessage(sender, receiver),
+        KernelMessage(sender, receiver, MessageType::EventMessage),
         additional_info(add),
         event(std::move(e)) {}
 
     std::string additional_info;
     std::unique_ptr<Event> event;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(senderID, receiverID, additional_info, event)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<KernelMessage>(this), additional_info,
+                                         event)
 };
 
 } // namespace warped

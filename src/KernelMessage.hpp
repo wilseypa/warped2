@@ -5,16 +5,25 @@
 
 namespace warped {
 
+enum class MessageType {
+    EventMessage,
+    MatternGVTToken
+};
+
 struct KernelMessage {
     KernelMessage() = default;
-    KernelMessage(unsigned int sender, unsigned int receiver) :
-        senderID(sender),
-        receiverID(receiver) {}
+    KernelMessage(unsigned int sender, unsigned int receiver, MessageType mt) :
+        sender_id(sender),
+        receiver_id(receiver),
+        message_type(mt) {}
 
-    unsigned int senderID;
-    unsigned int receiverID;
+    unsigned int sender_id;
+    unsigned int receiver_id;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(senderID, receiverID);
+    MessageType message_type;
+
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_id, receiver_id, message_type)
+
 };
 
 } // namespace warped

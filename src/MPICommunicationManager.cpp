@@ -25,7 +25,7 @@ void MPICommunicationManager::sendMessage(std::unique_ptr<KernelMessage> msg) {
     oarchive(msg);
     const char* buf = ss.str().c_str();
     MPI_Request request;
-    MPI_Isend(const_cast<char*> (&buf[0]), ss.str().size(), MPI_BYTE, msg->receiverID,
+    MPI_Isend(const_cast<char*> (&buf[0]), ss.str().size(), MPI_BYTE, msg->receiver_id,
               MPI_DATA_TAG, MPI_COMM_WORLD, &request);
 }
 
