@@ -43,8 +43,11 @@ public:
         MPICommunicationManager *mpi_manager);
 
     // Called when a MatternGVTToken has been received
-    void receiveMatternGVTToken(std::unique_ptr<warped::MatternGVTToken> msg,
+    void receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg,
         std::function<unsigned int()> getMinimumLVT, MPICommunicationManager *mpi_manager);
+
+    void receiveMessage(std::unique_ptr<KernelMessage> msg, std::function<unsigned int()> f,
+        MPICommunicationManager *mpi_manager);
 
     // Called when a white message is sent
     void incrementWhiteMsgCount() { white_msg_counter_++; }

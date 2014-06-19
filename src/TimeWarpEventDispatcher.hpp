@@ -34,6 +34,8 @@ public:
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
+    void getAndDispatchMessages();
+
 private:
     void processEvents();
 

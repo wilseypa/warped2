@@ -13,6 +13,7 @@
 #include "LTSFQueue.hpp"
 #include "Partitioner.hpp"
 #include "SimulationObject.hpp"
+#include "MatternGVTManager.hpp"
 
 // This is just to ensure that it compiles correctly
 #include "EventMessage.hpp"
@@ -64,5 +65,22 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 void TimeWarpEventDispatcher::processEvents() {
 
 }
+
+void TimeWarpEventDispatcher::getAndDispatchMessages() {
+    auto msg = mpi_manager_->recvMessage();
+    while (msg.get() != nullptr) {
+        switch (msg->message_type) {
+            case MessageType::EventMessage:
+                break;
+            case MessageType::MatternGVTToken:
+                gvt_manager_->receiveMessage(std::move(msg), getMinimumLVT, mpi_manager_.get());
+                break;
+            default:
+                break;
+        }
+        msg = mpi_manager_->recvMessage();
+    }
+}
+
 
 } // namespace warped

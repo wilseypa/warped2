@@ -17,6 +17,9 @@ public:
 
     virtual void calculateGVT(std::function<unsigned int()> f, MPICommunicationManager *mcm) = 0;
 
+    virtual void receiveMessage(std::unique_ptr<KernelMessage> msg, std::function<unsigned int()> f,
+        MPICommunicationManager *mpi_manager) = 0;
+
     unsigned int getGVT() { return gVT_; }
 
     void setGVT(uint64_t g) { gVT_ = g; }

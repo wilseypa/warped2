@@ -46,6 +46,21 @@ void MatternGVTManager::sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg
     mpi_manager->sendMessage(std::move(msg));
 }
 
+void MatternGVTManager::receiveMessage(std::unique_ptr<KernelMessage> msg,
+    std::function<unsigned int()> getMinimumLVT, MPICommunicationManager *mpi_manager) {
+    // TODO this may not work
+    if (msg->message_type == MessageType::MatternGVTToken) {
+        MatternGVTToken *m = static_cast<MatternGVTToken*>(msg.get());
+        std::unique_ptr<MatternGVTToken> token;
+        if(m != nullptr)
+        {
+            msg.release();
+            token.reset(m);
+        }
+        receiveMatternGVTToken(std::move(token), getMinimumLVT, mpi_manager);
+    }
+}
+
 void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg,
     std::function<unsigned int()> getMinimumLVT, MPICommunicationManager *mpi_manager) {
 
