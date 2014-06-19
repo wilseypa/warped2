@@ -61,16 +61,17 @@ include_HEADERS = \
     $(WARPED_INSTALL_HPP_FILES) \
     src/warped.hpp
 
+libwarped_la_LIBADD = $(top_builddir)/deps/json/libjsoncpp.la
+
 # When MPI support is added, uncomment these next blocks
 if HAVE_MPICH
-    libwarped_la_LIBADD = -lmpich -lmpl -lpthread
+    libwarped_la_LIBADD += -lmpich -lmpl -lpthread
 else
 if HAVE_MPI
-    libwarped_la_LIBADD = -lmpi -lpthread
+    libwarped_la_LIBADD += -lmpi -lpthread
 endif
 endif
 
-libwarped_la_LIBADD = $(top_builddir)/deps/json/libjsoncpp.la
 libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror
 
 # Use -isystem here instead of -I to disable warnings for third party code

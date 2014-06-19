@@ -1,4 +1,4 @@
-CPPFLAGS = -I$(top_srcdir)/deps -I$(top_srcdir)/src
+CPPFLAGS += -I$(top_srcdir)/deps -I$(top_srcdir)/src
 LDFLAGS = -static
 LDADD = $(top_builddir)/libwarped.la
 
