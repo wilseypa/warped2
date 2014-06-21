@@ -25,6 +25,7 @@
 #include "utility/memory.hpp"
 #include "GVTManager.hpp"
 #include "MatternGVTManager.hpp"
+#include "StateManager.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
