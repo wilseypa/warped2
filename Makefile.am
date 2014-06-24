@@ -33,6 +33,7 @@ WARPED_NOINST_HPP_FILES = \
     src/MatternGVTManager.hpp \
     src/KernelMessage.hpp \
     src/EventMessage.hpp \
+    src/CommunicationManager.hpp \
     src/MPICommunicationManager.hpp
 
 # All cpp files are listed in this variable
@@ -50,6 +51,8 @@ WARPED_CPP_FILES = \
     src/STLLTSFQueue.cpp \
     src/TimeWarpEventDispatcher.cpp \
     src/MatternGVTManager.cpp \
+    src/EventMessage.cpp \
+    src/CommunicationManager.cpp \
     src/MPICommunicationManager.cpp
 
 libwarped_la_SOURCES = \

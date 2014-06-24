@@ -12,17 +12,16 @@ enum class MessageType {
 
 struct KernelMessage {
     KernelMessage() = default;
-    KernelMessage(unsigned int sender, unsigned int receiver, MessageType mt) :
+    KernelMessage(unsigned int sender, unsigned int receiver) :
         sender_id(sender),
-        receiver_id(receiver),
-        message_type(mt) {}
+        receiver_id(receiver) {}
 
     unsigned int sender_id;
     unsigned int receiver_id;
 
-    MessageType message_type;
+    virtual MessageType get_type() = 0;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_id, receiver_id, message_type)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_id, receiver_id)
 
 };
 

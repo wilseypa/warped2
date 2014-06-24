@@ -5,6 +5,7 @@
 
 #include "cereal/archives/binary.hpp"
 #include "cereal/types/polymorphic.hpp"
+#include "cereal/archives/portable_binary.hpp"
 
 // Every serializable class must pass all class members to this macro inside
 // the class definition.
