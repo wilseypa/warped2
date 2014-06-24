@@ -4,6 +4,7 @@
 #include <memory> // for unique_ptr
 #include <functional> // for std::function
 
+#include "TimeWarpEventDispatcher.hpp"
 #include "GVTManager.hpp"
 #include "serialization.hpp"
 #include "KernelMessage.hpp"
@@ -15,13 +16,13 @@
 namespace warped {
 
 // Color of messages for matterns algorithm
-enum class MatternMsgColor { WHITE, RED };
+enum class MatternColor { WHITE, RED };
 
 struct MatternGVTToken : public KernelMessage {
     MatternGVTToken() = default;
     MatternGVTToken(unsigned int sender, unsigned int receiver, unsigned int mc, unsigned int ms,
                     unsigned int c) :
-        KernelMessage(sender, receiver, MessageType::MatternGVTToken),
+        KernelMessage(sender, receiver),
         m_clock(mc),
         m_send(ms),
         count(c) {}
@@ -30,6 +31,8 @@ struct MatternGVTToken : public KernelMessage {
     unsigned int m_send;
     unsigned int count;
 
+    MessageType get_type() { return MessageType::MatternGVTToken; }
+
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<KernelMessage>(this), m_clock,
                                          m_send, count)
 
@@ -37,17 +40,16 @@ struct MatternGVTToken : public KernelMessage {
 
 class MatternGVTManager : public GVTManager {
 public:
+    MatternGVTManager(TimeWarpEventDispatcher* event_dispatcher) :
+        event_dispatcher_(event_dispatcher) {}
 
     // Starts the GVT calculation process
-    void calculateGVT(std::function<unsigned int()> getMinimumLVT,
-        MPICommunicationManager *mpi_manager);
+    void calculateGVT();
 
     // Called when a MatternGVTToken has been received
-    void receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg,
-        std::function<unsigned int()> getMinimumLVT, MPICommunicationManager *mpi_manager);
+    void receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg);
 
-    void receiveMessage(std::unique_ptr<KernelMessage> msg, std::function<unsigned int()> f,
-        MPICommunicationManager *mpi_manager);
+    void receiveMessage(std::unique_ptr<KernelMessage> msg);
 
     // Called when a white message is sent
     void incrementWhiteMsgCount() { white_msg_counter_++; }
@@ -56,22 +58,23 @@ public:
     void decrementWhiteMsgCount() { white_msg_counter_--; }
 
     // Returns the color of this node, this is needed when receiving an event.
-    MatternMsgColor getColor() { return color_; }
+    MatternColor getColor() { return color_; }
 
 protected:
     unsigned int infinityVT();
 
-    void sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg,
-        MPICommunicationManager *mpi_manager);
+    void sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg);
 
     void sendGVTUpdate();
 
 private:
-    MatternMsgColor color_ = MatternMsgColor::WHITE;
+    MatternColor color_ = MatternColor::WHITE;
     unsigned int white_msg_counter_ = 0;
     unsigned int min_red_msg_timestamp_ = infinityVT();
 
     bool gVT_calc_initiated_ = false;
+
+    TimeWarpEventDispatcher* event_dispatcher_;
 
 };
 

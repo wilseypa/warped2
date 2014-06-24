@@ -10,14 +10,14 @@
 #include <functional>   // for std::function
 
 #include "EventDispatcher.hpp"
-#include "GVTManager.hpp"
-#include "MPICommunicationManager.hpp"
 
 namespace warped {
 
 class LTSFQueue;
 class Partitioner;
 class SimulationObject;
+class GVTManager;
+class CommunicationManager;
 
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
@@ -30,11 +30,13 @@ class SimulationObject;
 class TimeWarpEventDispatcher : public EventDispatcher {
 public:
     TimeWarpEventDispatcher(unsigned int max_sim_time,
-        std::unique_ptr<LTSFQueue> events, std::unique_ptr<GVTManager> gvt_manager);
+        std::unique_ptr<LTSFQueue> events);
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
     void getAndDispatchMessages();
+
+    CommunicationManager* getCommunicationManager() { return comm_manager_.get(); }
 
 private:
     void processEvents();
@@ -42,14 +44,9 @@ private:
     const std::unique_ptr<LTSFQueue> events_;
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
 
-    std::atomic<unsigned int> minimum_local_virtual_time_;
-
     const std::unique_ptr<GVTManager> gvt_manager_;
 
-    std::function<unsigned int()> getMinimumLVT =
-        [=](){ return minimum_local_virtual_time_.load(); };
-
-    const std::unique_ptr<MPICommunicationManager> mpi_manager_;
+    const std::unique_ptr<CommunicationManager> comm_manager_;
 
 };
 

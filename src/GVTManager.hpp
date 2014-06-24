@@ -6,7 +6,7 @@
  */
 
 #include <functional>
-#include "MPICommunicationManager.hpp"
+#include "CommunicationManager.hpp"
 
 namespace warped {
 
@@ -15,10 +15,9 @@ public:
 
     virtual void sendGVTUpdate() = 0;
 
-    virtual void calculateGVT(std::function<unsigned int()> f, MPICommunicationManager *mcm) = 0;
+    virtual void calculateGVT() = 0;
 
-    virtual void receiveMessage(std::unique_ptr<KernelMessage> msg, std::function<unsigned int()> f,
-        MPICommunicationManager *mpi_manager) = 0;
+    virtual void receiveMessage(std::unique_ptr<KernelMessage> msg) = 0;
 
     unsigned int getGVT() { return gVT_; }
 

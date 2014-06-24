@@ -8,6 +8,8 @@
  *  for initiating a calculation cycle and for processing received tokens
  */
 
+WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::MatternGVTToken)
+
 namespace warped {
 
 unsigned int MatternGVTManager::infinityVT() {
@@ -20,52 +22,49 @@ void MatternGVTManager::sendGVTUpdate() {
 
 // This initiates the gvt calculation by sending the initial
 // control message to node 1 (assuming this must be node 0 calling this)
-void MatternGVTManager::calculateGVT(std::function<unsigned int()> getMinimumLVT,
-    MPICommunicationManager *mpi_manager) {
+void MatternGVTManager::calculateGVT() {
+    CommunicationManager* comm_manager = event_dispatcher_->getCommunicationManager();
 
-    if (mpi_manager->getID() != 0) return;
+    if (comm_manager->getID() != 0) return;
 
-    if (mpi_manager->getNumProcesses() > 1) {
+    if (comm_manager->getNumProcesses() > 1) {
         if (gVT_calc_initiated_ == false) {
-            color_ = MatternMsgColor::RED;
+            color_ = MatternColor::RED;
             min_red_msg_timestamp_ = infinityVT();
             white_msg_counter_ = 0;
 
-            unsigned int T = getMinimumLVT();
+            unsigned int T = 0; //getMinimumLVT();
             sendMatternGVTToken(warped::make_unique<MatternGVTToken>(0, 1, T, infinityVT(),
-                white_msg_counter_), mpi_manager);
+                white_msg_counter_));
             gVT_calc_initiated_ = true;
         }
     } else {
-        gVT_ = getMinimumLVT();
+        gVT_ = 0; //getMinimumLVT();
     }
 }
 
-void MatternGVTManager::sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg,
-    MPICommunicationManager *mpi_manager) {
-    mpi_manager->sendMessage(std::move(msg));
+void MatternGVTManager::sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg) {
+    CommunicationManager* comm_manager = event_dispatcher_->getCommunicationManager();
+    comm_manager->sendMessage(std::move(msg));
 }
 
-void MatternGVTManager::receiveMessage(std::unique_ptr<KernelMessage> msg,
-    std::function<unsigned int()> getMinimumLVT, MPICommunicationManager *mpi_manager) {
-    // TODO this may not work
-    if (msg->message_type == MessageType::MatternGVTToken) {
-        MatternGVTToken *m = static_cast<MatternGVTToken*>(msg.get());
+void MatternGVTManager::receiveMessage(std::unique_ptr<KernelMessage> msg) {
+    if (msg->get_type() == MessageType::MatternGVTToken) {
+        MatternGVTToken *m = dynamic_cast<MatternGVTToken*>(msg.get());
         std::unique_ptr<MatternGVTToken> token;
         if(m != nullptr)
         {
             msg.release();
             token.reset(m);
         }
-        receiveMatternGVTToken(std::move(token), getMinimumLVT, mpi_manager);
+        receiveMatternGVTToken(std::move(token));
     }
 }
 
-void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg,
-    std::function<unsigned int()> getMinimumLVT, MPICommunicationManager *mpi_manager) {
-
-    unsigned int process_id = mpi_manager->getID();
-    unsigned int num_processes = mpi_manager->getNumProcesses();
+void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg) {
+    CommunicationManager* comm_manager = event_dispatcher_->getCommunicationManager();
+    unsigned int process_id = comm_manager->getID();
+    unsigned int num_processes = comm_manager->getNumProcesses();
 
     if (process_id == 0) {
         // Initiator received the message
@@ -79,29 +78,27 @@ void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> 
 
             // Reset to white, so another calculation can be made
             white_msg_counter_ = 0;
-            color_ = MatternMsgColor::WHITE;
+            color_ = MatternColor::WHITE;
 
         } else {
-            unsigned int T = getMinimumLVT();
+            unsigned int T = 0;//getMinimumLVT();
             // count is not zero so start another round
             sendMatternGVTToken(warped::make_unique<MatternGVTToken>(0, 1, T,
-                std::min(msg->m_send, min_red_msg_timestamp_), white_msg_counter_+msg->count),
-                mpi_manager);
+                std::min(msg->m_send, min_red_msg_timestamp_), white_msg_counter_+msg->count));
         }
 
     } else {
         // A node other than the initiator is now receiving a control message
-        if (color_ == MatternMsgColor::WHITE) {
+        if (color_ == MatternColor::WHITE) {
             min_red_msg_timestamp_ = infinityVT();
-            color_ = MatternMsgColor::RED;
+            color_ = MatternColor::RED;
         }
 
-        unsigned int T = getMinimumLVT();
+        unsigned int T = 0;//getMinimumLVT();
         // Pass the token on to the next node in the logical ring
         sendMatternGVTToken(warped::make_unique<MatternGVTToken>(process_id,
             (process_id % num_processes)+1, std::min(msg->m_clock, T),
-            std::min(msg->m_send, min_red_msg_timestamp_), white_msg_counter_+msg->count),
-            mpi_manager);
+            std::min(msg->m_send, min_red_msg_timestamp_), white_msg_counter_+msg->count));
 
         // Must be reset for next round
         white_msg_counter_ = 0;

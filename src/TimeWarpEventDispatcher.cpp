@@ -15,15 +15,11 @@
 #include "SimulationObject.hpp"
 #include "MatternGVTManager.hpp"
 
-// This is just to ensure that it compiles correctly
-#include "EventMessage.hpp"
-
 namespace warped {
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
-    std::unique_ptr<LTSFQueue> events ,std::unique_ptr<GVTManager> gvt_manager)
-    : EventDispatcher(max_sim_time), events_(std::move(events)),
-      gvt_manager_(std::move(gvt_manager)) {}
+    std::unique_ptr<LTSFQueue> events)
+    : EventDispatcher(max_sim_time), events_(std::move(events)) {}
 
 // This function implementation is merely a speculation for how the this
 // function might work in the future. It's definitely incomplete, and may not
@@ -31,7 +27,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
 
-    mpi_manager_->initialize();
+    comm_manager_->initialize();
 
     for (auto& partition : objects) {
         for (auto& ob : partition) {
@@ -48,18 +44,18 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
     // Master thread main loop
     while (gvt_manager_->getGVT() < max_sim_time_) {
-        if (mpi_manager_->getID() == 0) {
-            gvt_manager_->calculateGVT(getMinimumLVT, mpi_manager_.get());
+        if (comm_manager_->getID() == 0) {
+            gvt_manager_->calculateGVT();
         }
 
-        mpi_manager_->sendAllMessages();
+        comm_manager_->sendAllMessages();
     }
 
     for (auto& t : threads) {
         t.join();
     }
 
-    mpi_manager_->finalize();
+    comm_manager_->finalize();
 }
 
 void TimeWarpEventDispatcher::processEvents() {
@@ -67,20 +63,20 @@ void TimeWarpEventDispatcher::processEvents() {
 }
 
 void TimeWarpEventDispatcher::getAndDispatchMessages() {
-    auto msg = mpi_manager_->recvMessage();
+    auto msg = comm_manager_->recvMessage();
     while (msg.get() != nullptr) {
-        switch (msg->message_type) {
+        switch (msg->get_type()) {
             case MessageType::EventMessage:
                 break;
             case MessageType::MatternGVTToken:
-                gvt_manager_->receiveMessage(std::move(msg), getMinimumLVT, mpi_manager_.get());
+                gvt_manager_->receiveMessage(std::move(msg));
                 break;
             default:
                 break;
         }
-        msg = mpi_manager_->recvMessage();
+        msg = comm_manager_->recvMessage();
+
     }
 }
-
 
 } // namespace warped
