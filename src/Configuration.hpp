@@ -5,8 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "GVTManager.hpp"
-
 namespace TCLAP { class Arg; }
 namespace Json { class Value; }
 
@@ -48,8 +46,6 @@ private:
     std::string config_file_name_;
     unsigned int max_sim_time_;
     std::unique_ptr<Json::Value> root_;
-
-    std::unique_ptr<GVTManager> makeGVTManager();
 };
 
 } // namespace warped

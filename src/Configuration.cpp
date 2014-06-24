@@ -23,8 +23,6 @@
 #include "SequentialEventDispatcher.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 #include "utility/memory.hpp"
-#include "GVTManager.hpp"
-#include "MatternGVTManager.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
@@ -45,9 +43,6 @@ const static std::string DEFAULT_CONFIG = R"x({
 // Valid options are "default" and "round-robin". "default" will use user
 // provided partitioning if given, else "round-robin".
 "partitioning": "default"
-
-// Only valid option is "mattern"
-"gvt-algorithm": "mattern"
 
 })x";
 
@@ -178,10 +173,6 @@ Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
         return std::move(user_partitioner);
     }
     return makePartitioner();
-}
-
-std::unique_ptr<GVTManager> Configuration::makeGVTManager() {
-    return make_unique<MatternGVTManager>();
 }
 
 } // namespace warped
