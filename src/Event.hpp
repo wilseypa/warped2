@@ -5,6 +5,11 @@
 
 namespace warped {
 
+enum class EventType : bool {
+    POSITIVE,
+    NEGATIVE,
+};
+
 // Events are passed between objects. They may contain data, and must be
 // serializable. See serialization.hpp for info on serializing Events.
 class Event {
@@ -16,6 +21,13 @@ public:
 
     // The timestamp of when the event should be received.
     virtual unsigned int timestamp() const = 0;
+
+    EventType event_type() { return event_type_; }
+
+    void setNegative() { event_type_ = EventType::NEGATIVE; }
+
+private:
+    EventType event_type_ = EventType::POSITIVE;
 };
 
 } // namespace warped
