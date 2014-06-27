@@ -17,7 +17,7 @@ unsigned int StateManager::restoreState(unsigned int rollback_time, unsigned int
 
     object->getState() = *(max->second);
 
-    return rollback_time;
+    return max->first;
 }
 
 void StateManager::fossilCollect(unsigned int gvt, unsigned int object_id) {
