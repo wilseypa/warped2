@@ -42,7 +42,7 @@ void MPICommunicationManager::sendMessage(std::unique_ptr<KernelMessage> msg) {
     }
 
     int size = oss.str().size();
-    std::unique_ptr<uint8_t[]> buf(new uint8_t[size]);
+    std::unique_ptr<uint8_t[]> buf = make_unique<uint8_t[]>(size);
     memcpy(buf.get(), oss.str().c_str(), size);
 
     std::unique_ptr<MPI_Request> request = make_unique<MPI_Request>();
