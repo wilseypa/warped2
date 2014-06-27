@@ -6,19 +6,44 @@
  * the state.
  */
 
+#include <set>
+#include <memory>
+#include <mutex>
+
+#include "TimeWarpEventDispatcher.hpp"
+#include "ObjectState.hpp"
+#include "utility/memory.hpp"
+
 namespace warped {
 
 class StateManager {
 
 public:
 
-    StateManager();
+    StateManager(TimeWarpEventDispatcher *event_dispatcher)
+        : event_dispatcher_(event_dispatcher),
+          state_queues_(make_unique<std::multiset<std::unique_ptr<ObjectState>> []>
+              (event_dispatcher_->getNumObjects())),
+          state_queue_locks_(make_unique<std::mutex []>(event_dispatcher_->getNumObjects()))
+          {}
 
-    ~StateManager();
+    void fossilCollect(unsigned int gvt, unsigned int object_id);
 
-    virtual unsigned int restoreState( unsigned int rollbackTime, SimulationObject *object);
+    unsigned int restoreState(unsigned int rollback_time, unsigned int object_id);
 
-    virtual void saveState( unsigned int currentTime, SimulationObject *object);
+    virtual void saveState(unsigned int current_time, unsigned int object_id) = 0;
+
+
+private:
+
+    TimeWarpEventDispatcher *event_dispatcher_;
+
+    // Array of multisets (Array of states queues), one for each object
+    std::unique_ptr<std::multiset<std::unique_ptr<ObjectState>> []> state_queues_;
+
+    // Array of state queue locks, this is needed so that the manager thread can do
+    // fossil collection and the worker threads can save and restore state when needed.
+    std::unique_ptr<std::mutex []> state_queue_locks_;
 
 };
 

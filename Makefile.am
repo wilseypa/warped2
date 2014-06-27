@@ -34,7 +34,9 @@ WARPED_NOINST_HPP_FILES = \
     src/KernelMessage.hpp \
     src/EventMessage.hpp \
     src/CommunicationManager.hpp \
-    src/MPICommunicationManager.hpp
+    src/MPICommunicationManager.hpp \
+    src/StateManager.hpp \
+    src/PeriodicStateManager.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -53,7 +55,9 @@ WARPED_CPP_FILES = \
     src/MatternGVTManager.cpp \
     src/EventMessage.cpp \
     src/CommunicationManager.cpp \
-    src/MPICommunicationManager.cpp
+    src/MPICommunicationManager.cpp \
+    src/StateManager.cpp \
+    src/PeriodicStateManager.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \

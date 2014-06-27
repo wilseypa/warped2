@@ -38,11 +38,16 @@ public:
 
     CommunicationManager* getCommunicationManager() { return comm_manager_.get(); }
 
+    unsigned int getNumObjects() { return num_objects_; }
+
 private:
     void processEvents();
 
     const std::unique_ptr<LTSFQueue> events_;
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
+    std::unordered_map<std::string, unsigned int> object_id_by_name_;
+
+    unsigned int num_objects_;
 
     const std::unique_ptr<GVTManager> gvt_manager_;
 

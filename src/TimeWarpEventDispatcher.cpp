@@ -33,6 +33,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         for (auto& ob : partition) {
             events_->push(ob->createInitialEvents());
             objects_by_name_[ob->name_] = ob;
+            object_id_by_name_[ob->name_] = num_objects_;
+            num_objects_++;
         }
     }
 
