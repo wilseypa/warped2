@@ -9,20 +9,22 @@ namespace warped {
 class EventSet {
 public:
 
-    bool insert(const Event* event) = 0;
+    virtual bool insert(const Event* event) = 0;
 
-    bool handleAntiMessage(SimulationObject* reclaimer, const NegativeEvent* cancelEvent);
+    virtual bool handleAntiMessage(SimulationObject* reclaimer, const NegativeEvent* cancelEvent);
 
-    const Event* getEvent(SimulationObject*, uint64_t);
+    virtual const Event* getEvent(SimulationObject*, unsigned int);
 
-    const Event* peekEvent(SimulationObject*, uint64_t);
+    virtual const Event* peekEvent(SimulationObject*, unsigned int);
 
-    void fossilCollect(SimulationObject*, uint64_t);
+    virtual void fossilCollect(SimulationObject*, unsigned int);
 
-    void fossilCollect(const Event*);
+    virtual void fossilCollect(const Event*);
 
-    void rollback(SimulationObject* object, uint64_t rollbackTime);
+    virtual void rollback(SimulationObject* object, unsigned int rollbackTime);
 
+protected:
+    EventSet(){};
 };
 
 } // warped namespace
