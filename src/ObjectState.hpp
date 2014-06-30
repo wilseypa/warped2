@@ -12,7 +12,7 @@ namespace warped {
 struct ObjectState {
     virtual ~ObjectState() {}
     virtual std::unique_ptr<ObjectState> clone() const = 0;
-
+    virtual void restoreState(ObjectState& os) = 0;
 };
 
 // This mixin uses CRTP to define the clone method for any copy-constructable
@@ -21,6 +21,9 @@ template<class Derived>
 struct ObjectStateMixin : ObjectState {
     virtual std::unique_ptr<ObjectState> clone() const {
         return std::unique_ptr<ObjectState>(new Derived(static_cast<Derived const&>(*this)));
+    }
+    virtual void restoreState(ObjectState& os) {
+        static_cast<Derived&>(*this) = std::move(static_cast<Derived&>(os));
     }
 };
 

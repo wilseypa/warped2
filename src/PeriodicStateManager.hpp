@@ -1,6 +1,8 @@
 #ifndef PERIODIC_STATE_MANAGER_HPP
 #define PERIODIC_STATE_MANAGER_HPP
 
+#include <cstring>
+
 #include "StateManager.hpp"
 
 namespace warped {
@@ -8,9 +10,13 @@ namespace warped {
 class PeriodicStateManager : public StateManager {
 public:
 
-    PeriodicStateManager(TimeWarpEventDispatcher *event_dispatcher, unsigned int period) :
-        StateManager(event_dispatcher), period_(period),
-        count_(make_unique<unsigned int []>(event_dispatcher_->getNumObjects())) {}
+    PeriodicStateManager(unsigned int num_objects, unsigned int period) :
+        StateManager(num_objects), period_(period),
+        count_(make_unique<unsigned int []>(num_objects)) {
+
+        // Initialize count_ values for all objects to zero
+        memset(count_.get(), 0, sizeof(unsigned int)*num_objects);
+    }
 
     virtual void saveState(unsigned int current_time, unsigned int object_id,
         SimulationObject *object);

@@ -1,8 +1,11 @@
+#include <limits> // for std::numeric_limits<unsigned int>::max();
+
 #include "StateManager.hpp"
 #include "SimulationObject.hpp"
 
 namespace warped {
 
+// TODO this function assumes right now that there will always be a valid state to restore
 unsigned int StateManager::restoreState(unsigned int rollback_time, unsigned int object_id,
     SimulationObject *object) {
 
@@ -15,22 +18,34 @@ unsigned int StateManager::restoreState(unsigned int rollback_time, unsigned int
 
     state_queue_lock_[object_id].unlock();
 
-    object->getState() = *(max->second);
+    object->getState().restoreState(*max->second);
 
     return max->first;
 }
 
-void StateManager::fossilCollect(unsigned int gvt, unsigned int object_id) {
+unsigned int StateManager::fossilCollect(unsigned int gvt, unsigned int object_id) {
+    unsigned int retval;
 
     state_queue_lock_[object_id].lock();
 
     auto min = state_queue_[object_id].begin();
-    while (min->first < gvt) {
+    while (min->first < gvt && min != state_queue_[object_id].end()) {
         state_queue_[object_id].erase(min++);
     }
 
     state_queue_lock_[object_id].unlock();
 
+    if (min != state_queue_[object_id].end()) {
+        retval = min->first;
+    } else {
+        retval = std::numeric_limits<unsigned int>::max();
+    }
+
+    return retval;
+}
+
+std::size_t StateManager::size(unsigned int object_id) {
+    return state_queue_[object_id].size();
 }
 
 } // namespace warped
