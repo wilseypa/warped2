@@ -19,7 +19,8 @@ WARPED_TEST_PROGS = \
     test_STLLTSFQueue \
     test_MatternGVTManager \
     test_MPICommunicationManager \
-    test_PeriodicStateManager
+    test_PeriodicStateManager \
+    test_AggressiveOutputManager
 
 noinst_HEADERS = catch.hpp mocks.hpp
 
