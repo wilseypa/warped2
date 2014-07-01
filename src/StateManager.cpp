@@ -24,8 +24,7 @@ unsigned int StateManager::restoreState(unsigned int rollback_time, unsigned int
 }
 
 unsigned int StateManager::fossilCollect(unsigned int gvt, unsigned int object_id) {
-    unsigned int retval;
-
+    unsigned int retval = std::numeric_limits<unsigned int>::max();
     state_queue_lock_[object_id].lock();
 
     auto min = state_queue_[object_id].begin();
@@ -37,8 +36,6 @@ unsigned int StateManager::fossilCollect(unsigned int gvt, unsigned int object_i
 
     if (min != state_queue_[object_id].end()) {
         retval = min->first;
-    } else {
-        retval = std::numeric_limits<unsigned int>::max();
     }
 
     return retval;
