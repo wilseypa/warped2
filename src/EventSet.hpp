@@ -1,30 +1,69 @@
 #ifndef EVENT_SET_HPP
 #define EVENT_SET_HPP
 
-/* This class provides an interface for a specific Event Set
+/* This class provides the set of APIs needed to handle events in
+   an event set.
  */
+
+#include <mutex>
 
 namespace warped {
 
 class EventSet {
 public:
+    EventSet() {}
 
-    virtual bool insert(const Event* event) = 0;
+    bool insertEvent ( 
+                const std::unique_ptr<Event> event, 
+                unsigned int threadId );
 
-    virtual bool handleAntiMessage(SimulationObject* reclaimer, const NegativeEvent* cancelEvent);
+    bool handleAntiMessage ( 
+                std::unique_ptr<SimulationObject> object, 
+                const std::unique_ptr<Event> cancelEvent, 
+                unsigned int threadId );
 
-    virtual const Event* getEvent(SimulationObject*, unsigned int);
+    const std::unique_ptr<Event> getEvent ( 
+                std::unique_ptr<SimulationObject> object, 
+                unsigned int timeStamp, 
+                unsigned int threadId );
 
-    virtual const Event* peekEvent(SimulationObject*, unsigned int);
+    const std::<Event> peekEvent ( 
+                std::unique_ptr<SimulationObject> object, 
+                unsigned int timeStamp, 
+                unsigned int threadId );
 
-    virtual void fossilCollect(SimulationObject*, unsigned int);
+    void fossilCollect ( 
+                std::unique_ptr<SimulationObject> object, 
+                unsigned int timeStamp, 
+                unsigned int threadId );
 
-    virtual void fossilCollect(const Event*);
+    void fossilCollect ( 
+                const std::unique_ptr<Event> event, 
+                unsigned int threadId );
 
-    virtual void rollback(SimulationObject* object, unsigned int rollbackTime);
+    void rollback ( 
+                std::unique_ptr<SimulationObject> object, 
+                unsigned int rollbackTime, 
+                unsigned int threadId );
 
-protected:
-    EventSet(){};
+private:
+    std::mutex unprocessedQueueLock;
+
+    std::mutex processedQueueLock;
+
+    std::mutex removedQueueLock;
+
+    //to be modified
+
+    //Queues to hold the unprocessed events for each simulation object
+    std::vector<std::multiset<const std::unique_ptr<Event>, receiveTimeLessThanEventIdLessThan>*> unprocessedQueue;
+
+    //Queues to hold the processed events for each simulation object
+    std::vector<std::vector<const std::unique_ptr<Event>>*> processedQueue;
+
+    //Queues to hold the removed events for each simulation object
+    std::vector<std::vector<const std::unique_ptr<Event>>*> removedQueue;
+
 };
 
 } // warped namespace
