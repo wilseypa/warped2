@@ -13,7 +13,10 @@
 #include "LTSFQueue.hpp"
 #include "Partitioner.hpp"
 #include "SimulationObject.hpp"
-#include "MatternGVTManager.hpp"
+#include "CommunicationManager.hpp"
+#include "GVTManager.hpp"
+#include "StateManager.hpp"
+#include "OutputManager.hpp"
 
 namespace warped {
 

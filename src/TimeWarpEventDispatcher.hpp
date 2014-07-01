@@ -10,6 +10,7 @@
 #include <functional>   // for std::function
 
 #include "EventDispatcher.hpp"
+#include "Event.hpp"
 
 namespace warped {
 
@@ -18,6 +19,8 @@ class Partitioner;
 class SimulationObject;
 class GVTManager;
 class CommunicationManager;
+class StateManager;
+class OutputManager;
 
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
@@ -38,8 +41,6 @@ public:
 
     CommunicationManager* getCommunicationManager() { return comm_manager_.get(); }
 
-    unsigned int getNumObjects() { return num_objects_; }
-
 private:
     void processEvents();
 
@@ -47,12 +48,12 @@ private:
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
     std::unordered_map<std::string, unsigned int> object_id_by_name_;
 
-    unsigned int num_objects_;
+    unsigned int num_objects_ = 0;
 
     const std::unique_ptr<GVTManager> gvt_manager_;
-
     const std::unique_ptr<CommunicationManager> comm_manager_;
-
+    const std::unique_ptr<StateManager> state_manager_;
+    const std::unique_ptr<OutputManager> output_manager_;
 };
 
 } // namespace warped
