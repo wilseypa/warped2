@@ -6,43 +6,49 @@
 namespace warped {
 
 // TODO this function assumes right now that there will always be a valid state to restore
-unsigned int StateManager::restoreState(unsigned int rollback_time, unsigned int object_id,
+unsigned int StateManager::restoreState(unsigned int rollback_time, unsigned int local_object_id,
     SimulationObject *object) {
 
-    state_queue_lock_[object_id].lock();
+    state_queue_lock_[local_object_id].lock();
 
-    auto max = std::prev(state_queue_[object_id].end());
+    auto max = std::prev(state_queue_[local_object_id].end());
     while (max->first > rollback_time) {
-        state_queue_[object_id].erase(max--);
+        state_queue_[local_object_id].erase(max--);
     }
 
-    state_queue_lock_[object_id].unlock();
+    state_queue_lock_[local_object_id].unlock();
 
     object->getState().restoreState(*max->second);
 
     return max->first;
 }
 
-unsigned int StateManager::fossilCollect(unsigned int gvt, unsigned int object_id) {
+unsigned int StateManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
     unsigned int retval = std::numeric_limits<unsigned int>::max();
-    state_queue_lock_[object_id].lock();
+    state_queue_lock_[local_object_id].lock();
 
-    auto min = state_queue_[object_id].begin();
-    while (min->first < gvt && min != state_queue_[object_id].end()) {
-        state_queue_[object_id].erase(min++);
+    auto min = state_queue_[local_object_id].begin();
+    while (min->first < gvt && min != state_queue_[local_object_id].end()) {
+        state_queue_[local_object_id].erase(min++);
     }
 
-    state_queue_lock_[object_id].unlock();
+    state_queue_lock_[local_object_id].unlock();
 
-    if (min != state_queue_[object_id].end()) {
+    if (min != state_queue_[local_object_id].end()) {
         retval = min->first;
     }
 
     return retval;
 }
 
-std::size_t StateManager::size(unsigned int object_id) {
-    return state_queue_[object_id].size();
+void StateManager::fossilCollectAll(unsigned int gvt) {
+   for (unsigned int i = 0; i < state_queue_.get()->size(); i++) {
+        fossilCollect(gvt, i);
+    }
+}
+
+std::size_t StateManager::size(unsigned int local_object_id) {
+    return state_queue_[local_object_id].size();
 }
 
 } // namespace warped

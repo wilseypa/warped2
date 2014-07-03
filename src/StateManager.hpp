@@ -26,14 +26,16 @@ public:
         state_queue_lock_(make_unique<std::mutex []>(num_objects))
         {}
 
-    unsigned int fossilCollect(unsigned int gvt, unsigned int object_id);
+    unsigned int fossilCollect(unsigned int gvt, unsigned int local_object_id);
 
-    unsigned int restoreState(unsigned int rollback_time, unsigned int object_id,
+    void fossilCollectAll(unsigned int gvt);
+
+    unsigned int restoreState(unsigned int rollback_time, unsigned int local_object_id,
         SimulationObject *object);
 
-    std::size_t size(unsigned int object_id);
+    std::size_t size(unsigned int local_object_id);
 
-    virtual void saveState(unsigned int current_time, unsigned int object_id,
+    virtual void saveState(unsigned int current_time, unsigned int local_object_id,
         SimulationObject *object) = 0;
 
 protected:

@@ -11,7 +11,7 @@ public:
         OutputManager(num_objects) {}
 
     std::unique_ptr<std::vector<std::unique_ptr<Event>>>
-        rollback(unsigned int rollback_time, unsigned int object_id);
+        rollback(unsigned int rollback_time, unsigned int local_object_id);
 
 };
 

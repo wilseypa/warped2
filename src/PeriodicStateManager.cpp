@@ -4,18 +4,19 @@
 namespace warped
 {
 
-void PeriodicStateManager::saveState(unsigned int current_time, unsigned int object_id,
+void PeriodicStateManager::saveState(unsigned int current_time, unsigned int local_object_id,
     SimulationObject *object) {
 
-    if (count_[object_id] == 0) {
+    if (count_[local_object_id] == 0) {
 
-        state_queue_lock_[object_id].lock();
-        state_queue_[object_id].insert(std::make_pair(current_time, object->getState().clone()));
-        state_queue_lock_[object_id].unlock();
+        state_queue_lock_[local_object_id].lock();
+        state_queue_[local_object_id].insert(std::make_pair(current_time,
+            object->getState().clone()));
+        state_queue_lock_[local_object_id].unlock();
 
-        count_[object_id] = period_ - 1;
+        count_[local_object_id] = period_ - 1;
     } else {
-        count_[object_id]--;
+        count_[local_object_id]--;
     }
 
 }

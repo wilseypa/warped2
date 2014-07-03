@@ -18,7 +18,7 @@ public:
         memset(count_.get(), 0, sizeof(unsigned int)*num_objects);
     }
 
-    virtual void saveState(unsigned int current_time, unsigned int object_id,
+    virtual void saveState(unsigned int current_time, unsigned int local_object_id,
         SimulationObject *object);
 
 private:
