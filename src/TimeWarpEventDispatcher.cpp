@@ -13,24 +13,26 @@
 #include "LTSFQueue.hpp"
 #include "Partitioner.hpp"
 #include "SimulationObject.hpp"
-#include "CommunicationManager.hpp"
-#include "GVTManager.hpp"
+#include "MPICommunicationManager.hpp"
+#include "MatternGVTManager.hpp"
 #include "StateManager.hpp"
 #include "OutputManager.hpp"
+#include "EventMessage.hpp"
 
 namespace warped {
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
-    std::unique_ptr<LTSFQueue> events)
-    : EventDispatcher(max_sim_time), events_(std::move(events)) {}
+    std::unique_ptr<LTSFQueue> events, std::unique_ptr<GVTManager> gvt_manager,
+    std::unique_ptr<StateManager> state_manager, std::unique_ptr<OutputManager> output_manager) :
+        EventDispatcher(max_sim_time), events_(std::move(events)),
+        gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
+        output_manager_(std::move(output_manager)) {}
 
 // This function implementation is merely a speculation for how the this
 // function might work in the future. It's definitely incomplete, and may not
 // be the best approach at all.
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
-
-    comm_manager_->initialize();
 
     for (auto& partition : objects) {
         for (auto& ob : partition) {
@@ -41,6 +43,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         }
     }
 
+    objects_per_partition_ = num_objects_/comm_manager_->getNumProcesses();
+
     // Create worker threads
     std::vector<std::thread> threads;
     for (unsigned int i = 0; i < std::thread::hardware_concurrency() - 1; ++i) {
@@ -49,10 +53,13 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
     // Master thread main loop
     while (gvt_manager_->getGVT() < max_sim_time_) {
+
+        // Node with id 0 will be the only one to initiate gvt calculation
         if (comm_manager_->getID() == 0) {
             gvt_manager_->calculateGVT();
         }
 
+        // This sends all messages that are in the send buffer
         comm_manager_->sendAllMessages();
     }
 
@@ -60,28 +67,47 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         t.join();
     }
 
-    comm_manager_->finalize();
+    finalizeCommunicationManager();
 }
 
 void TimeWarpEventDispatcher::processEvents() {
 
 }
 
-void TimeWarpEventDispatcher::getAndDispatchMessages() {
-    auto msg = comm_manager_->recvMessage();
-    while (msg.get() != nullptr) {
-        switch (msg->get_type()) {
-            case MessageType::EventMessage:
-                break;
-            case MessageType::MatternGVTToken:
-                gvt_manager_->receiveMessage(std::move(msg));
-                break;
-            default:
-                break;
-        }
-        msg = comm_manager_->recvMessage();
-
+void TimeWarpEventDispatcher::receiveMessage(std::unique_ptr<KernelMessage> msg) {
+    EventMessage *e = dynamic_cast<EventMessage*>(msg.get());
+    std::unique_ptr<EventMessage> event_msg;
+    if(e != nullptr)
+    {
+        msg.release();
+        event_msg.reset(e);
     }
+
+    gvt_manager_->setGvtInfo(event_msg->gvt_mattern_color);
+
+    //TODO This is incomplete
+}
+
+void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event) {
+    unsigned int sender_id = comm_manager_->getID();
+    unsigned int receiver_id =
+        object_id_by_name_[event->receiverName()]/objects_per_partition_;
+    int color = gvt_manager_->getGvtInfo(event->timestamp());
+
+    auto event_msg = make_unique<EventMessage>(sender_id, receiver_id, std::move(event), color);
+    comm_manager_->enqueueMessage(std::move(event_msg));
+}
+
+bool TimeWarpEventDispatcher::isObjectLocal(std::string object_name) {
+    unsigned int object_id = object_id_by_name_[object_name];
+    return object_id/objects_per_partition_ == comm_manager_->getID();
+}
+
+void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
+    state_manager_->fossilCollectAll(gvt);
+    output_manager_->fossilCollectAll(gvt);
 }
 
 } // namespace warped
+
+

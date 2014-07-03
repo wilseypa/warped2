@@ -11,6 +11,8 @@
 
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
+#include "Communicator.hpp"
+#include "EventMessage.hpp"
 
 namespace warped {
 
@@ -18,7 +20,6 @@ class LTSFQueue;
 class Partitioner;
 class SimulationObject;
 class GVTManager;
-class CommunicationManager;
 class StateManager;
 class OutputManager;
 
@@ -30,16 +31,22 @@ class OutputManager;
 // const std::unique_ptrs. Any configuration values should be stored as const
 // members. Any mutable members should be stored in thread_local storage or in
 // a std::atomic, depending on the member.
-class TimeWarpEventDispatcher : public EventDispatcher {
+class TimeWarpEventDispatcher : public EventDispatcher, public Communicator {
 public:
-    TimeWarpEventDispatcher(unsigned int max_sim_time,
-        std::unique_ptr<LTSFQueue> events);
+    TimeWarpEventDispatcher(unsigned int max_sim_time, std::unique_ptr<LTSFQueue> events,
+        std::unique_ptr<GVTManager> gvt_manager,
+        std::unique_ptr<StateManager> state_manager,
+        std::unique_ptr<OutputManager> output_manager);
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
-    void getAndDispatchMessages();
+    void receiveMessage(std::unique_ptr<KernelMessage> msg);
 
-    CommunicationManager* getCommunicationManager() { return comm_manager_.get(); }
+    void sendRemoteEvent(std::unique_ptr<Event> event);
+
+    void fossilCollect(unsigned int gvt);
+
+    bool isObjectLocal(std::string object_name);
 
 private:
     void processEvents();
@@ -50,8 +57,9 @@ private:
 
     unsigned int num_objects_ = 0;
 
+    unsigned int objects_per_partition_ = 0;
+
     const std::unique_ptr<GVTManager> gvt_manager_;
-    const std::unique_ptr<CommunicationManager> comm_manager_;
     const std::unique_ptr<StateManager> state_manager_;
     const std::unique_ptr<OutputManager> output_manager_;
 };
