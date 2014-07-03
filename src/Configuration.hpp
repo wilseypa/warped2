@@ -12,6 +12,7 @@ namespace warped {
 
 class EventDispatcher;
 class Partitioner;
+class CommunicationManager;
 
 // This class is responsible for creating and configuring the EventDispatcher
 // to be used in the simulation. There are three tiers of configuration data
@@ -29,7 +30,8 @@ public:
     ~Configuration();
 
     // Create a fully configured EventDispatcher
-    std::unique_ptr<EventDispatcher> makeDispatcher();
+    std::tuple<std::unique_ptr<EventDispatcher>, unsigned int>
+        makeDispatcher(unsigned int num_objects);
 
     // Create a partitioner based on the chosen configuration.
     std::unique_ptr<Partitioner> makePartitioner();
@@ -37,6 +39,8 @@ public:
     // Create a partitioner if configured, or return the given user provided
     // partitioner.
     std::unique_ptr<Partitioner> makePartitioner(std::unique_ptr<Partitioner> user_partitioner);
+
+    std::unique_ptr<CommunicationManager> makeCommunicationManager();
 
 private:
     void init(const std::string& model_description, int argc, const char* const* argv,

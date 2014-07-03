@@ -33,6 +33,7 @@ WARPED_NOINST_HPP_FILES = \
     src/MatternGVTManager.hpp \
     src/KernelMessage.hpp \
     src/EventMessage.hpp \
+    src/Communicator.hpp \
     src/CommunicationManager.hpp \
     src/MPICommunicationManager.hpp \
     src/StateManager.hpp \
@@ -56,6 +57,7 @@ WARPED_CPP_FILES = \
     src/TimeWarpEventDispatcher.cpp \
     src/MatternGVTManager.cpp \
     src/EventMessage.cpp \
+    src/Communicator.cpp \
     src/CommunicationManager.cpp \
     src/MPICommunicationManager.cpp \
     src/StateManager.cpp \

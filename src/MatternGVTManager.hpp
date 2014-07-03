@@ -38,10 +38,9 @@ struct MatternGVTToken : public KernelMessage {
 
 };
 
-class MatternGVTManager : public GVTManager {
+class MatternGVTManager : public GVTManager, public Communicator {
 public:
-    MatternGVTManager(TimeWarpEventDispatcher* event_dispatcher) :
-        event_dispatcher_(event_dispatcher) {}
+    MatternGVTManager() = default;
 
     // Starts the GVT calculation process
     void calculateGVT();
@@ -51,14 +50,9 @@ public:
 
     void receiveMessage(std::unique_ptr<KernelMessage> msg);
 
-    // Called when a white message is sent
-    void incrementWhiteMsgCount() { white_msg_counter_++; }
+    void setGvtInfo(int color);
 
-    // Called when a white message is received
-    void decrementWhiteMsgCount() { white_msg_counter_--; }
-
-    // Returns the color of this node, this is needed when receiving an event.
-    MatternColor getColor() { return color_; }
+    int getGvtInfo(unsigned int timestamp);
 
 protected:
     unsigned int infinityVT();
@@ -73,8 +67,6 @@ private:
     unsigned int min_red_msg_timestamp_ = infinityVT();
 
     bool gVT_calc_initiated_ = false;
-
-    TimeWarpEventDispatcher* event_dispatcher_;
 
 };
 

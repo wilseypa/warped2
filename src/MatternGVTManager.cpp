@@ -20,14 +20,28 @@ void MatternGVTManager::sendGVTUpdate() {
 
 }
 
+void MatternGVTManager::setGvtInfo(int color) {
+    if (static_cast<MatternColor>(color) == MatternColor::WHITE) {
+        white_msg_counter_--;
+    }
+}
+
+int MatternGVTManager::getGvtInfo(unsigned int timestamp) {
+    if (color_ == MatternColor::WHITE) {
+        white_msg_counter_++;
+    } else {
+        min_red_msg_timestamp_ = std::min(min_red_msg_timestamp_, timestamp);
+    }
+    return static_cast<int>(color_);
+}
+
 // This initiates the gvt calculation by sending the initial
 // control message to node 1 (assuming this must be node 0 calling this)
 void MatternGVTManager::calculateGVT() {
-    CommunicationManager* comm_manager = event_dispatcher_->getCommunicationManager();
 
-    if (comm_manager->getID() != 0) return;
+    if (comm_manager_->getID() != 0) return;
 
-    if (comm_manager->getNumProcesses() > 1) {
+    if (comm_manager_->getNumProcesses() > 1) {
         if (gVT_calc_initiated_ == false) {
             color_ = MatternColor::RED;
             min_red_msg_timestamp_ = infinityVT();
@@ -44,8 +58,7 @@ void MatternGVTManager::calculateGVT() {
 }
 
 void MatternGVTManager::sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg) {
-    CommunicationManager* comm_manager = event_dispatcher_->getCommunicationManager();
-    comm_manager->sendMessage(std::move(msg));
+    comm_manager_->sendMessage(std::move(msg));
 }
 
 void MatternGVTManager::receiveMessage(std::unique_ptr<KernelMessage> msg) {
@@ -62,9 +75,8 @@ void MatternGVTManager::receiveMessage(std::unique_ptr<KernelMessage> msg) {
 }
 
 void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg) {
-    CommunicationManager* comm_manager = event_dispatcher_->getCommunicationManager();
-    unsigned int process_id = comm_manager->getID();
-    unsigned int num_processes = comm_manager->getNumProcesses();
+    unsigned int process_id = comm_manager_->getID();
+    unsigned int num_processes = comm_manager_->getNumProcesses();
 
     if (process_id == 0) {
         // Initiator received the message

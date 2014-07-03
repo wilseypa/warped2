@@ -5,6 +5,7 @@
  * implements a specific algorithm for calculating the GVT
  */
 
+#include <string>
 #include <functional>
 #include "CommunicationManager.hpp"
 
@@ -17,7 +18,9 @@ public:
 
     virtual void calculateGVT() = 0;
 
-    virtual void receiveMessage(std::unique_ptr<KernelMessage> msg) = 0;
+    virtual void setGvtInfo(int) = 0;
+
+    virtual int getGvtInfo(unsigned int) = 0;
 
     unsigned int getGVT() { return gVT_; }
 

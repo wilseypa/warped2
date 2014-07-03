@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <vector>
+#include <tuple>
 
 #include "Configuration.hpp"
 #include "EventDispatcher.hpp"
@@ -21,11 +22,14 @@ Simulation::Simulation(const std::string& config_file_name, unsigned int max_sim
     : config_(config_file_name, max_sim_time) {}
 
 void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
-    std::unique_ptr<EventDispatcher> dispatcher = config_.makeDispatcher();
-    // TODO: get the actual number of partitions for parallel simulations
-    unsigned int num_partitions = 1;
+    std::unique_ptr<EventDispatcher> dispatcher;
+    unsigned int num_partitions;
+
+    std::tie(dispatcher, num_partitions) = config_.makeDispatcher(objects.size());
+
     auto partitioned_objects = config_.makePartitioner()->partition(objects, num_partitions);
     dispatcher->startSimulation(partitioned_objects);
+
 }
 
 } // namepsace warped
