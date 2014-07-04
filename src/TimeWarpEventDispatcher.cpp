@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <cmath>
 
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
@@ -43,7 +44,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         }
     }
 
-    objects_per_partition_ = num_objects_/comm_manager_->getNumProcesses();
+    objects_per_partition_ = std::ceil(num_objects_/comm_manager_->getNumProcesses());
 
     // Create worker threads
     std::vector<std::thread> threads;

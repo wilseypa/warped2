@@ -9,6 +9,7 @@
 #include <tuple>
 #include <utility>
 #include <vector>
+#include <cmath>
 
 #include "json/json.h"
 
@@ -159,7 +160,7 @@ Configuration::makeDispatcher(unsigned int num_objects) {
 
         std::unique_ptr<CommunicationManager> comm_manager = make_unique<MPICommunicationManager>();
         int num_partitions = Communicator::initCommunicationManager(std::move(comm_manager));
-        int objects_per_partition = num_objects/num_partitions;
+        int objects_per_partition = std::ceil(num_objects/num_partitions);
 
         std::unique_ptr<StateManager> state_manager;
         if ((*root_)["state-saving"]["type"].asString() == "periodic") {
