@@ -75,17 +75,12 @@ void TimeWarpEventDispatcher::processEvents() {
 }
 
 void TimeWarpEventDispatcher::receiveMessage(std::unique_ptr<KernelMessage> msg) {
-    EventMessage *e = dynamic_cast<EventMessage*>(msg.get());
-    std::unique_ptr<EventMessage> event_msg;
-    if(e != nullptr)
-    {
-        msg.release();
-        event_msg.reset(e);
-    }
+    std::unique_ptr<EventMessage> event_msg = unique_cast<KernelMessage, EventMessage>
+        (std::move(msg));
 
     gvt_manager_->setGvtInfo(event_msg->gvt_mattern_color);
 
-    //TODO This is incomplete
+   // TODO This is incomplete
 }
 
 void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event) {
@@ -111,9 +106,14 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     //TODO still incomplete
 }
 
-void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int local_object_id) {
-    unsigned int retored_timestamp = state_manager_->restoreState(straggler_time, local_object_id);
-    auto events_to_canel = output_manager_->rollback(straggler_time, local_object_id);
+void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int local_object_id,
+    SimulationObject* object) {
+    unsigned int restored_timestamp = state_manager_->restoreState(straggler_time, local_object_id,
+        object);
+    auto events_to_cancel = output_manager_->rollback(straggler_time, local_object_id);
+
+    restored_timestamp = 1;
+    events_to_cancel->size();
 
     //TODO this in incomplete, the restored_timestamp is the timestamp of the state of the
     // object that has been restored. All unprocessed event before or equal to this time must be

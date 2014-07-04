@@ -56,12 +56,8 @@ TEST_CASE("MPI Communication Manager functions correctly","[mpi]"){
                 REQUIRE(msg.get() != nullptr);
                 REQUIRE(msg->get_type() == warped::MessageType::MatternGVTToken);
 
-                std::unique_ptr<warped::MatternGVTToken> mattern_msg;
-                auto tmp = dynamic_cast<warped::MatternGVTToken*>(msg.get());
-                REQUIRE(tmp != nullptr);
-
-                msg.release();
-                mattern_msg.reset(tmp);
+                auto mattern_msg = warped::unique_cast<warped::KernelMessage,
+                    warped::MatternGVTToken>(std::move(msg));
 
                 REQUIRE(mattern_msg != nullptr);
                 CHECK(mattern_msg->sender_id == 0);

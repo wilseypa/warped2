@@ -19,10 +19,10 @@ void Communicator::dispatchReceivedMessages() {
     while (msg.get() != nullptr) {
         switch(msg->get_type()) {
             case MessageType::MatternGVTToken:
-                static_cast<MatternGVTManager*>(this)->receiveMessage(std::move(msg));
+                static_cast<MatternGVTManager&>(*this).receiveMessage(std::move(msg));
                 break;
             case MessageType::EventMessage:
-                static_cast<TimeWarpEventDispatcher*>(this)->receiveMessage(std::move(msg));
+                static_cast<TimeWarpEventDispatcher&>(*this).receiveMessage(std::move(msg));
                 break;
             default:
                 break;

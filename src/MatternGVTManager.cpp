@@ -63,13 +63,7 @@ void MatternGVTManager::sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg
 
 void MatternGVTManager::receiveMessage(std::unique_ptr<KernelMessage> msg) {
     if (msg->get_type() == MessageType::MatternGVTToken) {
-        MatternGVTToken *m = dynamic_cast<MatternGVTToken*>(msg.get());
-        std::unique_ptr<MatternGVTToken> token;
-        if(m != nullptr)
-        {
-            msg.release();
-            token.reset(m);
-        }
+        auto token = unique_cast<KernelMessage, MatternGVTToken>(std::move(msg));
         receiveMatternGVTToken(std::move(token));
     }
 }

@@ -46,7 +46,7 @@ public:
 
     void fossilCollect(unsigned int gvt);
 
-    void rollback(unsigned int straggler_time);
+    void rollback(unsigned int straggler_time, unsigned int local_object_id, SimulationObject* ob);
 
     bool isObjectLocal(std::string object_name);
 
