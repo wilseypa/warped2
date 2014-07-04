@@ -1,0 +1,30 @@
+language: cpp
+compiler:
+  - gcc
+  - clang
+before_install:
+  # Add repo for gcc 4.8
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+
+  # Add repo for clang 3.3
+  - if [ "$CXX" == "clang++" ]; then sudo add-apt-repository -y ppa:h-rayflood/llvm; fi
+
+  - sudo apt-get update -qq
+install:
+  - sudo apt-get install -qq libtool automake 
+
+  # Always install g++
+  - sudo apt-get install -qq g++-4.8
+  - sudo apt-get install -qq g++-4.8-multilib
+  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8"; fi
+
+  # Use clang 3.3
+  - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.3; fi
+  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.3"; fi
+
+before_script:
+  - mkdir -p $HOME/lib
+  - autoreconf -i 
+  - ./configure --prefix=$HOME/lib/warped 
+script: 
+  - make -j5 && make check && make install && make distcheck -j5

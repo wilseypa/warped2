@@ -12,6 +12,7 @@ WARPED_TEST_PROGS = \
     test_Event \
     test_IndividualEventStatistics \
     test_ObjectState \
+    test_ProfileGuidedPartitioner \
     test_RoundRobinPartitioner \
     test_serialization \
     test_Simulation \

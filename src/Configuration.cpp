@@ -21,6 +21,7 @@
 #include "NullEventStatistics.hpp"
 #include "Partitioner.hpp"
 #include "STLLTSFQueue.hpp"
+#include "ProfileGuidedPartitioner.hpp"
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
 #include "TimeWarpEventDispatcher.hpp"
@@ -34,21 +35,18 @@ namespace {
 const static std::string DEFAULT_CONFIG = R"x({
 
 // If max-sim-time > 0, the simulation will halt once the time has been reached
-"max-sim-time":0,
+"max-sim-time": 0,
 
 // Valid options are "sequential" and "time-warp"
 "simulation-type": "sequential",
 
 "statistics": {
-    // Valid options are "none", "json", "graphviz", and "metis"
+    // Valid options are "none", "json", "csv", "graphviz", and "metis".
+    // "json" and "csv" are individual statistics, others are aggregate.
     "type": "none",
     // If statistics-type is not "none", save the output in this file
     "file": "statistics.out"
 },
-
-// Valid options are "default" and "round-robin". "default" will use user
-// provided partitioning if given, else "round-robin".
-"partitioning": "default",
 
 "state-saving": {
     "type": "periodic",
@@ -56,6 +54,16 @@ const static std::string DEFAULT_CONFIG = R"x({
 },
 
 "cancellation": "aggressive"
+
+"partitioning": {
+    // Valid options are "default", "round-robin" and "profile-guided".
+    // "default" will use user provided partitioning if given, else
+    // "round-robin".
+    "type": "default",
+    // The path to the statistics file that was created from a previous run.
+    // Only used if "partitioning-type" is "provided-guided".
+    "file": "statistics.out"
+}
 
 })x";
 
@@ -145,8 +153,13 @@ void Configuration::init(const std::string& model_description, int argc, const c
     }
 }
 
+
 std::tuple<std::unique_ptr<EventDispatcher>, unsigned int>
 Configuration::makeDispatcher(unsigned int num_objects) {
+    if ((*root_)["max-sim-time"].isUInt()) {
+        max_sim_time_ = (*root_)["max-sim-time"].asUInt();
+    }
+
     if ((*root_)["simulation-type"].asString() == "time-warp") {
         //TODO: Create, configure, and return a TimeWarpEventDispatcher
         // This is just a rough idea of how the dispatcher could be configured
@@ -183,7 +196,11 @@ Configuration::makeDispatcher(unsigned int num_objects) {
     auto statistics_type = (*root_)["statistics"]["type"].asString();
     auto statistics_file = (*root_)["statistics"]["file"].asString();
     if (statistics_type == "json") {
-        stats = make_unique<IndividualEventStatistics>(statistics_file);
+        auto type = IndividualEventStatistics::OutputType::Json;
+        stats = make_unique<IndividualEventStatistics>(statistics_file, type);
+    } else if (statistics_type == "csv") {
+        auto type = IndividualEventStatistics::OutputType::Csv;
+        stats = make_unique<IndividualEventStatistics>(statistics_file, type);
     } else if (statistics_type == "graphviz") {
         auto type = AggregateEventStatistics::OutputType::Graphviz;
         stats = make_unique<AggregateEventStatistics>(statistics_file, type);
@@ -198,9 +215,16 @@ Configuration::makeDispatcher(unsigned int num_objects) {
 }
 
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
-    auto partitioner_type = (*root_)["partitioning"].asString();
+    auto partitioner_type = (*root_)["partitioning"]["type"].asString();
     if (partitioner_type == "default" || partitioner_type == "round-robin") {
         return make_unique<RoundRobinPartitioner>();
+    } else if (partitioner_type == "profile-guided") {
+        auto filename = (*root_)["partitioning"]["file"].asString();
+        std::ifstream input(filename);
+        if (!input.is_open()) {
+            throw std::runtime_error(std::string("Could not open statistics file ") + filename);
+        }
+        return make_unique<ProfileGuidedPartitioner>(input);
     }
     throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
 }

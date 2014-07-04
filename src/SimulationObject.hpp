@@ -1,5 +1,5 @@
-#ifndef SIMULATION_OBJECT_H
-#define SIMULATION_OBJECT_H
+#ifndef SIMULATION_OBJECT_HPP
+#define SIMULATION_OBJECT_HPP
 
 #include <string>
 #include <vector>

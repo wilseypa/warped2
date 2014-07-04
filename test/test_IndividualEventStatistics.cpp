@@ -12,8 +12,9 @@
 #include "utility/memory.hpp"
 #include "mocks.hpp"
 
-TEST_CASE("IndividualEventStatistics are collected", "[IndividualEventStatistics]") {
-    warped::IndividualEventStatistics stats{""};
+TEST_CASE("IndividualEventStatistics can be reported as JSON", "[IndividualEventStatistics]") {
+    auto type = warped::IndividualEventStatistics::OutputType::Json;
+    warped::IndividualEventStatistics stats{"", type};
     Json::Value val;
 
     std::unique_ptr<warped::Event> e1 = warped::make_unique<test_Event>("e1", 1);
