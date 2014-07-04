@@ -112,11 +112,11 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
 }
 
 void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int local_object_id) {
-    unsigned int last_saved_ts = state_manager_->restoreState(straggler_time, local_object_id);
+    unsigned int retored_timestamp = state_manager_->restoreState(straggler_time, local_object_id);
     auto events_to_canel = output_manager_->rollback(straggler_time, local_object_id);
 
-    //TODO this in incomplete, the last_saved_ts is the timestamp of the most recent saved state
-    // left in the state queue. All unprocessed event before or equal to this time must be
+    //TODO this in incomplete, the restored_timestamp is the timestamp of the state of the
+    // object that has been restored. All unprocessed event before or equal to this time must be
     // regenerated. events_to_canel is a vector that contains event that must be sent as
     // anti-messages.
 }
