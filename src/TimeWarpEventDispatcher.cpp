@@ -19,6 +19,7 @@
 #include "StateManager.hpp"
 #include "OutputManager.hpp"
 #include "EventMessage.hpp"
+#include "utility/memory.hpp"
 
 namespace warped {
 
@@ -34,17 +35,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
 // be the best approach at all.
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
-
-    for (auto& partition : objects) {
-        for (auto& ob : partition) {
-            events_->push(ob->createInitialEvents());
-            objects_by_name_[ob->name_] = ob;
-            object_id_by_name_[ob->name_] = num_objects_;
-            num_objects_++;
-        }
-    }
-
-    objects_per_partition_ = std::ceil(num_objects_/comm_manager_->getNumProcesses());
+    initialize(objects);
 
     // Create worker threads
     std::vector<std::thread> threads;
@@ -62,10 +53,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
         // This sends all messages that are in the send buffer
         comm_manager_->sendAllMessages();
-    }
-
-    for (auto& t : threads) {
-        t.join();
     }
 
     finalizeCommunicationManager();
@@ -86,18 +73,11 @@ void TimeWarpEventDispatcher::receiveMessage(std::unique_ptr<KernelMessage> msg)
 
 void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event) {
     unsigned int sender_id = comm_manager_->getID();
-    unsigned int receiver_id =
-        object_id_by_name_[event->receiverName()]/objects_per_partition_;
+    unsigned int receiver_id = 0;
     int color = gvt_manager_->getGvtInfo(event->timestamp());
 
     auto event_msg = make_unique<EventMessage>(sender_id, receiver_id, std::move(event), color);
     comm_manager_->enqueueMessage(std::move(event_msg));
-}
-
-// TODO double check to make sure this will work
-bool TimeWarpEventDispatcher::isObjectLocal(std::string object_name) {
-    unsigned int object_id = object_id_by_name_[object_name];
-    return object_id/objects_per_partition_ == comm_manager_->getID();
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
@@ -113,6 +93,7 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
         object);
     auto events_to_cancel = output_manager_->rollback(straggler_time, local_object_id);
 
+    // TODO temporary so compiler wouldn't complain
     restored_timestamp = 1;
     events_to_cancel->size();
 
@@ -120,6 +101,27 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
     // object that has been restored. All unprocessed event before or equal to this time must be
     // regenerated. events_to_canel is a vector that contains event that must be sent as
     // anti-messages.
+}
+
+void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>&
+                                              objects) {
+    unsigned int partition_id = 0;
+    for (auto& partition : objects) {
+        unsigned int object_id = 0;
+        for (auto& ob : partition) {
+            events_->push(ob->createInitialEvents());
+            objects_by_name_[ob->name_] = ob;
+            local_object_id_by_name_[ob->name_] = object_id++;
+            object_node_id_by_name_[ob->name_] = partition_id;
+        }
+        partition_id++;
+    }
+
+    unsigned int num_local_objects = objects[comm_manager_->getID()].size();
+
+    // Creates the state queues and output queues
+    state_manager_->initialize(num_local_objects);
+    output_manager_->initialize(num_local_objects);
 }
 
 } // namespace warped

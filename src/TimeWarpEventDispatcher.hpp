@@ -40,6 +40,8 @@ public:
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
+    void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
+
     void receiveMessage(std::unique_ptr<KernelMessage> msg);
 
     void sendRemoteEvent(std::unique_ptr<Event> event);
@@ -48,18 +50,13 @@ public:
 
     void rollback(unsigned int straggler_time, unsigned int local_object_id, SimulationObject* ob);
 
-    bool isObjectLocal(std::string object_name);
-
 private:
     void processEvents();
 
     const std::unique_ptr<LTSFQueue> events_;
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
-    std::unordered_map<std::string, unsigned int> object_id_by_name_;
-
-    unsigned int num_objects_ = 0;
-
-    unsigned int objects_per_partition_ = 0;
+    std::unordered_map<std::string, unsigned int> local_object_id_by_name_;
+    std::unordered_map<std::string, unsigned int> object_node_id_by_name_;
 
     const std::unique_ptr<GVTManager> gvt_manager_;
     const std::unique_ptr<StateManager> state_manager_;

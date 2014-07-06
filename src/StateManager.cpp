@@ -2,8 +2,16 @@
 
 #include "StateManager.hpp"
 #include "SimulationObject.hpp"
+#include "utility/memory.hpp"
 
 namespace warped {
+
+void StateManager::initialize(unsigned int num_local_objects) {
+    state_queue_ = make_unique<std::multimap<unsigned int, std::unique_ptr<ObjectState>> []>
+        (num_local_objects);
+
+    state_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
+}
 
 // TODO this function assumes right now that there will always be a valid state to restore
 unsigned int StateManager::restoreState(unsigned int rollback_time, unsigned int local_object_id,

@@ -12,7 +12,6 @@
 
 #include "TimeWarpEventDispatcher.hpp"
 #include "ObjectState.hpp"
-#include "utility/memory.hpp"
 
 namespace warped {
 
@@ -20,11 +19,9 @@ class StateManager {
 
 public:
 
-    StateManager(unsigned int num_objects) :
-        state_queue_(make_unique<std::multimap<unsigned int, std::unique_ptr<ObjectState>> []>
-            (num_objects)),
-        state_queue_lock_(make_unique<std::mutex []>(num_objects))
-        {}
+    StateManager() = default;
+
+    void initialize(unsigned int num_local_objects);
 
     unsigned int fossilCollect(unsigned int gvt, unsigned int local_object_id);
 

@@ -5,17 +5,15 @@
 #include <vector>
 
 #include "Event.hpp"
-#include "utility/memory.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 
 namespace warped {
 
 class OutputManager {
 public:
-    OutputManager(unsigned int num_objects) :
-        output_queue_(make_unique<std::vector<std::unique_ptr<Event>>[]>(num_objects)),
-        output_queue_lock_(make_unique<std::mutex[]>(num_objects))
-        {}
+    OutputManager() = default;
+
+    void initialize(unsigned int num_local_objects);
 
     void insertEvent(std::unique_ptr<Event> event, unsigned int local_object_id);
 

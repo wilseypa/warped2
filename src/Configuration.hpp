@@ -30,8 +30,7 @@ public:
     ~Configuration();
 
     // Create a fully configured EventDispatcher
-    std::tuple<std::unique_ptr<EventDispatcher>, unsigned int>
-        makeDispatcher(unsigned int num_objects);
+    std::tuple<std::unique_ptr<EventDispatcher>, unsigned int> makeDispatcher();
 
     // Create a partitioner based on the chosen configuration.
     std::unique_ptr<Partitioner> makePartitioner();

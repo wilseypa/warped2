@@ -25,7 +25,7 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
     std::unique_ptr<EventDispatcher> dispatcher;
     unsigned int num_partitions;
 
-    std::tie(dispatcher, num_partitions) = config_.makeDispatcher(objects.size());
+    std::tie(dispatcher, num_partitions) = config_.makeDispatcher();
 
     auto partitioned_objects = config_.makePartitioner()->partition(objects, num_partitions);
     dispatcher->startSimulation(partitioned_objects);

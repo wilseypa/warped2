@@ -9,7 +9,6 @@
 #include <tuple>
 #include <utility>
 #include <vector>
-#include <cmath>
 
 #include "json/json.h"
 
@@ -155,7 +154,7 @@ void Configuration::init(const std::string& model_description, int argc, const c
 
 
 std::tuple<std::unique_ptr<EventDispatcher>, unsigned int>
-Configuration::makeDispatcher(unsigned int num_objects) {
+Configuration::makeDispatcher() {
     if ((*root_)["max-sim-time"].isUInt()) {
         max_sim_time_ = (*root_)["max-sim-time"].asUInt();
     }
@@ -173,17 +172,18 @@ Configuration::makeDispatcher(unsigned int num_objects) {
 
         std::unique_ptr<CommunicationManager> comm_manager = make_unique<MPICommunicationManager>();
         int num_partitions = Communicator::initCommunicationManager(std::move(comm_manager));
-        int objects_per_partition = std::ceil(num_objects/num_partitions);
 
         std::unique_ptr<StateManager> state_manager;
         if ((*root_)["state-saving"]["type"].asString() == "periodic") {
             int period = (*root_)["state-saving"]["period"].asInt();
-            state_manager = make_unique<PeriodicStateManager>(objects_per_partition, period);
+            //TODO
+            state_manager = make_unique<PeriodicStateManager>(period);
         }
 
         std::unique_ptr<OutputManager> output_manager;
         if ((*root_)["cancellation"].asString() == "aggressive") {
-            output_manager = make_unique<AggressiveOutputManager>(objects_per_partition);
+            //TODO
+            output_manager = make_unique<AggressiveOutputManager>();
         }
 
         return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,

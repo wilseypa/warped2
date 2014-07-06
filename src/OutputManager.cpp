@@ -1,8 +1,14 @@
 #include <limits> // for std::numeric_limits<unsigned int>::max()
 
+#include "utility/memory.hpp"
 #include "OutputManager.hpp"
 
 namespace warped {
+
+void OutputManager::initialize(unsigned int num_local_objects) {
+    output_queue_ = make_unique<std::vector<std::unique_ptr<Event>> []>(num_local_objects);
+    output_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
+}
 
 void OutputManager::insertEvent(std::unique_ptr<Event> event, unsigned int local_object_id) {
 

@@ -10,13 +10,8 @@ namespace warped {
 class PeriodicStateManager : public StateManager {
 public:
 
-    PeriodicStateManager(unsigned int num_objects, unsigned int period) :
-        StateManager(num_objects), period_(period),
-        count_(make_unique<unsigned int []>(num_objects)) {
-
-        // Initialize count_ values for all objects to zero
-        memset(count_.get(), 0, sizeof(unsigned int)*num_objects);
-    }
+    PeriodicStateManager(unsigned int period) :
+        period_(period) {}
 
     virtual void saveState(unsigned int current_time, unsigned int local_object_id,
         SimulationObject *object);

@@ -7,8 +7,7 @@ namespace warped {
 
 class AggressiveOutputManager : public OutputManager {
 public:
-    AggressiveOutputManager(unsigned int num_objects) :
-        OutputManager(num_objects) {}
+    AggressiveOutputManager() = default;
 
     std::unique_ptr<std::vector<std::unique_ptr<Event>>>
         rollback(unsigned int rollback_time, unsigned int local_object_id);
