@@ -5,13 +5,17 @@
    an event set.
  */
 
+#include <vector>
 #include <mutex>
 
 namespace warped {
 
+class SimulationObject;
+class Event;
+
 class TimeWarpEventSet {
 public:
-    TimeWarpEventSet() {}
+    TimeWarpEventSet();
 
     bool insertEvent ( 
                 const std::unique_ptr<Event> event, 
@@ -47,11 +51,11 @@ public:
                 unsigned int thread_id );
 
 private:
-    std::mutex unprocessed_queue_lock_;
+    std::mutex unprocessed_queue_mutex_;
 
-    std::mutex processed_queue_lock_;
+    std::mutex processed_queue_mutex_;
 
-    std::mutex removed_queue_lock_;
+    std::mutex removed_queue_mutex_;
 
     //to be modified
 
