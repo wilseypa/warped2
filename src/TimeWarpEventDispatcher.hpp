@@ -11,7 +11,6 @@
 
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
-#include "Communicator.hpp"
 #include "EventMessage.hpp"
 
 namespace warped {
@@ -19,6 +18,7 @@ namespace warped {
 class LTSFQueue;
 class Partitioner;
 class SimulationObject;
+class CommunicationManager;
 class GVTManager;
 class StateManager;
 class OutputManager;
@@ -31,9 +31,11 @@ class OutputManager;
 // const std::unique_ptrs. Any configuration values should be stored as const
 // members. Any mutable members should be stored in thread_local storage or in
 // a std::atomic, depending on the member.
-class TimeWarpEventDispatcher : public EventDispatcher, public Communicator {
+class TimeWarpEventDispatcher : public EventDispatcher {
 public:
-    TimeWarpEventDispatcher(unsigned int max_sim_time, std::unique_ptr<LTSFQueue> events,
+    TimeWarpEventDispatcher(unsigned int max_sim_time,
+        std::shared_ptr<CommunicationManager> comm_manager,
+        std::unique_ptr<LTSFQueue> events,
         std::unique_ptr<GVTManager> gvt_manager,
         std::unique_ptr<StateManager> state_manager,
         std::unique_ptr<OutputManager> output_manager);
@@ -53,14 +55,21 @@ public:
 private:
     void processEvents();
 
-    const std::unique_ptr<LTSFQueue> events_;
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
     std::unordered_map<std::string, unsigned int> local_object_id_by_name_;
     std::unordered_map<std::string, unsigned int> object_node_id_by_name_;
 
+    const std::shared_ptr<CommunicationManager> comm_manager_;
+    const std::unique_ptr<LTSFQueue> events_;
     const std::unique_ptr<GVTManager> gvt_manager_;
     const std::unique_ptr<StateManager> state_manager_;
     const std::unique_ptr<OutputManager> output_manager_;
+
+    // flag to initiate gvt calculation
+    std::atomic<bool> calculate_gvt_ = ATOMIC_VAR_INIT(false);
+
+    // flag to initiate minimum lvt calculation
+    std::atomic<bool> min_lvt_flag_ = ATOMIC_VAR_INIT(false);
 };
 
 } // namespace warped

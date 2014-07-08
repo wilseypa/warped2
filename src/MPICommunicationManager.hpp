@@ -25,7 +25,7 @@ struct MPIMessage {
 
 class MPICommunicationManager : public CommunicationManager {
 public:
-    void initialize();
+    unsigned initialize();
     void finalize();
     unsigned int getNumProcesses();
     unsigned int getID();

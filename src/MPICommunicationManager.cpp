@@ -7,7 +7,7 @@
 
 namespace warped {
 
-void MPICommunicationManager::initialize() {
+unsigned int MPICommunicationManager::initialize() {
     // MPI_Init requires command line arguments, but doesn't use them. Just give
     // it an empty vector.
     int argc = 0;
@@ -17,6 +17,8 @@ void MPICommunicationManager::initialize() {
     MPI_Init(&argc, &argv);
 
     delete [] argv;
+
+    return getNumProcesses();
 }
 
 void MPICommunicationManager::finalize() {

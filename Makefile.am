@@ -33,10 +33,10 @@ WARPED_NOINST_HPP_FILES = \
     src/utility/strings.hpp \
     src/utility/warnings.hpp \
     src/GVTManager.hpp \
+    src/GVTUpdateMessage.hpp \
     src/MatternGVTManager.hpp \
     src/KernelMessage.hpp \
     src/EventMessage.hpp \
-    src/Communicator.hpp \
     src/CommunicationManager.hpp \
     src/MPICommunicationManager.hpp \
     src/StateManager.hpp \
@@ -59,9 +59,10 @@ WARPED_CPP_FILES = \
     src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
     src/TimeWarpEventDispatcher.cpp \
+    src/GVTManager.cpp \
+    src/GVTUpdateMessage.cpp \
     src/MatternGVTManager.cpp \
     src/EventMessage.cpp \
-    src/Communicator.cpp \
     src/CommunicationManager.cpp \
     src/MPICommunicationManager.cpp \
     src/StateManager.cpp \

@@ -7,7 +7,8 @@ namespace warped {
 
 enum class MessageType {
     EventMessage,
-    MatternGVTToken
+    MatternGVTToken,
+    GVTUpdateMessage
 };
 
 struct KernelMessage {

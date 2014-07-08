@@ -16,10 +16,6 @@ unsigned int MatternGVTManager::infinityVT() {
     return std::numeric_limits<unsigned int>::max();
 }
 
-void MatternGVTManager::sendGVTUpdate() {
-
-}
-
 void MatternGVTManager::setGvtInfo(int color) {
     if (static_cast<MatternColor>(color) == MatternColor::WHITE) {
         white_msg_counter_--;
@@ -35,42 +31,60 @@ int MatternGVTManager::getGvtInfo(unsigned int timestamp) {
     return static_cast<int>(color_);
 }
 
-// This initiates the gvt calculation by sending the initial
-// control message to node 1 (assuming this must be node 0 calling this)
-void MatternGVTManager::calculateGVT() {
-
-    if (comm_manager_->getID() != 0) return;
-
-    if (comm_manager_->getNumProcesses() > 1) {
-        if (gVT_calc_initiated_ == false) {
-            color_ = MatternColor::RED;
-            min_red_msg_timestamp_ = infinityVT();
-            white_msg_counter_ = 0;
-
-            unsigned int T = 0; //getMinimumLVT();
-            sendMatternGVTToken(warped::make_unique<MatternGVTToken>(0, 1, T, infinityVT(),
-                white_msg_counter_));
-            gVT_calc_initiated_ = true;
+bool MatternGVTManager::checkGVTPeriod() {
+    if (!gVT_token_pending_ ) {
+        if (++gvt_period_counter_ == gvt_period_) {
+            gvt_period_counter_ = 0;
+            return true;
         }
-    } else {
-        gVT_ = 0; //getMinimumLVT();
     }
+    return false;
 }
 
-void MatternGVTManager::sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg) {
+// This initiates the gvt calculation by sending the initial
+// control message to node 1 (assuming this must be node 0 calling this)
+bool MatternGVTManager::calculateGVT() {
+
+    bool initiate_min_lvt = false;
+
+    if (comm_manager_->getID() != 0) {
+        return initiate_min_lvt;
+    }
+
+    if (gVT_token_pending_ == false) {
+        color_ = MatternColor::RED;
+        min_red_msg_timestamp_ = infinityVT();
+        white_msg_counter_ = 0;
+
+        gVT_token_pending_ = true;
+        initiate_min_lvt = true;
+    }
+
+    return initiate_min_lvt;
+}
+
+void MatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) {
+    unsigned int sender_id = comm_manager_->getID();
+    unsigned int num_processes = comm_manager_->getNumProcesses();
+
+    unsigned int T;
+    if (sender_id == 0) {
+        T = local_minimum;
+    } else {
+        T = std::min(local_minimum, min_of_all_lvt_);
+    }
+
+    auto msg = make_unique<MatternGVTToken>(sender_id, (sender_id + 1) % num_processes,
+        T, min_red_msg_timestamp_, white_msg_counter_);
+
+    white_msg_counter_ = 0;
+
     comm_manager_->sendMessage(std::move(msg));
 }
 
-void MatternGVTManager::receiveMessage(std::unique_ptr<KernelMessage> msg) {
-    if (msg->get_type() == MessageType::MatternGVTToken) {
-        auto token = unique_cast<KernelMessage, MatternGVTToken>(std::move(msg));
-        receiveMatternGVTToken(std::move(token));
-    }
-}
-
-void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg) {
+bool MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg) {
     unsigned int process_id = comm_manager_->getID();
-    unsigned int num_processes = comm_manager_->getNumProcesses();
+    bool initiate_min_lvt = false;
 
     if (process_id == 0) {
         // Initiator received the message
@@ -78,7 +92,7 @@ void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> 
             // At this point all white messages are accounted for so we can
             // calculate the GVT now
             gVT_ = std::min(msg->m_clock, msg->m_send);
-            gVT_calc_initiated_ = false;
+            gVT_token_pending_ = false;
 
             sendGVTUpdate();
 
@@ -87,10 +101,8 @@ void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> 
             color_ = MatternColor::WHITE;
 
         } else {
-            unsigned int T = 0;//getMinimumLVT();
-            // count is not zero so start another round
-            sendMatternGVTToken(warped::make_unique<MatternGVTToken>(0, 1, T,
-                std::min(msg->m_send, min_red_msg_timestamp_), white_msg_counter_+msg->count));
+            min_red_msg_timestamp_ = std::min(msg->m_send, min_red_msg_timestamp_);
+            initiate_min_lvt = true;
         }
 
     } else {
@@ -100,15 +112,13 @@ void MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> 
             color_ = MatternColor::RED;
         }
 
-        unsigned int T = 0;//getMinimumLVT();
-        // Pass the token on to the next node in the logical ring
-        sendMatternGVTToken(warped::make_unique<MatternGVTToken>(process_id,
-            (process_id % num_processes)+1, std::min(msg->m_clock, T),
-            std::min(msg->m_send, min_red_msg_timestamp_), white_msg_counter_+msg->count));
+        min_of_all_lvt_ = std::min(min_of_all_lvt_, msg->m_clock);
+        min_red_msg_timestamp_ = std::min(msg->m_clock, min_red_msg_timestamp_);
+        white_msg_counter_ = white_msg_counter_ + msg->count;
 
-        // Must be reset for next round
-        white_msg_counter_ = 0;
+        initiate_min_lvt = true;
     }
+    return initiate_min_lvt;
 }
 
 } // namespace warped

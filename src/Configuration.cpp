@@ -47,6 +47,11 @@ const static std::string DEFAULT_CONFIG = R"x({
     "file": "statistics.out"
 },
 
+"gvt-calculation": {
+    "algorithm": "mattern",
+    "period": 1000
+}
+
 "state-saving": {
     "type": "periodic",
     "period": 10
@@ -103,8 +108,6 @@ Json::Value parseJsonFile(std::string filename) {
 } // namespace
 
 namespace warped {
-
-std::unique_ptr<CommunicationManager> Communicator::comm_manager_;
 
 Configuration::Configuration(const std::string& config_file_name, unsigned int max_sim_time)
     : config_file_name_(config_file_name), max_sim_time_(max_sim_time), root_(nullptr)
@@ -166,12 +169,18 @@ Configuration::makeDispatcher() {
         //     std::unique_ptr<LTSFQueue> queue = make_unique<LadderQueue>();
         // }
 
-        std::unique_ptr<GVTManager> gvt_manager = make_unique<MatternGVTManager>();
-
         std::unique_ptr<LTSFQueue> queue = make_unique<STLLTSFQueue>();//TODO just a placeholder
 
-        std::unique_ptr<CommunicationManager> comm_manager = make_unique<MPICommunicationManager>();
-        int num_partitions = Communicator::initCommunicationManager(std::move(comm_manager));
+        std::shared_ptr<CommunicationManager> comm_manager =
+                            std::make_shared<MPICommunicationManager>();
+
+        int num_partitions = comm_manager->initialize();
+
+        std::unique_ptr<GVTManager> gvt_manager;
+        if ((*root_)["gvt-calculation"]["algorithm"].asString() == "mattern") {
+            int period = (*root_)["gvt-calculation"]["period"].asInt();
+            gvt_manager = make_unique<MatternGVTManager>(comm_manager, period);
+        }
 
         std::unique_ptr<StateManager> state_manager;
         if ((*root_)["state-saving"]["type"].asString() == "periodic") {
@@ -187,7 +196,7 @@ Configuration::makeDispatcher() {
         }
 
         return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,
-            std::move(queue), std::move(gvt_manager), std::move(state_manager),
+            comm_manager, std::move(queue), std::move(gvt_manager), std::move(state_manager),
             std::move(output_manager)), num_partitions);
     }
 

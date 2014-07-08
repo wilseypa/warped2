@@ -24,9 +24,10 @@
 namespace warped {
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
+    std::shared_ptr<CommunicationManager> comm_manager,
     std::unique_ptr<LTSFQueue> events, std::unique_ptr<GVTManager> gvt_manager,
     std::unique_ptr<StateManager> state_manager, std::unique_ptr<OutputManager> output_manager) :
-        EventDispatcher(max_sim_time), events_(std::move(events)),
+        EventDispatcher(max_sim_time), comm_manager_(comm_manager), events_(std::move(events)),
         gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)) {}
 
@@ -46,21 +47,37 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     // Master thread main loop
     while (gvt_manager_->getGVT() < max_sim_time_) {
 
-        // Node with id 0 will be the only one to initiate gvt calculation
-        if (comm_manager_->getID() == 0) {
-            gvt_manager_->calculateGVT();
+        if (comm_manager_->getID() == 0 && calculate_gvt_.load()) {
+            min_lvt_flag_.store(gvt_manager_->calculateGVT());
         }
 
         // This sends all messages that are in the send buffer
         comm_manager_->sendAllMessages();
+
+
     }
 
-    finalizeCommunicationManager();
+    comm_manager_->finalize();
 }
 
 void TimeWarpEventDispatcher::processEvents() {
 
 }
+
+/*void TimeWarpEventDispatcher::dispatchMessages() {
+    auto msg = comm_manager_->recvMessage();
+    while (msg.get() != nullptr) {
+        switch(msg->get_type()) {
+            case MessageType::MatternGVTToken:
+                break;
+            case MessageType::EventMessage:
+                break;
+            default:
+                break;
+        }
+        msg = comm_manager_->recvMessage();
+    }
+}*/
 
 void TimeWarpEventDispatcher::receiveMessage(std::unique_ptr<KernelMessage> msg) {
     std::unique_ptr<EventMessage> event_msg = unique_cast<KernelMessage, EventMessage>
@@ -73,7 +90,7 @@ void TimeWarpEventDispatcher::receiveMessage(std::unique_ptr<KernelMessage> msg)
 
 void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event) {
     unsigned int sender_id = comm_manager_->getID();
-    unsigned int receiver_id = 0;
+    unsigned int receiver_id = object_node_id_by_name_[event->receiverName()];
     int color = gvt_manager_->getGvtInfo(event->timestamp());
 
     auto event_msg = make_unique<EventMessage>(sender_id, receiver_id, std::move(event), color);

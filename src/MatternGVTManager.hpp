@@ -8,6 +8,7 @@
 #include "GVTManager.hpp"
 #include "serialization.hpp"
 #include "KernelMessage.hpp"
+#include "GVTUpdateMessage.hpp"
 
 /*  This class implements the Mattern GVT algorithm and provides methods
  *  for initiating a calculation cycle and for processing received tokens
@@ -38,35 +39,36 @@ struct MatternGVTToken : public KernelMessage {
 
 };
 
-class MatternGVTManager : public GVTManager, public Communicator {
+class MatternGVTManager : public GVTManager {
 public:
-    MatternGVTManager() = default;
+    MatternGVTManager(std::shared_ptr<CommunicationManager> comm_manager, unsigned int period) :
+        GVTManager(comm_manager, period) {}
 
     // Starts the GVT calculation process
-    void calculateGVT();
+    bool calculateGVT();
 
     // Called when a MatternGVTToken has been received
-    void receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg);
+    bool receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg);
 
-    void receiveMessage(std::unique_ptr<KernelMessage> msg);
+    void sendMatternGVTToken(unsigned int local_minimum);
 
     void setGvtInfo(int color);
 
     int getGvtInfo(unsigned int timestamp);
 
+    bool checkGVTPeriod();
+
 protected:
     unsigned int infinityVT();
-
-    void sendMatternGVTToken(std::unique_ptr<MatternGVTToken> msg);
-
-    void sendGVTUpdate();
 
 private:
     MatternColor color_ = MatternColor::WHITE;
     unsigned int white_msg_counter_ = 0;
     unsigned int min_red_msg_timestamp_ = infinityVT();
 
-    bool gVT_calc_initiated_ = false;
+    unsigned int min_of_all_lvt_ = infinityVT();
+
+    bool gVT_token_pending_ = false;
 
 };
 
