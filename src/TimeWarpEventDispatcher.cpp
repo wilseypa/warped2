@@ -81,9 +81,10 @@ bool TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<KernelMessage>
    return false;
 }
 
-void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event) {
+void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event,
+    unsigned int receiver_id) {
+
     unsigned int sender_id = comm_manager_->getID();
-    unsigned int receiver_id = object_node_id_by_name_[event->receiverName()];
     int color = gvt_manager_->getGvtInfo(event->timestamp());
 
     auto event_msg = make_unique<EventMessage>(sender_id, receiver_id, std::move(event), color);
@@ -95,6 +96,21 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     output_manager_->fossilCollectAll(gvt);
 
     //TODO still incomplete
+}
+
+void TimeWarpEventDispatcher::CancelEvents(
+    std::unique_ptr<std::vector<std::unique_ptr<Event>>> events_to_cancel) {
+
+    do {
+        auto event = std::move(events_to_cancel->back());
+        events_to_cancel->pop_back();
+        unsigned int receiver_id = object_node_id_by_name_[event->receiverName()];
+        if (receiver_id != comm_manager_->getID()) {
+            sendRemoteEvent(std::move(event), receiver_id);
+        } else {
+            // TODO
+        }
+    } while (!events_to_cancel->empty());
 }
 
 void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int local_object_id,

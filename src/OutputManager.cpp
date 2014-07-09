@@ -11,7 +11,7 @@ void OutputManager::initialize(unsigned int num_local_objects) {
 }
 
 void OutputManager::insertEvent(std::unique_ptr<Event> event, unsigned int local_object_id) {
-
+    event->setNegative();
     output_queue_lock_[local_object_id].lock();
     output_queue_[local_object_id].push_back(std::move(event));
     output_queue_lock_[local_object_id].unlock();

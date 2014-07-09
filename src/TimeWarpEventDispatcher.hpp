@@ -45,9 +45,11 @@ public:
 
     bool receiveEventMessage(std::unique_ptr<KernelMessage> kmsg);
 
-    void sendRemoteEvent(std::unique_ptr<Event> event);
+    void sendRemoteEvent(std::unique_ptr<Event> event, unsigned int receiver_id);
 
     void fossilCollect(unsigned int gvt);
+
+    void CancelEvents(std::unique_ptr<std::vector<std::unique_ptr<Event>>> events_to_cancel);
 
     void rollback(unsigned int straggler_time, unsigned int local_object_id, SimulationObject* ob);
 
