@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 #include <array>
-#include <functional>   // for std::function
 
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
@@ -44,7 +43,7 @@ public:
 
     void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
 
-    void receiveMessage(std::unique_ptr<KernelMessage> msg);
+    bool receiveEventMessage(std::unique_ptr<KernelMessage> kmsg);
 
     void sendRemoteEvent(std::unique_ptr<Event> event);
 
@@ -70,6 +69,8 @@ private:
 
     // flag to initiate minimum lvt calculation
     std::atomic<bool> min_lvt_flag_ = ATOMIC_VAR_INIT(false);
+
+    thread_local static bool local_min_lvt_flag_;
 };
 
 } // namespace warped

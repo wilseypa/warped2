@@ -21,7 +21,7 @@ public:
 
     StateManager() = default;
 
-    void initialize(unsigned int num_local_objects);
+    virtual void initialize(unsigned int num_local_objects);
 
     unsigned int fossilCollect(unsigned int gvt, unsigned int local_object_id);
 

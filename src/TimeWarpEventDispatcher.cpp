@@ -23,6 +23,8 @@
 
 namespace warped {
 
+thread_local bool TimeWarpEventDispatcher::local_min_lvt_flag_;
+
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::shared_ptr<CommunicationManager> comm_manager,
     std::unique_ptr<LTSFQueue> events, std::unique_ptr<GVTManager> gvt_manager,
@@ -47,14 +49,21 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     // Master thread main loop
     while (gvt_manager_->getGVT() < max_sim_time_) {
 
+        // Flag is set when we receive a mattern gvt token. We should
+        // never receive a token while flag is still set so this should work.
+        local_min_lvt_flag_ = comm_manager_->dispatchMessages();
+        min_lvt_flag_.store(local_min_lvt_flag_);
+
         if (comm_manager_->getID() == 0 && calculate_gvt_.load()) {
-            min_lvt_flag_.store(gvt_manager_->calculateGVT());
+            // calculate gvt flag will only be set when min_lvt_flag_ is not
+            // so this should work
+            local_min_lvt_flag_ = gvt_manager_->calculateGVT();
+            min_lvt_flag_.store(local_min_lvt_flag_);
+            calculate_gvt_.store(false);
         }
 
         // This sends all messages that are in the send buffer
         comm_manager_->sendAllMessages();
-
-
     }
 
     comm_manager_->finalize();
@@ -64,28 +73,12 @@ void TimeWarpEventDispatcher::processEvents() {
 
 }
 
-/*void TimeWarpEventDispatcher::dispatchMessages() {
-    auto msg = comm_manager_->recvMessage();
-    while (msg.get() != nullptr) {
-        switch(msg->get_type()) {
-            case MessageType::MatternGVTToken:
-                break;
-            case MessageType::EventMessage:
-                break;
-            default:
-                break;
-        }
-        msg = comm_manager_->recvMessage();
-    }
-}*/
-
-void TimeWarpEventDispatcher::receiveMessage(std::unique_ptr<KernelMessage> msg) {
-    std::unique_ptr<EventMessage> event_msg = unique_cast<KernelMessage, EventMessage>
-        (std::move(msg));
-
-    gvt_manager_->setGvtInfo(event_msg->gvt_mattern_color);
+bool TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<KernelMessage> kmsg) {
+    auto msg = unique_cast<KernelMessage, EventMessage>(std::move(kmsg));
+    gvt_manager_->setGvtInfo(msg->gvt_mattern_color);
 
    // TODO This is incomplete
+   return false;
 }
 
 void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event) {
@@ -139,6 +132,13 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
     // Creates the state queues and output queues
     state_manager_->initialize(num_local_objects);
     output_manager_->initialize(num_local_objects);
+
+    gvt_manager_->initialize();
+
+    std::function<bool(std::unique_ptr<KernelMessage>)> handler =
+        std::bind(&TimeWarpEventDispatcher::receiveEventMessage, this,
+        std::placeholders::_1);
+    comm_manager_->addMessageHandler(MessageType::EventMessage, handler);
 }
 
 } // namespace warped

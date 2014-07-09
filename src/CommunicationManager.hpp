@@ -3,8 +3,10 @@
 
 #include <mutex>
 #include <deque>
+#include <unordered_map>
 
 #include "KernelMessage.hpp"
+#include "utility/memory.hpp"
 
 namespace warped {
 
@@ -30,9 +32,17 @@ public:
     void enqueueMessage(std::unique_ptr<KernelMessage> msg);
     std::unique_ptr<KernelMessage> dequeueMessage();
 
+    bool dispatchMessages();
+
+    void addMessageHandler(MessageType msg_type,
+                           std::function<bool(std::unique_ptr<KernelMessage>)> msg_handler);
+
 private:
     std::mutex send_queue_mutex_;
     std::deque<std::unique_ptr<KernelMessage>> send_queue_;
+
+    std::unordered_map<int, std::function<bool(std::unique_ptr<KernelMessage>)>>
+        msg_handler_by_msg_type_;
 
 };
 

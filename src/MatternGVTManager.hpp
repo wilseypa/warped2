@@ -2,7 +2,6 @@
 #define MATTERN_GVT_MANAGER_HPP
 
 #include <memory> // for unique_ptr
-#include <functional> // for std::function
 
 #include "TimeWarpEventDispatcher.hpp"
 #include "GVTManager.hpp"
@@ -44,11 +43,13 @@ public:
     MatternGVTManager(std::shared_ptr<CommunicationManager> comm_manager, unsigned int period) :
         GVTManager(comm_manager, period) {}
 
+    void initialize();
+
     // Starts the GVT calculation process
     bool calculateGVT();
 
     // Called when a MatternGVTToken has been received
-    bool receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg);
+    bool receiveMatternGVTToken(std::unique_ptr<KernelMessage> msg);
 
     void sendMatternGVTToken(unsigned int local_minimum);
 

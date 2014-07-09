@@ -7,10 +7,10 @@
 #include "utility/memory.hpp"
 #include "MatternGVTManager.hpp"
 
-WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::MatternGVTToken)
+WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::GVTUpdateMessage)
 
-TEST_CASE("MPI Communication Manager functions correctly","[mpi]"){
-    auto mpi_manager = warped::make_unique<warped::MPICommunicationManager>();
+TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialized","[mpi]"){
+    auto mpi_manager = std::make_shared<warped::MPICommunicationManager>();
 
     SECTION("Messages can be enqueued from multiple threads", "[mpi][enqueue][threads]") {
         std::vector<std::thread> threads;
@@ -30,7 +30,6 @@ TEST_CASE("MPI Communication Manager functions correctly","[mpi]"){
                 REQUIRE(msg.get() != nullptr);
         }
     }
-
 
     SECTION("Basic management routines return correct values", "[mpi]") {
         mpi_manager->initialize();
@@ -65,8 +64,34 @@ TEST_CASE("MPI Communication Manager functions correctly","[mpi]"){
                 CHECK(mattern_msg->m_clock == 1);
                 CHECK(mattern_msg->m_send == 10);
                 CHECK(mattern_msg->count == 12);
+
+
+                SECTION("Recieve handlers can be added and msgs are dispatched functions correctly",
+                    "[receive][dispatch][handlers]") {
+                    auto mattern_gvt_manager = warped::make_unique<warped::MatternGVTManager>
+                        (mpi_manager, 1000);
+
+                    // This registers the message handlers for mattern class
+                    mattern_gvt_manager->initialize();
+
+                    mpi_manager->sendMessage(warped::make_unique<warped::MatternGVTToken>
+                        (0, 0, 1, 10, 12));
+
+                    mpi_manager->sendMessage(warped::make_unique<warped::GVTUpdateMessage>
+                        (0, 0, 1234));
+
+                    bool flag = mpi_manager->dispatchMessages();
+
+                    // Ensure gvt has been updated
+                    CHECK(mattern_gvt_manager->getGVT() == 1234);
+
+                    // true means that a mattern token has been received
+                    CHECK(flag == true);
+                }
             }
         }
+
         mpi_manager->finalize();
     }
 }
+

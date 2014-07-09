@@ -13,6 +13,8 @@ public:
     PeriodicStateManager(unsigned int period) :
         period_(period) {}
 
+    void initialize(unsigned int num_local_objects) override;
+
     virtual void saveState(unsigned int current_time, unsigned int local_object_id,
         SimulationObject *object);
 

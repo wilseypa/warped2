@@ -11,6 +11,7 @@ void StateManager::initialize(unsigned int num_local_objects) {
         (num_local_objects);
 
     state_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
+
 }
 
 // TODO this function assumes right now that there will always be a valid state to restore

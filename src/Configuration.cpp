@@ -185,13 +185,11 @@ Configuration::makeDispatcher() {
         std::unique_ptr<StateManager> state_manager;
         if ((*root_)["state-saving"]["type"].asString() == "periodic") {
             int period = (*root_)["state-saving"]["period"].asInt();
-            //TODO
             state_manager = make_unique<PeriodicStateManager>(period);
         }
 
         std::unique_ptr<OutputManager> output_manager;
         if ((*root_)["cancellation"].asString() == "aggressive") {
-            //TODO
             output_manager = make_unique<AggressiveOutputManager>();
         }
 

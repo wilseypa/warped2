@@ -7,7 +7,8 @@
 
 TEST_CASE("Aggressive output manager is aggressive", "[output][queues]") {
     unsigned int num_objects = 4;
-    warped::AggressiveOutputManager om(num_objects);
+    warped::AggressiveOutputManager om;
+    om.initialize(num_objects);
 
     SECTION("Output queues are constructed correctly", "[output][queues]") {
         for (unsigned int i = 0; i < num_objects; i++) {

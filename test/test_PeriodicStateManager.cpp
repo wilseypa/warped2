@@ -9,7 +9,8 @@
 TEST_CASE("States saved and restored correctly", "[state][queue]") {
     unsigned int num_objects = 4;
     unsigned int period = 2;
-    warped::PeriodicStateManager sm(num_objects, period);
+    warped::PeriodicStateManager sm(period);
+    sm.initialize(num_objects);
     warped::SimulationObject *object;
 
     SECTION("Periodic state manager constructed correctly", "[]") {
@@ -74,5 +75,6 @@ TEST_CASE("States saved and restored correctly", "[state][queue]") {
         }
     }
 }
+
 
 

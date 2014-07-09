@@ -12,6 +12,17 @@ WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::MatternGVTToken)
 
 namespace warped {
 
+void MatternGVTManager::initialize() {
+    std::function<bool(std::unique_ptr<KernelMessage>)> handler =
+        std::bind(&MatternGVTManager::receiveMatternGVTToken, this,
+        std::placeholders::_1);
+    comm_manager_->addMessageHandler(MessageType::MatternGVTToken, handler);
+
+    handler = std::bind(&MatternGVTManager::receiveGVTUpdate, this,
+        std::placeholders::_1);
+    comm_manager_->addMessageHandler(MessageType::GVTUpdateMessage, handler);
+}
+
 unsigned int MatternGVTManager::infinityVT() {
     return std::numeric_limits<unsigned int>::max();
 }
@@ -82,7 +93,8 @@ void MatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) {
     comm_manager_->sendMessage(std::move(msg));
 }
 
-bool MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<MatternGVTToken> msg) {
+bool MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<KernelMessage> kmsg) {
+    auto msg = unique_cast<KernelMessage, MatternGVTToken>(std::move(kmsg));
     unsigned int process_id = comm_manager_->getID();
     bool initiate_min_lvt = false;
 

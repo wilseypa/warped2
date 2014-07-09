@@ -18,6 +18,8 @@ public:
     GVTManager(std::shared_ptr<CommunicationManager> comm_manager, unsigned int period) :
         comm_manager_(comm_manager), gvt_period_(period) {}
 
+    virtual void initialize() = 0;
+
     virtual bool calculateGVT() = 0;
 
     virtual void setGvtInfo(int) = 0;
@@ -28,7 +30,7 @@ public:
 
     void sendGVTUpdate();
 
-    void receiveGVTUpdate(std::unique_ptr<GVTUpdateMessage> msg);
+    bool receiveGVTUpdate(std::unique_ptr<KernelMessage> kmsg);
 
     unsigned int getGVT() { return gVT_; }
 

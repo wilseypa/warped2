@@ -1,8 +1,14 @@
 #include "PeriodicStateManager.hpp"
 #include "SimulationObject.hpp"
+#include "utility/memory.hpp"
 
-namespace warped
-{
+namespace warped {
+
+void PeriodicStateManager::initialize(unsigned int num_local_objects) {
+    count_ = make_unique<unsigned int []>(num_local_objects);
+    memset(count_.get(), 0, num_local_objects*sizeof(unsigned int));
+    StateManager::initialize(num_local_objects);
+}
 
 void PeriodicStateManager::saveState(unsigned int current_time, unsigned int local_object_id,
     SimulationObject *object) {
