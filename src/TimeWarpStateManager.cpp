@@ -1,12 +1,12 @@
 #include <limits> // for std::numeric_limits<unsigned int>::max();
 
-#include "StateManager.hpp"
+#include "TimeWarpStateManager.hpp"
 #include "SimulationObject.hpp"
 #include "utility/memory.hpp"
 
 namespace warped {
 
-void StateManager::initialize(unsigned int num_local_objects) {
+void TimeWarpStateManager::initialize(unsigned int num_local_objects) {
     state_queue_ = make_unique<std::multimap<unsigned int, std::unique_ptr<ObjectState>> []>
         (num_local_objects);
 
@@ -15,8 +15,8 @@ void StateManager::initialize(unsigned int num_local_objects) {
 }
 
 // TODO this function assumes right now that there will always be a valid state to restore
-unsigned int StateManager::restoreState(unsigned int rollback_time, unsigned int local_object_id,
-    SimulationObject *object) {
+unsigned int TimeWarpStateManager::restoreState(unsigned int rollback_time,
+    unsigned int local_object_id, SimulationObject *object) {
 
     state_queue_lock_[local_object_id].lock();
 
@@ -32,7 +32,7 @@ unsigned int StateManager::restoreState(unsigned int rollback_time, unsigned int
     return max->first;
 }
 
-unsigned int StateManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
+unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
     unsigned int retval = std::numeric_limits<unsigned int>::max();
     state_queue_lock_[local_object_id].lock();
 
@@ -50,13 +50,13 @@ unsigned int StateManager::fossilCollect(unsigned int gvt, unsigned int local_ob
     return retval;
 }
 
-void StateManager::fossilCollectAll(unsigned int gvt) {
+void TimeWarpStateManager::fossilCollectAll(unsigned int gvt) {
    for (unsigned int i = 0; i < state_queue_.get()->size(); i++) {
         fossilCollect(gvt, i);
     }
 }
 
-std::size_t StateManager::size(unsigned int local_object_id) {
+std::size_t TimeWarpStateManager::size(unsigned int local_object_id) {
     return state_queue_[local_object_id].size();
 }
 

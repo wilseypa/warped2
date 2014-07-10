@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <cstdint> // for uint8_t
 
-#include "KernelMessage.hpp"
+#include "TimeWarpKernelMessage.hpp"
 #include "utility/memory.hpp"
 
 namespace warped {
@@ -22,7 +22,7 @@ enum class MessageFlags : uint8_t {
 
 #define GVT_UPDATE(x) ((MessageFlags::GVTUpdate & x) == MessageFlags::GVTUpdate)
 
-class CommunicationManager {
+class TimeWarpCommunicationManager {
 public:
     virtual unsigned int initialize() = 0;
 
@@ -33,27 +33,27 @@ public:
     virtual unsigned int getID() = 0;
 
     // Sends a single message
-    virtual void sendMessage(std::unique_ptr<KernelMessage> msg) = 0;
+    virtual void sendMessage(std::unique_ptr<TimeWarpKernelMessage> msg) = 0;
 
     // Receives a single message
-    virtual std::unique_ptr<KernelMessage> recvMessage() = 0;
+    virtual std::unique_ptr<TimeWarpKernelMessage> recvMessage() = 0;
 
     // Sends all messages that are in the send buffer
     virtual int sendAllMessages() = 0;
 
-    void enqueueMessage(std::unique_ptr<KernelMessage> msg);
-    std::unique_ptr<KernelMessage> dequeueMessage();
+    void enqueueMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
+    std::unique_ptr<TimeWarpKernelMessage> dequeueMessage();
 
     MessageFlags dispatchMessages();
 
     void addMessageHandler(MessageType msg_type,
-                           std::function<MessageFlags(std::unique_ptr<KernelMessage>)> msg_handler);
+        std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> msg_handler);
 
 private:
     std::mutex send_queue_mutex_;
-    std::deque<std::unique_ptr<KernelMessage>> send_queue_;
+    std::deque<std::unique_ptr<TimeWarpKernelMessage>> send_queue_;
 
-    std::unordered_map<int, std::function<MessageFlags(std::unique_ptr<KernelMessage>)>>
+    std::unordered_map<int, std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)>>
         msg_handler_by_msg_type_;
 
 };
@@ -71,11 +71,11 @@ inline MessageFlags operator& (MessageFlags a, MessageFlags b) {
     return static_cast<MessageFlags>((*a)&(*b));
 }
 
-inline MessageFlags operator|= (MessageFlags a, MessageFlags b) {
+inline MessageFlags& operator|= (MessageFlags& a, MessageFlags b) {
     return a = a | b;
 }
 
-inline MessageFlags operator&= (MessageFlags a, MessageFlags b) {
+inline MessageFlags operator&= (MessageFlags& a, MessageFlags b) {
     return a = a & b;
 }
 

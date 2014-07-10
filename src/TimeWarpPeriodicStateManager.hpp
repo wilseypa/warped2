@@ -3,14 +3,14 @@
 
 #include <cstring>
 
-#include "StateManager.hpp"
+#include "TimeWarpStateManager.hpp"
 
 namespace warped {
 
-class PeriodicStateManager : public StateManager {
+class TimeWarpPeriodicStateManager : public TimeWarpStateManager {
 public:
 
-    PeriodicStateManager(unsigned int period) :
+    TimeWarpPeriodicStateManager(unsigned int period) :
         period_(period) {}
 
     void initialize(unsigned int num_local_objects) override;

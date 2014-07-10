@@ -15,11 +15,11 @@
 
 namespace warped {
 
-class StateManager {
+class TimeWarpStateManager {
 
 public:
 
-    StateManager() = default;
+    TimeWarpStateManager() = default;
 
     virtual void initialize(unsigned int num_local_objects);
 

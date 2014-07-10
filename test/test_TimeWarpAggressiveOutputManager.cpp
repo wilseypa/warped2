@@ -1,13 +1,13 @@
 #define CATCH_CONFIG_MAIN  // This tells Catch to provide a main()
 #include "catch.hpp"
 
-#include "AggressiveOutputManager.hpp"
+#include "TimeWarpAggressiveOutputManager.hpp"
 #include "mocks.hpp"
 #include "utility/memory.hpp"
 
 TEST_CASE("Aggressive output manager is aggressive", "[output][queues]") {
     unsigned int num_objects = 4;
-    warped::AggressiveOutputManager om;
+    warped::TimeWarpAggressiveOutputManager om;
     om.initialize(num_objects);
 
     SECTION("Output queues are constructed correctly", "[output][queues]") {

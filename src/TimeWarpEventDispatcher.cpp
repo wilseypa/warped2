@@ -15,20 +15,22 @@
 #include "LTSFQueue.hpp"
 #include "Partitioner.hpp"
 #include "SimulationObject.hpp"
-#include "MPICommunicationManager.hpp"
-#include "MatternGVTManager.hpp"
-#include "StateManager.hpp"
-#include "OutputManager.hpp"
-#include "EventMessage.hpp"
+#include "TimeWarpMPICommunicationManager.hpp"
+#include "TimeWarpMatternGVTManager.hpp"
+#include "TimeWarpStateManager.hpp"
+#include "TimeWarpOutputManager.hpp"
 #include "utility/memory.hpp"
+
+WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::EventMessage)
 
 namespace warped {
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_worker_threads,
-    std::shared_ptr<CommunicationManager> comm_manager,
-    std::unique_ptr<LTSFQueue> events, std::unique_ptr<GVTManager> gvt_manager,
-    std::unique_ptr<StateManager> state_manager, std::unique_ptr<OutputManager> output_manager) :
+    std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
+    std::unique_ptr<LTSFQueue> events, std::unique_ptr<TimeWarpGVTManager> gvt_manager,
+    std::unique_ptr<TimeWarpStateManager> state_manager,
+    std::unique_ptr<TimeWarpOutputManager> output_manager) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
         comm_manager_(comm_manager), events_(std::move(events)),
         gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
@@ -77,7 +79,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         }
 
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
-            auto mattern_gvt_manager = static_cast<MatternGVTManager*>(gvt_manager_.get());
+            auto mattern_gvt_manager = static_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get());
             unsigned int local_min_lvt = getMinimumLVT();
             mattern_gvt_manager->sendMatternGVTToken(local_min_lvt);
             msg_flags &= ~MessageFlags::PendingMatternToken;
@@ -95,8 +97,9 @@ void TimeWarpEventDispatcher::processEvents() {
 
 }
 
-MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<KernelMessage> kmsg) {
-    auto msg = unique_cast<KernelMessage, EventMessage>(std::move(kmsg));
+MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage>
+    kmsg) {
+    auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
     gvt_manager_->setGvtInfo(msg->gvt_mattern_color);
 
    // TODO This is incomplete
@@ -109,7 +112,9 @@ void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event,
     unsigned int sender_id = comm_manager_->getID();
     int color = gvt_manager_->getGvtInfo(event->timestamp());
 
-    auto event_msg = make_unique<EventMessage>(sender_id, receiver_id, std::move(event), color);
+    auto event_msg = make_unique<EventMessage>(sender_id, receiver_id, std::move(event),
+        color);
+
     comm_manager_->enqueueMessage(std::move(event_msg));
 }
 
@@ -150,6 +155,7 @@ void TimeWarpEventDispatcher::cancelEvents(
 
 void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int local_object_id,
     SimulationObject* object) {
+
     unsigned int restored_timestamp = state_manager_->restoreState(straggler_time, local_object_id,
         object);
     auto events_to_cancel = output_manager_->rollback(straggler_time, local_object_id);
@@ -165,7 +171,8 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
 }
 
 void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>&
-                                              objects) {
+    objects) {
+
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
         unsigned int object_id = 0;
@@ -188,7 +195,7 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
     // Register message handlers
     gvt_manager_->initialize();
 
-    std::function<MessageFlags(std::unique_ptr<KernelMessage>)> handler =
+    std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> handler =
         std::bind(&TimeWarpEventDispatcher::receiveEventMessage, this,
         std::placeholders::_1);
     comm_manager_->addMessageHandler(MessageType::EventMessage, handler);

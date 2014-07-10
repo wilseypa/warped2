@@ -3,14 +3,12 @@
 
 #include <thread>
 
-#include "MPICommunicationManager.hpp"
+#include "TimeWarpMPICommunicationManager.hpp"
 #include "utility/memory.hpp"
-#include "MatternGVTManager.hpp"
-
-WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::GVTUpdateMessage)
+#include "TimeWarpMatternGVTManager.hpp"
 
 TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialized","[mpi]"){
-    auto mpi_manager = std::make_shared<warped::MPICommunicationManager>();
+    auto mpi_manager = std::make_shared<warped::TimeWarpMPICommunicationManager>();
 
     SECTION("Messages can be enqueued from multiple threads", "[mpi][enqueue][threads]") {
         std::vector<std::thread> threads;
@@ -55,7 +53,7 @@ TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialize
                 REQUIRE(msg.get() != nullptr);
                 REQUIRE(msg->get_type() == warped::MessageType::MatternGVTToken);
 
-                auto mattern_msg = warped::unique_cast<warped::KernelMessage,
+                auto mattern_msg = warped::unique_cast<warped::TimeWarpKernelMessage,
                     warped::MatternGVTToken>(std::move(msg));
 
                 REQUIRE(mattern_msg != nullptr);
@@ -68,7 +66,7 @@ TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialize
 
                 SECTION("Recieve handlers can be added and msgs are dispatched functions correctly",
                     "[receive][dispatch][handlers]") {
-                    auto mattern_gvt_manager = warped::make_unique<warped::MatternGVTManager>
+                    auto mattern_gvt_manager = warped::make_unique<warped::TimeWarpMatternGVTManager>
                         (mpi_manager, 1000);
 
                     // This registers the message handlers for mattern class
@@ -80,13 +78,17 @@ TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialize
                     mpi_manager->sendMessage(warped::make_unique<warped::GVTUpdateMessage>
                         (0, 0, 1234));
 
-                    bool flag = mpi_manager->dispatchMessages();
+                    warped::MessageFlags flags = mpi_manager->dispatchMessages();
 
                     // Ensure gvt has been updated
                     CHECK(mattern_gvt_manager->getGVT() == 1234);
 
                     // true means that a mattern token has been received
-                    CHECK(flag == true);
+                    CHECK((flags & warped::MessageFlags::PendingMatternToken) ==
+                        warped::MessageFlags::PendingMatternToken);
+
+                    CHECK((flags & warped::MessageFlags::GVTUpdate) ==
+                        warped::MessageFlags::GVTUpdate);
                 }
             }
         }

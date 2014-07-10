@@ -9,9 +9,9 @@
 
 namespace warped {
 
-class OutputManager {
+class TimeWarpOutputManager {
 public:
-    OutputManager() = default;
+    TimeWarpOutputManager() = default;
 
     void initialize(unsigned int num_local_objects);
 

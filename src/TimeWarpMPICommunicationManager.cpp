@@ -2,12 +2,12 @@
 #include <algorithm> // for std::remove_if
 #include <cstdint>  // for uint8_t type
 
-#include "MPICommunicationManager.hpp"
+#include "TimeWarpMPICommunicationManager.hpp"
 #include "utility/memory.hpp"
 
 namespace warped {
 
-unsigned int MPICommunicationManager::initialize() {
+unsigned int TimeWarpMPICommunicationManager::initialize() {
     // MPI_Init requires command line arguments, but doesn't use them. Just give
     // it an empty vector.
     int argc = 0;
@@ -21,11 +21,11 @@ unsigned int MPICommunicationManager::initialize() {
     return getNumProcesses();
 }
 
-void MPICommunicationManager::finalize() {
+void TimeWarpMPICommunicationManager::finalize() {
     MPI_Finalize();
 }
 
-void MPICommunicationManager::sendMessage(std::unique_ptr<KernelMessage> msg) {
+void TimeWarpMPICommunicationManager::sendMessage(std::unique_ptr<TimeWarpKernelMessage> msg) {
 
     // Test all pending sends and mark the flag if complete
     for (auto const& m: pending_sends_) {
@@ -56,7 +56,7 @@ void MPICommunicationManager::sendMessage(std::unique_ptr<KernelMessage> msg) {
     pending_sends_.push_back(make_unique<MPIMessage>(std::move(buf), std::move(request)));
 }
 
-int MPICommunicationManager::sendAllMessages() {
+int TimeWarpMPICommunicationManager::sendAllMessages() {
     int count = 0;
     auto next = dequeueMessage();
     while (next) {
@@ -67,12 +67,12 @@ int MPICommunicationManager::sendAllMessages() {
     return count;
 }
 
-std::unique_ptr<KernelMessage> MPICommunicationManager::recvMessage() {
+std::unique_ptr<TimeWarpKernelMessage> TimeWarpMPICommunicationManager::recvMessage() {
     int flag = 0;
     MPI_Status status;
     int count = 0;
     uint8_t* message = nullptr;
-    std::unique_ptr<KernelMessage> msg;
+    std::unique_ptr<TimeWarpKernelMessage> msg;
 
     MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
 
@@ -94,13 +94,13 @@ std::unique_ptr<KernelMessage> MPICommunicationManager::recvMessage() {
     return std::move(msg);
 }
 
-unsigned int MPICommunicationManager::getNumProcesses() {
+unsigned int TimeWarpMPICommunicationManager::getNumProcesses() {
     int size = 0;
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     return size;
 }
 
-unsigned int MPICommunicationManager::getID() {
+unsigned int TimeWarpMPICommunicationManager::getID() {
     int id = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &id);
     return id;

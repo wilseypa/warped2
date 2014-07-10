@@ -25,10 +25,10 @@
 #include "SequentialEventDispatcher.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 #include "utility/memory.hpp"
-#include "MatternGVTManager.hpp"
-#include "MPICommunicationManager.hpp"
-#include "PeriodicStateManager.hpp"
-#include "AggressiveOutputManager.hpp"
+#include "TimeWarpMatternGVTManager.hpp"
+#include "TimeWarpMPICommunicationManager.hpp"
+#include "TimeWarpPeriodicStateManager.hpp"
+#include "TimeWarpAggressiveOutputManager.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
@@ -175,26 +175,26 @@ Configuration::makeDispatcher() {
 
         std::unique_ptr<LTSFQueue> queue = make_unique<STLLTSFQueue>();//TODO just a placeholder
 
-        std::shared_ptr<CommunicationManager> comm_manager =
-                            std::make_shared<MPICommunicationManager>();
+        std::shared_ptr<TimeWarpCommunicationManager> comm_manager =
+                            std::make_shared<TimeWarpMPICommunicationManager>();
 
         int num_partitions = comm_manager->initialize();
 
-        std::unique_ptr<GVTManager> gvt_manager;
+        std::unique_ptr<TimeWarpGVTManager> gvt_manager;
         if ((*root_)["time-warp"]["gvt-calculation"]["algorithm"].asString() == "mattern") {
             int period = (*root_)["gvt-calculation"]["period"].asInt();
-            gvt_manager = make_unique<MatternGVTManager>(comm_manager, period);
+            gvt_manager = make_unique<TimeWarpMatternGVTManager>(comm_manager, period);
         }
 
-        std::unique_ptr<StateManager> state_manager;
+        std::unique_ptr<TimeWarpStateManager> state_manager;
         if ((*root_)["time-warp"]["state-saving"]["type"].asString() == "periodic") {
             int period = (*root_)["state-saving"]["period"].asInt();
-            state_manager = make_unique<PeriodicStateManager>(period);
+            state_manager = make_unique<TimeWarpPeriodicStateManager>(period);
         }
 
-        std::unique_ptr<OutputManager> output_manager;
+        std::unique_ptr<TimeWarpOutputManager> output_manager;
         if ((*root_)["time-warp"]["cancellation"].asString() == "aggressive") {
-            output_manager = make_unique<AggressiveOutputManager>();
+            output_manager = make_unique<TimeWarpAggressiveOutputManager>();
         }
 
         int num_worker_threads = (*root_)["time-warp"]["worker-threads"].asInt();

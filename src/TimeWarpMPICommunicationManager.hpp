@@ -5,8 +5,8 @@
 #include <vector>
 #include <cstdint>
 
-#include "CommunicationManager.hpp"
-#include "KernelMessage.hpp"
+#include "TimeWarpCommunicationManager.hpp"
+#include "TimeWarpKernelMessage.hpp"
 
 namespace warped {
 
@@ -23,16 +23,16 @@ struct MPIMessage {
     int flag = 0;
 };
 
-class MPICommunicationManager : public CommunicationManager {
+class TimeWarpMPICommunicationManager : public TimeWarpCommunicationManager {
 public:
     unsigned initialize();
     void finalize();
     unsigned int getNumProcesses();
     unsigned int getID();
 
-    void sendMessage(std::unique_ptr<KernelMessage> msg);
+    void sendMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
     int sendAllMessages();
-    std::unique_ptr<KernelMessage> recvMessage();
+    std::unique_ptr<TimeWarpKernelMessage> recvMessage();
 
 private:
     std::vector<std::unique_ptr<MPIMessage>> pending_sends_;

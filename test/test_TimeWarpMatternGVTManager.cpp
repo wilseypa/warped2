@@ -4,7 +4,7 @@
 #include <memory>
 #include <sstream>
 
-#include "MatternGVTManager.hpp"
+#include "TimeWarpMatternGVTManager.hpp"
 #include "serialization.hpp"
 #include "utility/memory.hpp"
 

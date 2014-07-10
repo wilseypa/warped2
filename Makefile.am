@@ -32,17 +32,15 @@ WARPED_NOINST_HPP_FILES = \
     src/utility/memory.hpp \
     src/utility/strings.hpp \
     src/utility/warnings.hpp \
-    src/GVTManager.hpp \
-    src/GVTUpdateMessage.hpp \
-    src/MatternGVTManager.hpp \
-    src/KernelMessage.hpp \
-    src/EventMessage.hpp \
-    src/CommunicationManager.hpp \
-    src/MPICommunicationManager.hpp \
-    src/StateManager.hpp \
-    src/PeriodicStateManager.hpp \
-    src/OutputManager.hpp \
-    src/AggressiveOutputManager.hpp
+    src/TimeWarpGVTManager.hpp \
+    src/TimeWarpMatternGVTManager.hpp \
+    src/TimeWarpKernelMessage.hpp \
+    src/TimeWarpCommunicationManager.hpp \
+    src/TimeWarpMPICommunicationManager.hpp \
+    src/TimeWarpStateManager.hpp \
+    src/TimeWarpPeriodicStateManager.hpp \
+    src/TimeWarpOutputManager.hpp \
+    src/TimeWarpAggressiveOutputManager.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -59,16 +57,14 @@ WARPED_CPP_FILES = \
     src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
     src/TimeWarpEventDispatcher.cpp \
-    src/GVTManager.cpp \
-    src/GVTUpdateMessage.cpp \
-    src/MatternGVTManager.cpp \
-    src/EventMessage.cpp \
-    src/CommunicationManager.cpp \
-    src/MPICommunicationManager.cpp \
-    src/StateManager.cpp \
-    src/PeriodicStateManager.cpp \
-    src/OutputManager.cpp \
-    src/AggressiveOutputManager.cpp
+    src/TimeWarpGVTManager.cpp \
+    src/TimeWarpMatternGVTManager.cpp \
+    src/TimeWarpCommunicationManager.cpp \
+    src/TimeWarpMPICommunicationManager.cpp \
+    src/TimeWarpStateManager.cpp \
+    src/TimeWarpPeriodicStateManager.cpp \
+    src/TimeWarpOutputManager.cpp \
+    src/TimeWarpAggressiveOutputManager.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \

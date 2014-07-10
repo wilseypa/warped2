@@ -1,7 +1,7 @@
 #include <limits>   // for infinity (std::numeric_limits<>::max())
 #include <algorithm>    // for std::min()
 
-#include "MatternGVTManager.hpp"
+#include "TimeWarpMatternGVTManager.hpp"
 #include "utility/memory.hpp"           // for make_unique
 
 /*  This class implements the Mattern GVT algorithm and provides methods
@@ -12,28 +12,28 @@ WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::MatternGVTToken)
 
 namespace warped {
 
-void MatternGVTManager::initialize() {
-    std::function<MessageFlags(std::unique_ptr<KernelMessage>)> handler =
-        std::bind(&MatternGVTManager::receiveMatternGVTToken, this,
+void TimeWarpMatternGVTManager::initialize() {
+    std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> handler =
+        std::bind(&TimeWarpMatternGVTManager::receiveMatternGVTToken, this,
         std::placeholders::_1);
     comm_manager_->addMessageHandler(MessageType::MatternGVTToken, handler);
 
-    handler = std::bind(&MatternGVTManager::receiveGVTUpdate, this,
+    handler = std::bind(&TimeWarpMatternGVTManager::receiveGVTUpdate, this,
         std::placeholders::_1);
     comm_manager_->addMessageHandler(MessageType::GVTUpdateMessage, handler);
 }
 
-unsigned int MatternGVTManager::infinityVT() {
+unsigned int TimeWarpMatternGVTManager::infinityVT() {
     return std::numeric_limits<unsigned int>::max();
 }
 
-void MatternGVTManager::setGvtInfo(int color) {
+void TimeWarpMatternGVTManager::setGvtInfo(int color) {
     if (static_cast<MatternColor>(color) == MatternColor::WHITE) {
         white_msg_counter_--;
     }
 }
 
-int MatternGVTManager::getGvtInfo(unsigned int timestamp) {
+int TimeWarpMatternGVTManager::getGvtInfo(unsigned int timestamp) {
     if (color_ == MatternColor::WHITE) {
         white_msg_counter_++;
     } else {
@@ -42,7 +42,7 @@ int MatternGVTManager::getGvtInfo(unsigned int timestamp) {
     return static_cast<int>(color_);
 }
 
-bool MatternGVTManager::checkGVTPeriod() {
+bool TimeWarpMatternGVTManager::checkGVTPeriod() {
     if (!gVT_token_pending_ ) {
         if (++gvt_period_counter_ == gvt_period_) {
             gvt_period_counter_ = 0;
@@ -54,7 +54,7 @@ bool MatternGVTManager::checkGVTPeriod() {
 
 // This initiates the gvt calculation by sending the initial
 // control message to node 1 (assuming this must be node 0 calling this)
-MessageFlags MatternGVTManager::calculateGVT() {
+MessageFlags TimeWarpMatternGVTManager::calculateGVT() {
 
     MessageFlags flags = MessageFlags::None;
 
@@ -68,13 +68,13 @@ MessageFlags MatternGVTManager::calculateGVT() {
         white_msg_counter_ = 0;
 
         gVT_token_pending_ = true;
-        flags |= MessageFlags::PendingMatternToken;
+        flags = MessageFlags::PendingMatternToken;
     }
 
     return flags;
 }
 
-void MatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) {
+void TimeWarpMatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) {
     unsigned int sender_id = comm_manager_->getID();
     unsigned int num_processes = comm_manager_->getNumProcesses();
 
@@ -93,8 +93,10 @@ void MatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) {
     comm_manager_->sendMessage(std::move(msg));
 }
 
-MessageFlags MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<KernelMessage> kmsg) {
-    auto msg = unique_cast<KernelMessage, MatternGVTToken>(std::move(kmsg));
+MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
+    std::unique_ptr<TimeWarpKernelMessage> kmsg) {
+
+    auto msg = unique_cast<TimeWarpKernelMessage, MatternGVTToken>(std::move(kmsg));
     unsigned int process_id = comm_manager_->getID();
     MessageFlags flags = MessageFlags::None;
 

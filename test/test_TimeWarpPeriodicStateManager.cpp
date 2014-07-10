@@ -3,13 +3,13 @@
 
 #include <memory>
 
-#include "PeriodicStateManager.hpp"
+#include "TimeWarpPeriodicStateManager.hpp"
 #include "mocks.hpp"
 
 TEST_CASE("States saved and restored correctly", "[state][queue]") {
     unsigned int num_objects = 4;
     unsigned int period = 2;
-    warped::PeriodicStateManager sm(period);
+    warped::TimeWarpPeriodicStateManager sm(period);
     sm.initialize(num_objects);
     warped::SimulationObject *object;
 

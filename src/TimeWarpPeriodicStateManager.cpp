@@ -1,17 +1,17 @@
-#include "PeriodicStateManager.hpp"
+#include "TimeWarpPeriodicStateManager.hpp"
 #include "SimulationObject.hpp"
 #include "utility/memory.hpp"
 
 namespace warped {
 
-void PeriodicStateManager::initialize(unsigned int num_local_objects) {
+void TimeWarpPeriodicStateManager::initialize(unsigned int num_local_objects) {
     count_ = make_unique<unsigned int []>(num_local_objects);
     memset(count_.get(), 0, num_local_objects*sizeof(unsigned int));
-    StateManager::initialize(num_local_objects);
+    TimeWarpStateManager::initialize(num_local_objects);
 }
 
-void PeriodicStateManager::saveState(unsigned int current_time, unsigned int local_object_id,
-    SimulationObject *object) {
+void TimeWarpPeriodicStateManager::saveState(unsigned int current_time,
+    unsigned int local_object_id, SimulationObject *object) {
 
     if (count_[local_object_id] == 0) {
 

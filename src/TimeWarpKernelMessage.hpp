@@ -11,9 +11,9 @@ enum class MessageType {
     GVTUpdateMessage
 };
 
-struct KernelMessage {
-    KernelMessage() = default;
-    KernelMessage(unsigned int sender, unsigned int receiver) :
+struct TimeWarpKernelMessage {
+    TimeWarpKernelMessage() = default;
+    TimeWarpKernelMessage(unsigned int sender, unsigned int receiver) :
         sender_id(sender),
         receiver_id(receiver) {}
 
