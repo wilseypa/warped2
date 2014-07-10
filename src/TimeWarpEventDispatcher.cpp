@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 #include <cmath>
+#include <algorithm>    // for std::min
 
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
@@ -23,19 +24,16 @@
 
 namespace warped {
 
-thread_local bool TimeWarpEventDispatcher::local_min_lvt_flag_;
-
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
+    unsigned int num_worker_threads,
     std::shared_ptr<CommunicationManager> comm_manager,
     std::unique_ptr<LTSFQueue> events, std::unique_ptr<GVTManager> gvt_manager,
     std::unique_ptr<StateManager> state_manager, std::unique_ptr<OutputManager> output_manager) :
-        EventDispatcher(max_sim_time), comm_manager_(comm_manager), events_(std::move(events)),
+        EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
+        comm_manager_(comm_manager), events_(std::move(events)),
         gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)) {}
 
-// This function implementation is merely a speculation for how the this
-// function might work in the future. It's definitely incomplete, and may not
-// be the best approach at all.
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
     initialize(objects);
@@ -46,20 +44,42 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         threads.push_back(std::thread {&TimeWarpEventDispatcher::processEvents, this});
     }
 
+    // Flag that says we need to send a mattern token, either to start token circulation
+    // or because we have received a token that we must pass along.
+    bool pending_mattern_token = false;
+
+    // Flag that says we have started calculating minimum lvt of the objects on this node
+    bool started_min_lvt = false;
+
     // Master thread main loop
     while (gvt_manager_->getGVT() < max_sim_time_) {
 
-        // Flag is set when we receive a mattern gvt token. We should
-        // never receive a token while flag is still set so this should work.
-        local_min_lvt_flag_ = comm_manager_->dispatchMessages();
-        min_lvt_flag_.store(local_min_lvt_flag_);
+        bool flag = comm_manager_->dispatchMessages();
+        // We may already have a pending token to send
+        pending_mattern_token |= flag;
+        if (pending_mattern_token && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
+            min_lvt_flag_.store(num_worker_threads_);
+            started_min_lvt = true;
+        }
 
-        if (comm_manager_->getID() == 0 && calculate_gvt_.load()) {
-            // calculate gvt flag will only be set when min_lvt_flag_ is not
-            // so this should work
-            local_min_lvt_flag_ = gvt_manager_->calculateGVT();
-            min_lvt_flag_.store(local_min_lvt_flag_);
-            calculate_gvt_.store(false);
+        if (calculate_gvt_.load() && comm_manager_->getID() == 0) {
+            // This will only return true if a token is not in circulation and we need to
+            // start another one.
+            pending_mattern_token = gvt_manager_->calculateGVT();
+
+            if (pending_mattern_token == true) {
+                min_lvt_flag_.store(num_worker_threads_);
+                started_min_lvt = true;
+                calculate_gvt_.store(false);
+            }
+        }
+
+        if (pending_mattern_token && (min_lvt_flag_.load() == 0) && started_min_lvt) {
+            auto mattern_gvt_manager = static_cast<MatternGVTManager*>(gvt_manager_.get());
+            unsigned int local_min_lvt = getMinimumLVT();
+            mattern_gvt_manager->sendMatternGVTToken(local_min_lvt);
+            pending_mattern_token = false;
+            started_min_lvt = false;
         }
 
         // This sends all messages that are in the send buffer
@@ -91,6 +111,15 @@ void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event,
     comm_manager_->enqueueMessage(std::move(event_msg));
 }
 
+void TimeWarpEventDispatcher::sendLocalEvent(std::unique_ptr<Event> event, unsigned int thread_id) {
+    // TODO, totally incomplete still, just added some probably temporary gvt stuff
+
+    if (min_lvt_flag_.load() > 0 && !calculated_min_lvt_by_thread_id_[thread_id]) {
+        unsigned int send_min = send_min_by_thread_id_[thread_id];
+        send_min_by_thread_id_[thread_id] = std::min(send_min, event->timestamp());
+    }
+}
+
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     state_manager_->fossilCollectAll(gvt);
     output_manager_->fossilCollectAll(gvt);
@@ -98,8 +127,12 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     //TODO still incomplete
 }
 
-void TimeWarpEventDispatcher::CancelEvents(
+void TimeWarpEventDispatcher::cancelEvents(
     std::unique_ptr<std::vector<std::unique_ptr<Event>>> events_to_cancel) {
+
+    if (events_to_cancel->empty()) {
+        return;
+    }
 
     do {
         auto event = std::move(events_to_cancel->back());
@@ -108,7 +141,7 @@ void TimeWarpEventDispatcher::CancelEvents(
         if (receiver_id != comm_manager_->getID()) {
             sendRemoteEvent(std::move(event), receiver_id);
         } else {
-            // TODO
+            sendLocalEvent(std::move(event), 0); // TODO get thread_id of sender
         }
     } while (!events_to_cancel->empty());
 }
@@ -119,14 +152,14 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
         object);
     auto events_to_cancel = output_manager_->rollback(straggler_time, local_object_id);
 
-    // TODO temporary so compiler wouldn't complain
-    restored_timestamp = 1;
-    events_to_cancel->size();
+    if (events_to_cancel != nullptr) {
+        cancelEvents(std::move(events_to_cancel));
+    }
 
     //TODO this in incomplete, the restored_timestamp is the timestamp of the state of the
     // object that has been restored. All unprocessed event before or equal to this time must be
-    // regenerated. events_to_canel is a vector that contains event that must be sent as
-    // anti-messages.
+    // regenerated.
+    restored_timestamp = 1;
 }
 
 void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>&
@@ -149,12 +182,26 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
     state_manager_->initialize(num_local_objects);
     output_manager_->initialize(num_local_objects);
 
+
+    // Register message handlers
     gvt_manager_->initialize();
 
     std::function<bool(std::unique_ptr<KernelMessage>)> handler =
         std::bind(&TimeWarpEventDispatcher::receiveEventMessage, this,
         std::placeholders::_1);
     comm_manager_->addMessageHandler(MessageType::EventMessage, handler);
+
+    min_lvt_by_thread_id_ = make_unique<unsigned int []>(num_worker_threads_);
+    send_min_by_thread_id_ = make_unique<unsigned int []>(num_worker_threads_);
+    calculated_min_lvt_by_thread_id_ = make_unique<bool []>(num_worker_threads_);
+}
+
+unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
+    unsigned int min;
+    for (unsigned int i = 0; i < num_worker_threads_; i++) {
+        min = std::min(min, min_lvt_by_thread_id_[i]);
+    }
+    return min;
 }
 
 } // namespace warped

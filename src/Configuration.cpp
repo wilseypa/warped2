@@ -47,17 +47,21 @@ const static std::string DEFAULT_CONFIG = R"x({
     "file": "statistics.out"
 },
 
-"gvt-calculation": {
-    "algorithm": "mattern",
-    "period": 1000
-}
+"time-warp" : {
+    "gvt-calculation": {
+        "algorithm": "mattern",
+        "period": 1000
+    },
 
-"state-saving": {
-    "type": "periodic",
-    "period": 10
+    "state-saving": {
+        "type": "periodic",
+        "period": 10
+    },
+
+    "cancellation": "aggressive",
+
+    "worker-threads: 3
 },
-
-"cancellation": "aggressive"
 
 "partitioning": {
     // Valid options are "default", "round-robin" and "profile-guided".
@@ -177,25 +181,27 @@ Configuration::makeDispatcher() {
         int num_partitions = comm_manager->initialize();
 
         std::unique_ptr<GVTManager> gvt_manager;
-        if ((*root_)["gvt-calculation"]["algorithm"].asString() == "mattern") {
+        if ((*root_)["time-warp"]["gvt-calculation"]["algorithm"].asString() == "mattern") {
             int period = (*root_)["gvt-calculation"]["period"].asInt();
             gvt_manager = make_unique<MatternGVTManager>(comm_manager, period);
         }
 
         std::unique_ptr<StateManager> state_manager;
-        if ((*root_)["state-saving"]["type"].asString() == "periodic") {
+        if ((*root_)["time-warp"]["state-saving"]["type"].asString() == "periodic") {
             int period = (*root_)["state-saving"]["period"].asInt();
             state_manager = make_unique<PeriodicStateManager>(period);
         }
 
         std::unique_ptr<OutputManager> output_manager;
-        if ((*root_)["cancellation"].asString() == "aggressive") {
+        if ((*root_)["time-warp"]["cancellation"].asString() == "aggressive") {
             output_manager = make_unique<AggressiveOutputManager>();
         }
 
+        int num_worker_threads = (*root_)["time-warp"]["worker-threads"].asInt();
+
         return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,
-            comm_manager, std::move(queue), std::move(gvt_manager), std::move(state_manager),
-            std::move(output_manager)), num_partitions);
+            num_worker_threads, comm_manager, std::move(queue), std::move(gvt_manager),
+            std::move(state_manager), std::move(output_manager)), num_partitions);
     }
 
     // Return a SequentialEventDispatcher by default

@@ -33,6 +33,7 @@ class OutputManager;
 class TimeWarpEventDispatcher : public EventDispatcher {
 public:
     TimeWarpEventDispatcher(unsigned int max_sim_time,
+        unsigned int num_worker_threads,
         std::shared_ptr<CommunicationManager> comm_manager,
         std::unique_ptr<LTSFQueue> events,
         std::unique_ptr<GVTManager> gvt_manager,
@@ -47,14 +48,20 @@ public:
 
     void sendRemoteEvent(std::unique_ptr<Event> event, unsigned int receiver_id);
 
+    void sendLocalEvent(std::unique_ptr<Event> event, unsigned int thread_id);
+
     void fossilCollect(unsigned int gvt);
 
-    void CancelEvents(std::unique_ptr<std::vector<std::unique_ptr<Event>>> events_to_cancel);
+    void cancelEvents(std::unique_ptr<std::vector<std::unique_ptr<Event>>> events_to_cancel);
 
     void rollback(unsigned int straggler_time, unsigned int local_object_id, SimulationObject* ob);
 
+    unsigned int getMinimumLVT();
+
 private:
     void processEvents();
+
+    unsigned int num_worker_threads_;
 
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
     std::unordered_map<std::string, unsigned int> local_object_id_by_name_;
@@ -70,9 +77,16 @@ private:
     std::atomic<bool> calculate_gvt_ = ATOMIC_VAR_INIT(false);
 
     // flag to initiate minimum lvt calculation
-    std::atomic<bool> min_lvt_flag_ = ATOMIC_VAR_INIT(false);
+    std::atomic<unsigned int> min_lvt_flag_ = ATOMIC_VAR_INIT(0);
 
-    thread_local static bool local_min_lvt_flag_;
+    // local min lvt of each worker thread
+    std::unique_ptr<unsigned int []> min_lvt_by_thread_id_;
+
+    // minimum timestamp of sent events used for minimum lvt calculation
+    std::unique_ptr<unsigned int []> send_min_by_thread_id_;
+
+    // flag to determine if worker thread has already calculated min lvt
+    std::unique_ptr<bool []> calculated_min_lvt_by_thread_id_;
 };
 
 } // namespace warped
