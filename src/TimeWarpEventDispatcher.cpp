@@ -44,9 +44,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         threads.push_back(std::thread {&TimeWarpEventDispatcher::processEvents, this});
     }
 
-    // Flag that says we need to send a mattern token, either to start token circulation
-    // or because we have received a token that we must pass along.
-    bool pending_mattern_token = false;
+    MessageFlags msg_flags = MessageFlags::None;
 
     // Flag that says we have started calculating minimum lvt of the objects on this node
     bool started_min_lvt = false;
@@ -54,31 +52,35 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     // Master thread main loop
     while (gvt_manager_->getGVT() < max_sim_time_) {
 
-        bool flag = comm_manager_->dispatchMessages();
+        MessageFlags flags = comm_manager_->dispatchMessages();
         // We may already have a pending token to send
-        pending_mattern_token |= flag;
-        if (pending_mattern_token && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
+        msg_flags |= flags;
+        if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
             min_lvt_flag_.store(num_worker_threads_);
             started_min_lvt = true;
+        }
+        if (GVT_UPDATE(msg_flags)) {
+            fossilCollect(gvt_manager_->getGVT());
+            msg_flags &= ~MessageFlags::GVTUpdate;
         }
 
         if (calculate_gvt_.load() && comm_manager_->getID() == 0) {
             // This will only return true if a token is not in circulation and we need to
             // start another one.
-            pending_mattern_token = gvt_manager_->calculateGVT();
-
-            if (pending_mattern_token == true) {
+            MessageFlags flags = gvt_manager_->calculateGVT();
+            msg_flags |= flags;
+            if (PENDING_MATTERN_TOKEN(msg_flags)) {
                 min_lvt_flag_.store(num_worker_threads_);
                 started_min_lvt = true;
                 calculate_gvt_.store(false);
             }
         }
 
-        if (pending_mattern_token && (min_lvt_flag_.load() == 0) && started_min_lvt) {
+        if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
             auto mattern_gvt_manager = static_cast<MatternGVTManager*>(gvt_manager_.get());
             unsigned int local_min_lvt = getMinimumLVT();
             mattern_gvt_manager->sendMatternGVTToken(local_min_lvt);
-            pending_mattern_token = false;
+            msg_flags &= ~MessageFlags::PendingMatternToken;
             started_min_lvt = false;
         }
 
@@ -93,12 +95,12 @@ void TimeWarpEventDispatcher::processEvents() {
 
 }
 
-bool TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<KernelMessage> kmsg) {
+MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<KernelMessage> kmsg) {
     auto msg = unique_cast<KernelMessage, EventMessage>(std::move(kmsg));
     gvt_manager_->setGvtInfo(msg->gvt_mattern_color);
 
    // TODO This is incomplete
-   return false;
+   return MessageFlags::None;
 }
 
 void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event,
@@ -186,7 +188,7 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
     // Register message handlers
     gvt_manager_->initialize();
 
-    std::function<bool(std::unique_ptr<KernelMessage>)> handler =
+    std::function<MessageFlags(std::unique_ptr<KernelMessage>)> handler =
         std::bind(&TimeWarpEventDispatcher::receiveEventMessage, this,
         std::placeholders::_1);
     comm_manager_->addMessageHandler(MessageType::EventMessage, handler);

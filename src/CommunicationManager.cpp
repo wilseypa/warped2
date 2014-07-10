@@ -20,21 +20,21 @@ std::unique_ptr<KernelMessage> CommunicationManager::dequeueMessage() {
 }
 
 void CommunicationManager::addMessageHandler(MessageType msg_type,
-                       std::function<bool(std::unique_ptr<KernelMessage>)> msg_handler) {
+                       std::function<MessageFlags(std::unique_ptr<KernelMessage>)> msg_handler) {
     int msg_type_int = static_cast<int>(msg_type);
     msg_handler_by_msg_type_.insert(std::make_pair(msg_type_int, msg_handler));
 }
 
-bool CommunicationManager::dispatchMessages() {
-    bool ret = false;
+MessageFlags CommunicationManager::dispatchMessages() {
+    MessageFlags ret = MessageFlags::None;
     auto msg = recvMessage();
     while (msg.get() != nullptr) {
         MessageType msg_type = msg->get_type();
         int msg_type_int = static_cast<int>(msg_type);
         auto msg_handler = msg_handler_by_msg_type_[msg_type_int];
 
-        bool flag = msg_handler(std::move(msg));
-        ret = ret | flag;
+        MessageFlags flags = msg_handler(std::move(msg));
+        ret = ret | flags;
 
         msg = recvMessage();
     }

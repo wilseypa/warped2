@@ -8,6 +8,7 @@
 #include <vector>
 #include <array>
 
+#include "CommunicationManager.hpp"
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
 #include "EventMessage.hpp"
@@ -44,7 +45,7 @@ public:
 
     void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
 
-    bool receiveEventMessage(std::unique_ptr<KernelMessage> kmsg);
+    MessageFlags receiveEventMessage(std::unique_ptr<KernelMessage> kmsg);
 
     void sendRemoteEvent(std::unique_ptr<Event> event, unsigned int receiver_id);
 

@@ -46,10 +46,10 @@ public:
     void initialize();
 
     // Starts the GVT calculation process
-    bool calculateGVT();
+    MessageFlags calculateGVT();
 
     // Called when a MatternGVTToken has been received
-    bool receiveMatternGVTToken(std::unique_ptr<KernelMessage> msg);
+    MessageFlags receiveMatternGVTToken(std::unique_ptr<KernelMessage> msg);
 
     void sendMatternGVTToken(unsigned int local_minimum);
 

@@ -13,7 +13,7 @@ WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::MatternGVTToken)
 namespace warped {
 
 void MatternGVTManager::initialize() {
-    std::function<bool(std::unique_ptr<KernelMessage>)> handler =
+    std::function<MessageFlags(std::unique_ptr<KernelMessage>)> handler =
         std::bind(&MatternGVTManager::receiveMatternGVTToken, this,
         std::placeholders::_1);
     comm_manager_->addMessageHandler(MessageType::MatternGVTToken, handler);
@@ -54,12 +54,12 @@ bool MatternGVTManager::checkGVTPeriod() {
 
 // This initiates the gvt calculation by sending the initial
 // control message to node 1 (assuming this must be node 0 calling this)
-bool MatternGVTManager::calculateGVT() {
+MessageFlags MatternGVTManager::calculateGVT() {
 
-    bool initiate_min_lvt = false;
+    MessageFlags flags = MessageFlags::None;
 
     if (comm_manager_->getID() != 0) {
-        return initiate_min_lvt;
+        return flags;
     }
 
     if (gVT_token_pending_ == false) {
@@ -68,10 +68,10 @@ bool MatternGVTManager::calculateGVT() {
         white_msg_counter_ = 0;
 
         gVT_token_pending_ = true;
-        initiate_min_lvt = true;
+        flags |= MessageFlags::PendingMatternToken;
     }
 
-    return initiate_min_lvt;
+    return flags;
 }
 
 void MatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) {
@@ -93,10 +93,10 @@ void MatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) {
     comm_manager_->sendMessage(std::move(msg));
 }
 
-bool MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<KernelMessage> kmsg) {
+MessageFlags MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<KernelMessage> kmsg) {
     auto msg = unique_cast<KernelMessage, MatternGVTToken>(std::move(kmsg));
     unsigned int process_id = comm_manager_->getID();
-    bool initiate_min_lvt = false;
+    MessageFlags flags = MessageFlags::None;
 
     if (process_id == 0) {
         // Initiator received the message
@@ -114,7 +114,7 @@ bool MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<KernelMessage> km
 
         } else {
             min_red_msg_timestamp_ = std::min(msg->m_send, min_red_msg_timestamp_);
-            initiate_min_lvt = true;
+            flags |= MessageFlags::PendingMatternToken;
         }
 
     } else {
@@ -128,10 +128,9 @@ bool MatternGVTManager::receiveMatternGVTToken(std::unique_ptr<KernelMessage> km
         min_red_msg_timestamp_ = std::min(msg->m_clock, min_red_msg_timestamp_);
         white_msg_counter_ = white_msg_counter_ + msg->count;
 
-        initiate_min_lvt = true;
+        flags |= MessageFlags::PendingMatternToken;
     }
-    return initiate_min_lvt;
+    return flags;
 }
 
 } // namespace warped
-

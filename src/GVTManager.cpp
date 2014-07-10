@@ -3,10 +3,10 @@
 
 namespace warped {
 
-bool GVTManager::receiveGVTUpdate(std::unique_ptr<KernelMessage> kmsg) {
+MessageFlags GVTManager::receiveGVTUpdate(std::unique_ptr<KernelMessage> kmsg) {
     auto msg = unique_cast<KernelMessage, GVTUpdateMessage>(std::move(kmsg));
     gVT_ = msg->new_gvt;
-    return false;
+    return MessageFlags::GVTUpdate;
 }
 
 void GVTManager::sendGVTUpdate() {

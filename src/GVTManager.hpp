@@ -20,7 +20,7 @@ public:
 
     virtual void initialize() = 0;
 
-    virtual bool calculateGVT() = 0;
+    virtual MessageFlags calculateGVT() = 0;
 
     virtual void setGvtInfo(int) = 0;
 
@@ -30,7 +30,7 @@ public:
 
     void sendGVTUpdate();
 
-    bool receiveGVTUpdate(std::unique_ptr<KernelMessage> kmsg);
+    MessageFlags receiveGVTUpdate(std::unique_ptr<KernelMessage> kmsg);
 
     unsigned int getGVT() { return gVT_; }
 
