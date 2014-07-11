@@ -109,6 +109,7 @@ MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
             gVT_token_pending_ = false;
 
             sendGVTUpdate();
+            flags |= MessageFlags::GVTUpdate;
 
             // Reset to white, so another calculation can be made
             white_msg_counter_ = 0;

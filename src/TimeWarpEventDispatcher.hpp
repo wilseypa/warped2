@@ -53,9 +53,10 @@ public:
     unsigned int getMinimumLVT();
 
 private:
-    void processEvents();
+    void processEvents(unsigned int id);
 
     unsigned int num_worker_threads_;
+    thread_local static unsigned int thread_id;
 
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
     std::unordered_map<std::string, unsigned int> local_object_id_by_name_;
@@ -74,13 +75,15 @@ private:
     std::atomic<unsigned int> min_lvt_flag_ = ATOMIC_VAR_INIT(0);
 
     // local min lvt of each worker thread
-    std::unique_ptr<unsigned int []> min_lvt_by_thread_id_;
+    std::unique_ptr<unsigned int []> min_lvt_;
 
     // minimum timestamp of sent events used for minimum lvt calculation
-    std::unique_ptr<unsigned int []> send_min_by_thread_id_;
+    std::unique_ptr<unsigned int []> send_min_;
+
+    std::unique_ptr<unsigned int []> local_min_lvt_flag_;
 
     // flag to determine if worker thread has already calculated min lvt
-    std::unique_ptr<bool []> calculated_min_lvt_by_thread_id_;
+    std::unique_ptr<bool []> calculated_min_flag_;
 };
 
 enum class MatternColor;

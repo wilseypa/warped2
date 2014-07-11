@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 #include <cmath>
+#include <limits> // for std::numeric_limits<>::max();
 #include <algorithm>    // for std::min
 
 #include "Event.hpp"
@@ -40,10 +41,11 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                                               objects) {
     initialize(objects);
 
+    thread_id = num_worker_threads_;
     // Create worker threads
     std::vector<std::thread> threads;
-    for (unsigned int i = 0; i < std::thread::hardware_concurrency() - 1; ++i) {
-        threads.push_back(std::thread {&TimeWarpEventDispatcher::processEvents, this});
+    for (unsigned int i = 0; i < num_worker_threads_; ++i) {
+        threads.push_back(std::thread {&TimeWarpEventDispatcher::processEvents, this, i});
     }
 
     MessageFlags msg_flags = MessageFlags::None;
@@ -93,8 +95,18 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     comm_manager_->finalize();
 }
 
-void TimeWarpEventDispatcher::processEvents() {
+void TimeWarpEventDispatcher::processEvents(unsigned int id) {
+    thread_id = id;
 
+    local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();
+    // Get event and handle rollback if necessary
+
+    unsigned int min_lvt_of_this_thread = 0;
+
+    if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
+        min_lvt_[thread_id] = std::min(send_min_[thread_id], min_lvt_of_this_thread);
+        min_lvt_flag_--;
+    }
 }
 
 MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage>
@@ -121,9 +133,9 @@ void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event,
 void TimeWarpEventDispatcher::sendLocalEvent(std::unique_ptr<Event> event, unsigned int thread_id) {
     // TODO, totally incomplete still, just added some probably temporary gvt stuff
 
-    if (min_lvt_flag_.load() > 0 && !calculated_min_lvt_by_thread_id_[thread_id]) {
-        unsigned int send_min = send_min_by_thread_id_[thread_id];
-        send_min_by_thread_id_[thread_id] = std::min(send_min, event->timestamp());
+    if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
+        unsigned int send_min = send_min_[thread_id];
+        send_min_[thread_id] = std::min(send_min, event->timestamp());
     }
 }
 
@@ -191,7 +203,6 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
     state_manager_->initialize(num_local_objects);
     output_manager_->initialize(num_local_objects);
 
-
     // Register message handlers
     gvt_manager_->initialize();
 
@@ -200,15 +211,17 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
         std::placeholders::_1);
     comm_manager_->addMessageHandler(MessageType::EventMessage, handler);
 
-    min_lvt_by_thread_id_ = make_unique<unsigned int []>(num_worker_threads_);
-    send_min_by_thread_id_ = make_unique<unsigned int []>(num_worker_threads_);
-    calculated_min_lvt_by_thread_id_ = make_unique<bool []>(num_worker_threads_);
+    min_lvt_ = make_unique<unsigned int []>(num_worker_threads_);
+    send_min_ = make_unique<unsigned int []>(num_worker_threads_);
+    calculated_min_flag_ = make_unique<bool []>(num_worker_threads_);
 }
 
 unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
     unsigned int min;
     for (unsigned int i = 0; i < num_worker_threads_; i++) {
-        min = std::min(min, min_lvt_by_thread_id_[i]);
+        min = std::min(min, min_lvt_[i]);
+        // Reset send_min back to very large number for next calculation
+        send_min_[i] = std::numeric_limits<unsigned int>::max();
     }
     return min;
 }
