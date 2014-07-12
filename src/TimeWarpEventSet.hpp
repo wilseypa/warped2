@@ -6,7 +6,9 @@
  */
 
 #include <vector>
+#include <unordered_map>
 #include <mutex>
+#include "STLLTSFQueue.hpp"
 
 namespace warped {
 
@@ -15,9 +17,12 @@ class Event;
 
 class TimeWarpEventSet {
 public:
-    TimeWarpEventSet();
+    TimeWarpEventSet() = default;
 
-    bool insertEvent ( 
+    void initialize (
+                std::unordered_map<std::string, unsigned int>& local_object_id_by_name );
+
+    void insertEvent ( 
                 const std::unique_ptr<Event> event, 
                 unsigned int thread_id );
 
@@ -51,16 +56,17 @@ public:
                 unsigned int thread_id );
 
 private:
-    std::mutex unprocessed_queue_mutex_;
+    //Lock to protect the unprocessed queue
+    std::mutex unprocessed_queue_lock_;
 
-    std::mutex processed_queue_mutex_;
+    //Lock to protect the processed queue
+    std::mutex processed_queue_lock_;
 
-    std::mutex removed_queue_mutex_;
-
-    //to be modified
+    //Lock to protect the removed queue
+    std::mutex removed_queue_lock_;
 
     //Queues to hold the unprocessed events for each simulation object
-    std::vector<std::multiset<const std::unique_ptr<Event>, receiveTimeLessThanEventIdLessThan>*> unprocessed_queue_;
+    std::vector<std::unique_ptr<STLLTSFQueue>> unprocessed_queue_;
 
     //Queues to hold the processed events for each simulation object
     std::vector<std::vector<const std::unique_ptr<Event>>*> processed_queue_;
@@ -68,6 +74,8 @@ private:
     //Queues to hold the removed events for each simulation object
     std::vector<std::vector<const std::unique_ptr<Event>>*> removed_queue_;
 
+    //Unordered Map to find object id using object name
+    std::unordered_map<std::string, unsigned int> object_id_by_name_;
 };
 
 } // warped namespace
