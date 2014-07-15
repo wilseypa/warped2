@@ -4,6 +4,7 @@
 #include <sstream>
 #include <memory>
 #include <vector>
+#include <mutex>
 
 #include "TimeWarpFileStream.hpp"
 #include "SimulationObject.hpp"
@@ -29,9 +30,13 @@ public:
     bool objectHasFileStream(std::shared_ptr<TimeWarpFileStream> twfstream,
         unsigned int local_object_id);
 
+    std::size_t size(unsigned int local_object_id);
+
 private:
     // An array of TimeWarpFileStream vectors, one for each object.
     std::unique_ptr<std::vector<std::shared_ptr<TimeWarpFileStream>> []> file_streams_;
+
+    std::unique_ptr<std::mutex []> file_streams_lock_;
 };
 
 } // namespace warped
