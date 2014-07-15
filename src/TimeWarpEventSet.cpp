@@ -6,15 +6,12 @@ TimeWarpEventSet::TimeWarpEventSet() {
 
 }
 
-void TimeWarpEventSet::initialize( std::unordered_map<std::string, unsigned int>& object_map ) {
+void TimeWarpEventSet::initialize( unsigned int num_of_objects ) {
 
-    object_id_by_name_ = object_map;
 }
 
-void TimeWarpEventSet::insertEvent( const std::unique_ptr<Event> event, 
-                                    unsigned int thread_id ) {
+void TimeWarpEventSet::insertEvent( unsigned int obj_id, const std::unique_ptr<Event> event ) {
 
-    unsigned int obj_id = event->receiverName();
     unprocessed_queue_lock_.lock();
     unprocessed_queue[obj_id]->push(event);
 

@@ -8,23 +8,22 @@
 #include <vector>
 #include <unordered_map>
 #include <mutex>
-#include "STLLTSFQueue.hpp"
 
 namespace warped {
 
 class SimulationObject;
 class Event;
+class STLLTSFQueue;
 
 class TimeWarpEventSet {
 public:
     TimeWarpEventSet() = default;
 
-    void initialize (
-                std::unordered_map<std::string, unsigned int>& local_object_id_by_name );
+    void initialize ( unsigned int num_of_objects );
 
     void insertEvent ( 
-                const std::unique_ptr<Event> event, 
-                unsigned int thread_id );
+                unsigned int object_id, 
+                const std::unique_ptr<Event> event );
 
     bool handleAntiMessage ( 
                 SimulationObject* object, 
@@ -73,9 +72,6 @@ private:
 
     //Queues to hold the removed events for each simulation object
     std::vector<std::vector<const std::unique_ptr<Event>>*> removed_queue_;
-
-    //Unordered Map to find object id using object name
-    std::unordered_map<std::string, unsigned int> object_id_by_name_;
 };
 
 } // warped namespace
