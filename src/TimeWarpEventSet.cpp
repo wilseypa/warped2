@@ -6,9 +6,29 @@ TimeWarpEventSet::TimeWarpEventSet() {
 
 }
 
-bool TimeWarpEventSet::insertEvent( const std::unique_ptr<Event> event, 
+void TimeWarpEventSet::initialize( std::unordered_map<std::string, unsigned int>& object_map ) {
+
+    object_id_by_name_ = object_map;
+}
+
+void TimeWarpEventSet::insertEvent( const std::unique_ptr<Event> event, 
                                     unsigned int thread_id ) {
 
+    unsigned int obj_id = event->receiverName();
+    unprocessed_queue_lock_.lock();
+    unprocessed_queue[obj_id]->push(event);
+
+    //If the event just inserted is at the beginning, update the schedule queue
+    Event *peek_event = unprocessed_queue[obj_id]->peek();
+    if( event == *peek_event ) {
+        /*LTSF[LTSFByObj[objId]]->getScheduleQueueLock(threadId);
+        if (!this->isObjectScheduled(objId)) {
+            LTSF[LTSFByObj[objId]]->eraseSkipFirst(objId);
+            LTSF[LTSFByObj[objId]]->insertEvent(objId, receivedEvent);
+        }
+        LTSF[LTSFByObj[objId]]->releaseScheduleQueueLock(threadId);*/
+    }
+    unprocessed_queue_lock_.unlock();
 }
 
 bool TimeWarpEventSet::handleAntiMessage ( 
