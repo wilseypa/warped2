@@ -5,10 +5,14 @@
 #include <vector>
 #include <memory>
 
+#include "FileStream.hpp"
+
 namespace warped {
 
 class Event;
 struct ObjectState;
+class FileStream;
+class EventDispatcher;
 
 // SimulationObjects are the core of the simulation. All models must define at
 // least one class implementing this interface. Each SimulationObject has a
@@ -39,6 +43,8 @@ public:
     //
     // This is an optional method that is called before the simulation begins.
     virtual std::vector<std::unique_ptr<Event>> createInitialEvents();
+
+    FileStream& getFileStream(const std::string& filename, std::ios_base::openmode mode);
 
     const std::string name_;
 

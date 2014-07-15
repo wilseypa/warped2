@@ -12,6 +12,7 @@
 #include "EventStatistics.hpp"
 #include "SimulationObject.hpp"
 #include "STLLTSFQueue.hpp"
+#include "utility/memory.hpp"
 
 namespace warped {
 
@@ -46,6 +47,25 @@ void SequentialEventDispatcher::startSimulation(
     }
 
     stats_->writeToFile();
+}
+
+FileStream& SequentialEventDispatcher::getFileStream(SimulationObject* object,
+    const std::string& filename, std::ios_base::openmode mode) {
+
+    if (object_by_filename_.count(filename) == 0) {
+        // Create filestream and insert into filename to stream map
+        std::unique_ptr<FileStream, FileStreamDeleter> fs(new FileStream(filename, mode),
+            FileStreamDeleter());
+        file_stream_by_filename_[filename] = std::move(fs);
+
+        // Insert into filename to object map
+        object_by_filename_[filename] = object;
+
+        return *(file_stream_by_filename_[filename].get());
+
+    } else {
+        return *(file_stream_by_filename_[filename].get());
+    }
 }
 
 } // namespace warped

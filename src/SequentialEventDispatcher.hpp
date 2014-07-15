@@ -2,7 +2,7 @@
 #define SEQUENTIAL_EVENT_DISPATCHER_HPP
 
 #include <memory>
-#include <vector>
+#include <unordered_map>
 
 #include "EventDispatcher.hpp"
 
@@ -17,8 +17,17 @@ public:
     SequentialEventDispatcher(unsigned int max_sim_time, std::unique_ptr<EventStatistics> stats);
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
+    FileStream& getFileStream(SimulationObject* object, const std::string& filename,
+        std::ios_base::openmode mode);
+
 private:
     std::unique_ptr<EventStatistics> stats_;
+
+    std::unordered_map<std::string, std::unique_ptr<FileStream, FileStreamDeleter>>
+        file_stream_by_filename_;
+
+    std::unordered_map<std::string, SimulationObject*> object_by_filename_;
+
 };
 
 } // namespace warped

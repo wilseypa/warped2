@@ -8,6 +8,7 @@
 #include <vector>
 #include <array>
 
+#include "TimeWarpFileStream.hpp"
 #include "TimeWarpCommunicationManager.hpp"
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
@@ -21,6 +22,7 @@ class TimeWarpCommunicationManager;
 class TimeWarpGVTManager;
 class TimeWarpStateManager;
 class TimeWarpOutputManager;
+class TimeWarpFileStreamManager;
 
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
@@ -52,15 +54,21 @@ public:
 
     unsigned int getMinimumLVT();
 
+    FileStream& getFileStream(SimulationObject *object, const std::string& filename,
+        std::ios_base::openmode mode);
+
 private:
     void processEvents(unsigned int id);
 
     unsigned int num_worker_threads_;
-    thread_local static unsigned int thread_id;
 
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
     std::unordered_map<std::string, unsigned int> local_object_id_by_name_;
     std::unordered_map<std::string, unsigned int> object_node_id_by_name_;
+
+    const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_ =
+        make_unique<TimeWarpFileStreamManager>();
+    std::unordered_map<std::string, std::shared_ptr<TimeWarpFileStream>> file_stream_by_filename_;
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<LTSFQueue> events_;

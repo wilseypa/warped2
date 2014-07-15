@@ -40,7 +40,10 @@ WARPED_NOINST_HPP_FILES = \
     src/TimeWarpStateManager.hpp \
     src/TimeWarpPeriodicStateManager.hpp \
     src/TimeWarpOutputManager.hpp \
-    src/TimeWarpAggressiveOutputManager.hpp
+    src/TimeWarpAggressiveOutputManager.hpp \
+    src/TimeWarpFileStreamManager.hpp \
+    src/FileStream.hpp \
+    src/TimeWarpFileStream.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -64,7 +67,10 @@ WARPED_CPP_FILES = \
     src/TimeWarpStateManager.cpp \
     src/TimeWarpPeriodicStateManager.cpp \
     src/TimeWarpOutputManager.cpp \
-    src/TimeWarpAggressiveOutputManager.cpp
+    src/TimeWarpAggressiveOutputManager.cpp \
+    src/TimeWarpFileStreamManager.cpp \
+    src/FileStream.cpp \
+    src/TimeWarpFileStream.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \

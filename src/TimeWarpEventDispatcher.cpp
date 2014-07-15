@@ -41,6 +41,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                                               objects) {
     initialize(objects);
 
+    unsigned int thread_id;
     thread_id = num_worker_threads_;
     // Create worker threads
     std::vector<std::thread> threads;
@@ -96,6 +97,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
+    unsigned int thread_id;
     thread_id = id;
 
     local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();
@@ -140,10 +142,11 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::unique_ptr<Event> event, unsig
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
+    twfs_manager_->fossilCollectAll(gvt);
     state_manager_->fossilCollectAll(gvt);
     output_manager_->fossilCollectAll(gvt);
 
-    //TODO still incomplete
+    //TODO still incomplete, input queues?
 }
 
 void TimeWarpEventDispatcher::cancelEvents(
@@ -167,6 +170,8 @@ void TimeWarpEventDispatcher::cancelEvents(
 
 void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int local_object_id,
     SimulationObject* object) {
+
+    twfs_manager_->rollback(straggler_time, local_object_id);
 
     unsigned int restored_timestamp = state_manager_->restoreState(straggler_time, local_object_id,
         object);
@@ -199,9 +204,10 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
 
     unsigned int num_local_objects = objects[comm_manager_->getID()].size();
 
-    // Creates the state queues and output queues
+    // Creates the state queues, output queues, and filestream queues for each local object
     state_manager_->initialize(num_local_objects);
     output_manager_->initialize(num_local_objects);
+    twfs_manager_->initialize(num_local_objects);
 
     // Register message handlers
     gvt_manager_->initialize();
@@ -211,6 +217,7 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
         std::placeholders::_1);
     comm_manager_->addMessageHandler(MessageType::EventMessage, handler);
 
+    // Prepare local min lvt computation
     min_lvt_ = make_unique<unsigned int []>(num_worker_threads_);
     send_min_ = make_unique<unsigned int []>(num_worker_threads_);
     calculated_min_flag_ = make_unique<bool []>(num_worker_threads_);
@@ -224,6 +231,28 @@ unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
         send_min_[i] = std::numeric_limits<unsigned int>::max();
     }
     return min;
+}
+
+FileStream& TimeWarpEventDispatcher::getFileStream(
+    SimulationObject *object, const std::string& filename, std::ios_base::openmode mode) {
+
+    unsigned int local_object_id = local_object_id_by_name_[object->name_];
+
+    if (file_stream_by_filename_.count(filename) == 0) {
+        std::shared_ptr<TimeWarpFileStream> twfstream(new TimeWarpFileStream(filename, mode),
+            FileStreamDeleter());
+        file_stream_by_filename_[filename] = twfstream;
+
+        twfs_manager_->insert(twfstream, local_object_id);
+
+        return *(twfstream.get());
+    } else {
+        auto twfstream = file_stream_by_filename_[filename];
+        if (!twfs_manager_->objectHasFileStream(twfstream, local_object_id)) {
+            twfs_manager_->insert(twfstream, local_object_id);
+        }
+        return *(twfstream.get());
+    }
 }
 
 } // namespace warped
