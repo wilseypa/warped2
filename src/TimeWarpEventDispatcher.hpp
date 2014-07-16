@@ -68,7 +68,6 @@ private:
 
     const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_ =
         make_unique<TimeWarpFileStreamManager>();
-    std::unordered_map<std::string, std::shared_ptr<TimeWarpFileStream>> file_stream_by_filename_;
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<LTSFQueue> events_;

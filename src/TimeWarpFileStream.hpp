@@ -29,10 +29,12 @@ public:
     void setCurrentTime(unsigned int current_time);
 
     // rollback
-    void removeOutputRequestsBeforeOrAt(unsigned int rollback_time);
+    void removeOutputRequestsAfterOrAt(unsigned int rollback_time);
 
     // fossil collection
-    void commitOutputRequestsAfterOrAt(unsigned int gvt);
+    void commitOutputRequestsBeforeOrAt(unsigned int gvt);
+
+    std::size_t size();
 
     // Output operations
     virtual TimeWarpFileStream& operator<< (bool val) override;
@@ -48,6 +50,7 @@ public:
     virtual TimeWarpFileStream& operator<< (double val) override;
     virtual TimeWarpFileStream& operator<< (long double val) override;
     virtual TimeWarpFileStream& operator<< (void* val) override;
+    virtual TimeWarpFileStream& operator<< (const char * val) override;
     virtual TimeWarpFileStream& operator<< (std::streambuf* sb) override;
     virtual TimeWarpFileStream& operator<< (FileStream& (*pf)(FileStream&)) override;
     virtual TimeWarpFileStream& operator<< (std::ios& (*pf)(std::ios&)) override;

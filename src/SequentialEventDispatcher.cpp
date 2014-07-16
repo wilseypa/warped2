@@ -63,6 +63,8 @@ FileStream& SequentialEventDispatcher::getFileStream(SimulationObject* object,
 
         return *(file_stream_by_filename_[filename].get());
 
+    } else if (object != object_by_filename_[filename]) {
+        throw std::runtime_error(std::string("A filestream can only be used by a single object"));
     } else {
         return *(file_stream_by_filename_[filename].get());
     }

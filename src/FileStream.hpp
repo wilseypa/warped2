@@ -41,6 +41,7 @@ public:
     virtual FileStream& operator<< (double val);
     virtual FileStream& operator<< (long double val);
     virtual FileStream& operator<< (void* val);
+    virtual FileStream& operator<< (const char * val);
     virtual FileStream& operator<< (std::streambuf* sb);
     virtual FileStream& operator<< (FileStream& (*pf)(FileStream&));
     virtual FileStream& operator<< (std::ios& (*pf)(std::ios&));
@@ -83,6 +84,8 @@ public:
     FileStream& seekg (std::streampos pos);
     FileStream& seekg (std::streamoff off, std::ios_base::seekdir way);
     int sync();
+
+    bool eof() const { return fstream_.eof(); }
 
 protected:
     std::fstream fstream_;

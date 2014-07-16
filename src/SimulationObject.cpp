@@ -14,10 +14,12 @@ SimulationObject::SimulationObject(const std::string& name) : name_(name) {}
 
 std::vector<std::unique_ptr<Event>> SimulationObject::createInitialEvents()  { return {}; }
 
-FileStream& SimulationObject::getFileStream(const std::string& filename,
-    std::ios_base::openmode mode) {
+FileStream& SimulationObject::getInputFileStream(const std::string& filename) {
+    return Simulation::getFileStream(this, filename, std::ios_base::in);
+}
 
-    return Simulation::getFileStream(this, filename, mode);
+FileStream& SimulationObject::getOutputFileStream(const std::string& filename) {
+    return Simulation::getFileStream(this, filename, std::ios_base::out);
 }
 
 } // namespace warped

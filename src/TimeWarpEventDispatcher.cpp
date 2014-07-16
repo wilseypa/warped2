@@ -237,22 +237,9 @@ FileStream& TimeWarpEventDispatcher::getFileStream(
     SimulationObject *object, const std::string& filename, std::ios_base::openmode mode) {
 
     unsigned int local_object_id = local_object_id_by_name_[object->name_];
+    TimeWarpFileStream* twfs = twfs_manager_->getFileStream(filename, mode, local_object_id);
 
-    if (file_stream_by_filename_.count(filename) == 0) {
-        std::shared_ptr<TimeWarpFileStream> twfstream(new TimeWarpFileStream(filename, mode),
-            FileStreamDeleter());
-        file_stream_by_filename_[filename] = twfstream;
-
-        twfs_manager_->insert(twfstream, local_object_id);
-
-        return *(twfstream.get());
-    } else {
-        auto twfstream = file_stream_by_filename_[filename];
-        if (!twfs_manager_->objectHasFileStream(twfstream, local_object_id)) {
-            twfs_manager_->insert(twfstream, local_object_id);
-        }
-        return *(twfstream.get());
-    }
+    return *twfs;
 }
 
 } // namespace warped

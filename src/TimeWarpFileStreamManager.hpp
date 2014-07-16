@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include <mutex>
+#include <unordered_map>
 
 #include "TimeWarpFileStream.hpp"
 #include "SimulationObject.hpp"
@@ -17,8 +18,6 @@ class TimeWarpFileStreamManager {
 public:
     void initialize(unsigned int num_local_objects);
 
-    void insert(std::shared_ptr<TimeWarpFileStream> twfstream, unsigned int local_object_id);
-
     void rollback(unsigned int rollback_time, unsigned int local_object_id);
 
     void fossilCollect(unsigned int gvt, unsigned int local_object_id);
@@ -27,16 +26,19 @@ public:
 
     void setObjectCurrentTime(unsigned int current_time, unsigned int local_object_id);
 
-    bool objectHasFileStream(std::shared_ptr<TimeWarpFileStream> twfstream,
+    TimeWarpFileStream* getFileStream(const std::string& filename, std::ios_base::openmode mode,
         unsigned int local_object_id);
 
     std::size_t size(unsigned int local_object_id);
 
 private:
     // An array of TimeWarpFileStream vectors, one for each object.
-    std::unique_ptr<std::vector<std::shared_ptr<TimeWarpFileStream>> []> file_streams_;
+    std::unique_ptr<std::vector<std::unique_ptr<TimeWarpFileStream, FileStreamDeleter>> []>
+        file_streams_;
 
     std::unique_ptr<std::mutex []> file_streams_lock_;
+
+    std::unordered_map<std::string, TimeWarpFileStream*> file_stream_by_filename_;
 };
 
 } // namespace warped

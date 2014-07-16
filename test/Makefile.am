@@ -21,7 +21,8 @@ WARPED_TEST_PROGS = \
     test_TimeWarpMatternGVTManager \
     test_TimeWarpMPICommunicationManager \
     test_TimeWarpPeriodicStateManager \
-    test_TimeWarpAggressiveOutputManager
+    test_TimeWarpAggressiveOutputManager \
+    test_TimeWarpFileStreamManager
 
 noinst_HEADERS = catch.hpp mocks.hpp
 

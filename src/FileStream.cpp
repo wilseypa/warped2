@@ -1,5 +1,7 @@
 #include "FileStream.hpp"
 
+#include <cstring>
+
 namespace warped {
 
 //////////////////////////////// Constructors ///////////////////////////////////////////}
@@ -102,6 +104,11 @@ FileStream& FileStream::operator<< (long double val) {
 }
 
 FileStream& FileStream::operator<< (void* val) {
+    fstream_ << val;
+    return *this;
+}
+
+FileStream& FileStream::operator<< (const char * val) {
     fstream_ << val;
     return *this;
 }

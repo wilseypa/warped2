@@ -18,27 +18,41 @@ void TimeWarpFileStream::setCurrentTime(unsigned int current_time) {
     current_time_.store(current_time);
 }
 
-void TimeWarpFileStream::removeOutputRequestsBeforeOrAt(unsigned int rollback_time){
+void TimeWarpFileStream::removeOutputRequestsAfterOrAt(unsigned int rollback_time) {
     output_requests_lock_.lock();
 
+    if (output_requests_.empty()) {
+        output_requests_lock_.unlock();
+        return;
+    }
+
     auto min = std::prev(output_requests_.end());
-    while (min->first >= rollback_time) {
+    while (min->first > rollback_time && min != output_requests_.begin()) {
         output_requests_.erase(min--);
+    }
+
+    if (min->first > rollback_time && min == output_requests_.begin()) {
+        output_requests_.erase(min);
     }
 
     output_requests_lock_.unlock();
 }
 
-void TimeWarpFileStream::commitOutputRequestsAfterOrAt(unsigned int gvt) {
+void TimeWarpFileStream::commitOutputRequestsBeforeOrAt(unsigned int gvt) {
     output_requests_lock_.lock();
 
-    auto lower = output_requests_.lower_bound(gvt);
-    while (lower != output_requests_.end()) {
-        fstream_ << lower->second;
-        output_requests_.erase(lower++);
+    auto min = output_requests_.begin();
+
+    while (min->first <= gvt && min != output_requests_.end()) {
+        fstream_ << min->second;
+        output_requests_.erase(min++);
     }
 
     output_requests_lock_.unlock();
+}
+
+std::size_t TimeWarpFileStream::size() {
+    return output_requests_.size();
 }
 
 //////////////////////////// Output ////////////////////////////////////////////////////////
@@ -134,8 +148,17 @@ TimeWarpFileStream& TimeWarpFileStream::operator<< (void* val) {
     return *this;
 }
 
+TimeWarpFileStream& TimeWarpFileStream::operator<< (const char * val) {
+    std::stringstream ss;
+    ss << val;
+    output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    return *this;
+}
+
 TimeWarpFileStream& TimeWarpFileStream::operator<< (std::streambuf* sb) {
-    sb = nullptr;
+    std::stringstream ss;
+    ss << sb;
+    output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
     return *this;
 }
 
