@@ -123,10 +123,9 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWa
 void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event,
     unsigned int receiver_id) {
 
-    unsigned int sender_id = comm_manager_->getID();
     int color = gvt_manager_->getGvtInfo(event->timestamp());
 
-    auto event_msg = make_unique<EventMessage>(sender_id, receiver_id, std::move(event),
+    auto event_msg = make_unique<EventMessage>(receiver_id, std::move(event),
         color);
 
     comm_manager_->enqueueMessage(std::move(event_msg));
@@ -195,8 +194,10 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
         unsigned int object_id = 0;
         for (auto& ob : partition) {
             events_->push(ob->createInitialEvents());
-            objects_by_name_[ob->name_] = ob;
-            local_object_id_by_name_[ob->name_] = object_id++;
+            if (partition_id == comm_manager_->getID()) {
+                objects_by_name_[ob->name_] = ob;
+                local_object_id_by_name_[ob->name_] = object_id++;
+            }
             object_node_id_by_name_[ob->name_] = partition_id;
         }
         partition_id++;

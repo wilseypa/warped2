@@ -97,9 +97,8 @@ enum class MatternColor;
 
 struct EventMessage : public TimeWarpKernelMessage {
     EventMessage() = default;
-    EventMessage(unsigned int sender, unsigned int receiver, std::unique_ptr<Event> e,
-        int c) :
-        TimeWarpKernelMessage(sender, receiver),
+    EventMessage(unsigned int receiver, std::unique_ptr<Event> e, int c) :
+        TimeWarpKernelMessage(receiver),
         event(std::move(e)),
         gvt_mattern_color(c) {}
 
