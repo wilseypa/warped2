@@ -18,7 +18,7 @@ void TimeWarpFileStream::setCurrentTime(unsigned int current_time) {
     current_time_.store(current_time);
 }
 
-void TimeWarpFileStream::removeOutputRequestsAfterOrAt(unsigned int rollback_time) {
+void TimeWarpFileStream::removeOutputRequestsAfter(unsigned int rollback_time) {
     output_requests_lock_.lock();
 
     if (output_requests_.empty()) {

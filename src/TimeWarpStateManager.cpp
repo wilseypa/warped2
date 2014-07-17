@@ -37,7 +37,7 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
     state_queue_lock_[local_object_id].lock();
 
     auto min = state_queue_[local_object_id].begin();
-    while (min->first < gvt && min != state_queue_[local_object_id].end()) {
+    while (min->first <= gvt && min != state_queue_[local_object_id].end()) {
         state_queue_[local_object_id].erase(min++);
     }
 
@@ -51,7 +51,7 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
 }
 
 void TimeWarpStateManager::fossilCollectAll(unsigned int gvt) {
-   for (unsigned int i = 0; i < state_queue_.get()->size(); i++) {
+    for (unsigned int i = 0; i < state_queue_.get()->size(); i++) {
         fossilCollect(gvt, i);
     }
 }

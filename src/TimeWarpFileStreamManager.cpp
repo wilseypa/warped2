@@ -11,7 +11,7 @@ void TimeWarpFileStreamManager::rollback(unsigned int rollback_time, unsigned in
     file_streams_lock_[local_object_id].lock();
     auto& this_objects_streams = file_streams_[local_object_id];
     for (auto& stream: this_objects_streams) {
-        stream->removeOutputRequestsAfterOrAt(rollback_time);
+        stream->removeOutputRequestsAfter(rollback_time);
     }
     file_streams_lock_[local_object_id].unlock();
 }

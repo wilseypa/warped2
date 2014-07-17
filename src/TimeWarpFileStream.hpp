@@ -29,7 +29,7 @@ public:
     void setCurrentTime(unsigned int current_time);
 
     // rollback
-    void removeOutputRequestsAfterOrAt(unsigned int rollback_time);
+    void removeOutputRequestsAfter(unsigned int rollback_time);
 
     // fossil collection
     void commitOutputRequestsBeforeOrAt(unsigned int gvt);
