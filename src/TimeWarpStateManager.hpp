@@ -37,9 +37,9 @@ public:
 
 protected:
 
-    // Array of multimap (Array of states queues), one for each object
-    // key is the timestamp
-    std::unique_ptr<std::multimap<unsigned int, std::unique_ptr<ObjectState>> []> state_queue_;
+    // Array of vectors (Array of states queues), one for each object
+    std::unique_ptr<std::vector<std::pair<unsigned int, std::unique_ptr<ObjectState>>> []>
+        state_queue_;
 
     // Array of state queue locks, this is needed so that the manager thread can do
     // fossil collection and the worker threads can save and restore state when needed.

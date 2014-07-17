@@ -16,7 +16,7 @@ void TimeWarpPeriodicStateManager::saveState(unsigned int current_time,
     if (count_[local_object_id] == 0) {
 
         state_queue_lock_[local_object_id].lock();
-        state_queue_[local_object_id].insert(std::make_pair(current_time,
+        state_queue_[local_object_id].push_back(std::make_pair(current_time,
             object->getState().clone()));
         state_queue_lock_[local_object_id].unlock();
 

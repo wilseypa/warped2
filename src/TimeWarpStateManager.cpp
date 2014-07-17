@@ -7,7 +7,7 @@
 namespace warped {
 
 void TimeWarpStateManager::initialize(unsigned int num_local_objects) {
-    state_queue_ = make_unique<std::multimap<unsigned int, std::unique_ptr<ObjectState>> []>
+    state_queue_ = make_unique<std::vector<std::pair<unsigned int, std::unique_ptr<ObjectState>>>[]>
         (num_local_objects);
 
     state_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
@@ -38,7 +38,7 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
 
     auto min = state_queue_[local_object_id].begin();
     while (min->first <= gvt && min != state_queue_[local_object_id].end()) {
-        state_queue_[local_object_id].erase(min++);
+        state_queue_[local_object_id].erase(min);
     }
 
     state_queue_lock_[local_object_id].unlock();
