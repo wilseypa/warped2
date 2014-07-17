@@ -11,6 +11,15 @@
 #include "SimulationObject.hpp"
 #include "FileStream.hpp"
 
+/* This is a sub class of FileStream which will override all of the output methods. In the time
+ * warp mechanism, output cannot be commited until GVT passes the lvt of each object. Instead of
+ * directly committing an output, a queue will be kept of output requests with a timestamp for
+ * each request. When fossil collection occurs the output requests will be committed using the
+ * fstream object in the FileStream base class. The SimulationObject will produce the output
+ * request while the TimeWarpFileStreamManager will perform rollbacks, Fossil collection, and
+ * ensure that the current times are updated.
+ */
+
 namespace warped {
 
 class SimulationObject;

@@ -21,15 +21,20 @@ public:
 
     TimeWarpStateManager() = default;
 
+    // Creates a state queue for each object as well as a lock for each state queue
     virtual void initialize(unsigned int num_local_objects);
 
+    // Removes states from state queues before or equal to the gvt for the specified object
     unsigned int fossilCollect(unsigned int gvt, unsigned int local_object_id);
 
+    // Removes all states before or equal to the gvt for all objects
     void fossilCollectAll(unsigned int gvt);
 
+    // Restores a state based on rollback time for the given object.
     unsigned int restoreState(unsigned int rollback_time, unsigned int local_object_id,
         SimulationObject *object);
 
+    // Number of states in the state queue for the specified object
     std::size_t size(unsigned int local_object_id);
 
     virtual void saveState(unsigned int current_time, unsigned int local_object_id,

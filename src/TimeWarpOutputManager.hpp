@@ -7,20 +7,29 @@
 #include "Event.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 
+/* This class contains output queues for each local object and serves as a base class for
+ * a specific cancellation technique.
+ */
+
 namespace warped {
 
 class TimeWarpOutputManager {
 public:
     TimeWarpOutputManager() = default;
 
+    // Creates an output queue for each object as well as locks for each output queue.
     void initialize(unsigned int num_local_objects);
 
+    // Insert an event into the output queue for the specified object
     void insertEvent(std::unique_ptr<Event> event, unsigned int local_object_id);
 
+    // Remove any events from the output queue before the gvt for the specified object
     unsigned int fossilCollect(unsigned int gvt, unsigned int local_object_id);
 
+    // Remove all events before gvt for all objects
     void fossilCollectAll(unsigned int gvt);
 
+    // Number of events in the output queue for the specified object.
     std::size_t size(unsigned int local_object_id);
 
     // The rollback method will return a vector of negative events that must be sent

@@ -3,6 +3,10 @@
 
 #include "serialization.hpp"
 
+/* TimeWarpKernelMessage provides a base class for any message type. Any sub class must implement
+ * a get_type() method so that the type can be determined.
+ */
+
 namespace warped {
 
 enum class MessageType {

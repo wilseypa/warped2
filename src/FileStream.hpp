@@ -5,6 +5,12 @@
 #include <sstream>
 #include <map>
 
+/* This class is a wrapper around an fstream object which implements most of the same functions.
+ * This is the file stream which will be used in sequential simulations, but for time warp
+ * simulations, the output methods will be overriden by the TimeWarpFileStream sub class
+ * so that output is not committed right away.
+ */
+
 namespace warped {
 
 class FileStream {
