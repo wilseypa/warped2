@@ -85,8 +85,9 @@ private:
 
 struct MatternGVTToken : public TimeWarpKernelMessage {
     MatternGVTToken() = default;
-    MatternGVTToken(unsigned int receiver, unsigned int mc, unsigned int ms, unsigned int c) :
-        TimeWarpKernelMessage(receiver),
+    MatternGVTToken(unsigned int sender, unsigned int receiver, unsigned int mc, unsigned int ms,
+        unsigned int c) :
+        TimeWarpKernelMessage(sender, receiver),
         m_clock(mc),
         m_send(ms),
         count(c) {}

@@ -125,8 +125,8 @@ void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event,
 
     int color = gvt_manager_->getGvtInfo(event->timestamp());
 
-    auto event_msg = make_unique<EventMessage>(receiver_id, std::move(event),
-        color);
+    auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id,
+        std::move(event), color);
 
     comm_manager_->enqueueMessage(std::move(event_msg));
 }

@@ -13,7 +13,7 @@ MessageFlags TimeWarpGVTManager::receiveGVTUpdate(std::unique_ptr<TimeWarpKernel
 
 void TimeWarpGVTManager::sendGVTUpdate() {
     for (unsigned int i = 1; i < comm_manager_->getNumProcesses(); i++) {
-        auto update_msg = make_unique<GVTUpdateMessage>(i, gVT_);
+        auto update_msg = make_unique<GVTUpdateMessage>(0, i, gVT_);
         comm_manager_->sendMessage(std::move(update_msg));
     }
 }

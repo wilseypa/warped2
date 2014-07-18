@@ -17,14 +17,15 @@ enum class MessageType {
 
 struct TimeWarpKernelMessage {
     TimeWarpKernelMessage() = default;
-    TimeWarpKernelMessage(unsigned int receiver) :
-        receiver_id(receiver) {}
+    TimeWarpKernelMessage(unsigned int sender, unsigned int receiver) :
+        sender_id(sender), receiver_id(receiver) {}
 
+    unsigned int sender_id;
     unsigned int receiver_id;
 
     virtual MessageType get_type() = 0;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(receiver_id)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_id, receiver_id)
 
 };
 

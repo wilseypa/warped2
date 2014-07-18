@@ -49,8 +49,8 @@ protected:
 
 struct GVTUpdateMessage : public TimeWarpKernelMessage {
     GVTUpdateMessage() = default;
-    GVTUpdateMessage(unsigned int receiver_id, unsigned int gvt) :
-        TimeWarpKernelMessage(receiver_id), new_gvt(gvt) {}
+    GVTUpdateMessage(unsigned int sender_id, unsigned int receiver_id, unsigned int gvt) :
+        TimeWarpKernelMessage(sender_id, receiver_id), new_gvt(gvt) {}
 
     unsigned int new_gvt;
 

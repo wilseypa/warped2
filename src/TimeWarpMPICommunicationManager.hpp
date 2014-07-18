@@ -10,6 +10,7 @@
 
 namespace warped {
 
+struct MPIMessage;
 #define MPI_DATA_TAG  100
 
 /* TimeWarpMPICommunicationManager implements the necessary methods to communicate using

@@ -85,7 +85,7 @@ void TimeWarpMatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) 
         T = std::min(local_minimum, min_of_all_lvt_);
     }
 
-    auto msg = make_unique<MatternGVTToken>((sender_id + 1) % num_processes,
+    auto msg = make_unique<MatternGVTToken>(sender_id, (sender_id + 1) % num_processes,
         T, min_red_msg_timestamp_, white_msg_counter_);
 
     white_msg_counter_ = 0;
