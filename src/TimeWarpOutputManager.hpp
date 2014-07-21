@@ -40,7 +40,7 @@ public:
 protected:
 
     std::unique_ptr<std::vector<std::unique_ptr<Event>>>
-        getEventsSentAtOrAfter(unsigned int rollback_time, unsigned int local_object_id);
+        removeEventsSentAtOrAfter(unsigned int rollback_time, unsigned int local_object_id);
 
     // Array of local output queues and locks
     std::unique_ptr<std::vector<std::unique_ptr<Event>> []> output_queue_;

@@ -52,7 +52,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
     MessageFlags msg_flags = MessageFlags::None;
 
-    auto start = std::chrono::steady_clock::now();
+    auto gvt_start = std::chrono::steady_clock::now();
     bool calculate_gvt = false;
 
     // Flag that says we have started calculating minimum lvt of the objects on this node
@@ -86,10 +86,10 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         } else if (comm_manager_->getID() == 0) {
             auto now = std::chrono::steady_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>
-                (now - start).count();
+                (now - gvt_start).count();
             if (elapsed >= gvt_manager_->getGVTPeriod()) {
                 calculate_gvt = true;
-                start = now;
+                gvt_start = now;
             }
         }
 

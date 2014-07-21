@@ -44,7 +44,7 @@ void TimeWarpOutputManager::fossilCollectAll(unsigned int gvt) {
 }
 
 std::unique_ptr<std::vector<std::unique_ptr<Event>>>
-TimeWarpOutputManager::getEventsSentAtOrAfter(unsigned int rollback_time,
+TimeWarpOutputManager::removeEventsSentAtOrAfter(unsigned int rollback_time,
     unsigned int local_object_id) {
 
     auto events_to_cancel = make_unique<std::vector<std::unique_ptr<Event>>>();
