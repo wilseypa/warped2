@@ -67,8 +67,6 @@ public:
 
     int getGvtInfo(unsigned int timestamp);
 
-    bool checkGVTPeriod();
-
 protected:
     unsigned int infinityVT();
 

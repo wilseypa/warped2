@@ -26,7 +26,7 @@ public:
 
     virtual int getGvtInfo(unsigned int) = 0;
 
-    virtual bool checkGVTPeriod() = 0;
+    unsigned int getGVTPeriod();
 
     void sendGVTUpdate();
 
@@ -42,7 +42,6 @@ protected:
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
 
-    unsigned int gvt_period_counter_ = 0;
     unsigned int gvt_period_;
 
 };

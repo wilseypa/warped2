@@ -10,6 +10,7 @@
 #include <cmath>
 #include <limits> // for std::numeric_limits<>::max();
 #include <algorithm>    // for std::min
+#include <chrono>   // for std::chrono::steady_clock
 
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
@@ -51,6 +52,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
     MessageFlags msg_flags = MessageFlags::None;
 
+    auto start = std::chrono::steady_clock::now();
+    bool calculate_gvt = false;
+
     // Flag that says we have started calculating minimum lvt of the objects on this node
     bool started_min_lvt = false;
 
@@ -69,7 +73,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             msg_flags &= ~MessageFlags::GVTUpdate;
         }
 
-        if (calculate_gvt_.load() && comm_manager_->getID() == 0) {
+        if (calculate_gvt && comm_manager_->getID() == 0) {
             // This will only return true if a token is not in circulation and we need to
             // start another one.
             MessageFlags flags = gvt_manager_->calculateGVT();
@@ -77,7 +81,15 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             if (PENDING_MATTERN_TOKEN(msg_flags)) {
                 min_lvt_flag_.store(num_worker_threads_);
                 started_min_lvt = true;
-                calculate_gvt_.store(false);
+                calculate_gvt = false;
+            }
+        } else if (comm_manager_->getID() == 0) {
+            auto now = std::chrono::steady_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>
+                (now - start).count();
+            if (elapsed >= gvt_manager_->getGVTPeriod()) {
+                calculate_gvt = true;
+                start = now;
             }
         }
 

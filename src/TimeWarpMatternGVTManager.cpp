@@ -42,16 +42,6 @@ int TimeWarpMatternGVTManager::getGvtInfo(unsigned int timestamp) {
     return static_cast<int>(color_);
 }
 
-bool TimeWarpMatternGVTManager::checkGVTPeriod() {
-    if (!gVT_token_pending_ ) {
-        if (++gvt_period_counter_ == gvt_period_) {
-            gvt_period_counter_ = 0;
-            return true;
-        }
-    }
-    return false;
-}
-
 // This initiates the gvt calculation by sending the initial
 // control message to node 1 (assuming this must be node 0 calling this)
 MessageFlags TimeWarpMatternGVTManager::calculateGVT() {

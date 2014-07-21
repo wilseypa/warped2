@@ -75,9 +75,6 @@ private:
     const std::unique_ptr<TimeWarpStateManager> state_manager_;
     const std::unique_ptr<TimeWarpOutputManager> output_manager_;
 
-    // flag to initiate gvt calculation
-    std::atomic<bool> calculate_gvt_ = ATOMIC_VAR_INIT(false);
-
     // flag to initiate minimum lvt calculation
     std::atomic<unsigned int> min_lvt_flag_ = ATOMIC_VAR_INIT(0);
 

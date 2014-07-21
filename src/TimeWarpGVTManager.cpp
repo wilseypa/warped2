@@ -18,4 +18,8 @@ void TimeWarpGVTManager::sendGVTUpdate() {
     }
 }
 
+unsigned int TimeWarpGVTManager::getGVTPeriod() {
+    return gvt_period_;
+}
+
 } // namespace warped
