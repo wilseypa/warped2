@@ -60,105 +60,135 @@ std::size_t TimeWarpFileStream::size() {
 TimeWarpFileStream& TimeWarpFileStream::operator<< (bool val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (short val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (unsigned short val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (int val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (unsigned int val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (long val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (unsigned long val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (long long val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (unsigned long long val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (float val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (double val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (long double val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (void* val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (const char * val) {
     std::stringstream ss;
     ss << val;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (std::streambuf* sb) {
     std::stringstream ss;
     ss << sb;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
@@ -170,28 +200,36 @@ TimeWarpFileStream& TimeWarpFileStream::operator<< (FileStream& (*pf)(FileStream
 TimeWarpFileStream& TimeWarpFileStream::operator<< (std::ios& (*pf)(std::ios&)) {
     std::stringstream ss;
     ss << pf;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (std::ios_base& (*pf)(std::ios_base&)) {
     std::stringstream ss;
     ss << pf;
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::put(char c) {
     std::stringstream ss;
     ss.put(c);
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
 TimeWarpFileStream& TimeWarpFileStream::write(const char* s, std::streamsize n) {
     std::stringstream ss;
     ss.write(s, n);
+    output_requests_lock_.lock();
     output_requests_.insert(std::make_pair(current_time_.load(), ss.str()));
+    output_requests_lock_.unlock();
     return *this;
 }
 
