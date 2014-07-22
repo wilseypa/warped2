@@ -6,6 +6,17 @@ void TimeWarpEventSet::initialize( unsigned int num_of_objects, unsigned int num
 
     num_of_objects_ = num_of_objects;
     num_of_schedulers_ = num_of_schedulers;
+
+    //Create the unprocessed and processed queues
+    for (unsigned int obj_index = 0; obj_index < num_of_objects; obj_index++) {
+        unprocessed_queue_.push_back(new STLLTSFQueue());
+        processed_queue_.push_back(new STLLTSFQueue());
+    }
+
+    //Create the event schedulers
+    for (unsigned int scheduler_index = 0; scheduler_index < num_of_schedulers; scheduler_index++) {
+        event_scheduler_.push_back(new TimeWarpEventScheduler());
+    }
 }
 
 void TimeWarpEventSet::insertEvent( unsigned int obj_id, const std::unique_ptr<Event> event ) {
@@ -18,10 +29,10 @@ void TimeWarpEventSet::insertEvent( unsigned int obj_id, const std::unique_ptr<E
     if( event == *peek_event ) {
         TimeWarpEventScheduler *scheduler = event_scheduler_[scheduler_to_obj_map[obj_id]];
         scheduler->acquireScheduleQueueLock();
-        /*if (!this->isObjectScheduled(objId)) {
-            scheduler->eraseSkipFirst(obj_id);
+        if( !scheduler->isObjectScheduled(obj_id) ) {
+            scheduler->removeScheduledEvent(obj_id);
             scheduler->insertEvent(obj_id, event);
-        }*/
+        }
         scheduler->releaseScheduleQueueLock();
     }
     unprocessed_queue_lock_.unlock();
@@ -33,9 +44,8 @@ bool TimeWarpEventSet::handleAntiMessage (
 
     bool was_event_removed = false;
     unprocessed_queue_lock_.lock();
-    multisetIterator[threadId] = unProcessedQueue[objId]->begin();
 
-    while (multisetIterator[threadId] != unProcessedQueue[objId]->end()
+    for ()
             && !eventWasRemoved) {
         if ((*(multisetIterator[threadId]))->getSender()
                 == negativeEvent->getSender()
@@ -50,12 +60,7 @@ bool TimeWarpEventSet::handleAntiMessage (
                 continue;
             }
             unProcessedQueue[objId]->erase(multisetIterator[threadId]);
-            // Put the removed event here in case it needs to be used for comparisons in
-            // lazy cancellation.
-            this->getremovedLock(threadId, objId);
-            removedEventQueue[objId]->push_back(eventToRemove);
-            this->releaseremovedLock(threadId, objId);
-            eventWasRemoved = true;
+            was_event_removed = true;
         } else {
             multisetIterator[threadId]++;
         }
