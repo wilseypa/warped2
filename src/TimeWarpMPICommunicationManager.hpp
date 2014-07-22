@@ -19,7 +19,7 @@ struct MPIMessage;
 
 class TimeWarpMPICommunicationManager : public TimeWarpCommunicationManager {
 public:
-    unsigned initialize();
+    unsigned int initialize();
     void finalize();
     unsigned int getNumProcesses();
     unsigned int getID();

@@ -54,16 +54,16 @@ public:
     virtual int sendAllMessages() = 0;
 
     // Enqueues a message into the send queue
-    void enqueueMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
+    void enqueueSendMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
 
     // dequeues a message from the send queue
-    std::unique_ptr<TimeWarpKernelMessage> dequeueMessage();
+    std::unique_ptr<TimeWarpKernelMessage> dequeueSendMessage();
 
     // Passes messages to the correct message handler
-    MessageFlags dispatchMessages();
+    MessageFlags dispatchReceivedMessages();
 
     // Adds a MessageType/Message handler pair for dispatching messages
-    void addMessageHandler(MessageType msg_type,
+    void addRecvMessageHandler(MessageType msg_type,
         std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> msg_handler);
 
 private:

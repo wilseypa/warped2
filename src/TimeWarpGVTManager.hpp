@@ -34,7 +34,7 @@ public:
 
     unsigned int getGVT() { return gVT_; }
 
-    void setGVT(uint64_t g) { gVT_ = g; }
+    void setGVT(unsigned int g) { gVT_ = g; }
 
 protected:
 

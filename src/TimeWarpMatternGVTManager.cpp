@@ -16,11 +16,11 @@ void TimeWarpMatternGVTManager::initialize() {
     std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> handler =
         std::bind(&TimeWarpMatternGVTManager::receiveMatternGVTToken, this,
         std::placeholders::_1);
-    comm_manager_->addMessageHandler(MessageType::MatternGVTToken, handler);
+    comm_manager_->addRecvMessageHandler(MessageType::MatternGVTToken, handler);
 
     handler = std::bind(&TimeWarpMatternGVTManager::receiveGVTUpdate, this,
         std::placeholders::_1);
-    comm_manager_->addMessageHandler(MessageType::GVTUpdateMessage, handler);
+    comm_manager_->addRecvMessageHandler(MessageType::GVTUpdateMessage, handler);
 }
 
 unsigned int TimeWarpMatternGVTManager::infinityVT() {

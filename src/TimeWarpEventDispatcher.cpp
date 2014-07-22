@@ -61,7 +61,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     // Master thread main loop
     while (gvt_manager_->getGVT() < max_sim_time_) {
 
-        MessageFlags flags = comm_manager_->dispatchMessages();
+        MessageFlags flags = comm_manager_->dispatchReceivedMessages();
         // We may already have a pending token to send
         msg_flags |= flags;
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
@@ -140,7 +140,7 @@ void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event,
     auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id,
         std::move(event), color);
 
-    comm_manager_->enqueueMessage(std::move(event_msg));
+    comm_manager_->enqueueSendMessage(std::move(event_msg));
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::unique_ptr<Event> event, unsigned int thread_id) {
@@ -228,7 +228,7 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
     std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> handler =
         std::bind(&TimeWarpEventDispatcher::receiveEventMessage, this,
         std::placeholders::_1);
-    comm_manager_->addMessageHandler(MessageType::EventMessage, handler);
+    comm_manager_->addRecvMessageHandler(MessageType::EventMessage, handler);
 
     // Prepare local min lvt computation
     min_lvt_ = make_unique<unsigned int []>(num_worker_threads_);

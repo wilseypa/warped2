@@ -58,11 +58,11 @@ void TimeWarpMPICommunicationManager::sendMessage(std::unique_ptr<TimeWarpKernel
 
 int TimeWarpMPICommunicationManager::sendAllMessages() {
     int count = 0;
-    auto next = dequeueMessage();
+    auto next = dequeueSendMessage();
     while (next) {
         sendMessage(std::move(next));
         count++;
-        next = dequeueMessage();
+        next = dequeueSendMessage();
     }
     return count;
 }
