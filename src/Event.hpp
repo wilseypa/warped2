@@ -19,6 +19,9 @@ public:
     // The name of the SimualtionObject that should receive this event.
     virtual const std::string& receiverName() const = 0;
 
+    // The name of the SimualtionObject that sends this event.
+    virtual const std::string& senderName() const = 0;
+
     // The timestamp of when the event should be received.
     virtual unsigned int timestamp() const = 0;
 
