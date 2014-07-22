@@ -2,12 +2,10 @@
 
 namespace warped {
 
-TimeWarpEventSet::TimeWarpEventSet() {
+void TimeWarpEventSet::initialize( unsigned int num_of_objects, unsigned int num_of_schedulers ) {
 
-}
-
-void TimeWarpEventSet::initialize( unsigned int num_of_objects ) {
-
+    num_of_objects_ = num_of_objects;
+    num_of_schedulers_ = num_of_schedulers;
 }
 
 void TimeWarpEventSet::insertEvent( unsigned int obj_id, const std::unique_ptr<Event> event ) {
@@ -18,21 +16,53 @@ void TimeWarpEventSet::insertEvent( unsigned int obj_id, const std::unique_ptr<E
     //If the event just inserted is at the beginning, update the schedule queue
     Event *peek_event = unprocessed_queue[obj_id]->peek();
     if( event == *peek_event ) {
-        /*LTSF[LTSFByObj[objId]]->getScheduleQueueLock(threadId);
-        if (!this->isObjectScheduled(objId)) {
-            LTSF[LTSFByObj[objId]]->eraseSkipFirst(objId);
-            LTSF[LTSFByObj[objId]]->insertEvent(objId, receivedEvent);
-        }
-        LTSF[LTSFByObj[objId]]->releaseScheduleQueueLock(threadId);*/
+        TimeWarpEventScheduler *scheduler = event_scheduler_[scheduler_to_obj_map[obj_id]];
+        scheduler->acquireScheduleQueueLock();
+        /*if (!this->isObjectScheduled(objId)) {
+            scheduler->eraseSkipFirst(obj_id);
+            scheduler->insertEvent(obj_id, event);
+        }*/
+        scheduler->releaseScheduleQueueLock();
     }
     unprocessed_queue_lock_.unlock();
 }
 
 bool TimeWarpEventSet::handleAntiMessage ( 
-                                    SimulationObject* object, 
-                                    const std::unique_ptr<Event> cancel_event, 
-                                    unsigned int thread_id ) {
+                                    unsigned int obj_id, 
+                                    const std::unique_ptr<Event> cancel_event ) { 
 
+    bool was_event_removed = false;
+    unprocessed_queue_lock_.lock();
+    multisetIterator[threadId] = unProcessedQueue[objId]->begin();
+
+    while (multisetIterator[threadId] != unProcessedQueue[objId]->end()
+            && !eventWasRemoved) {
+        if ((*(multisetIterator[threadId]))->getSender()
+                == negativeEvent->getSender()
+                && ((*(multisetIterator[threadId]))->getEventId()
+                    == negativeEvent->getEventId())) {
+            const Event* eventToRemove = *multisetIterator[threadId];
+            if (dynamic_cast<const StragglerEvent*>(*(multisetIterator[threadId]))) {
+                debug::debugout
+                        << "Negative Message Found in Handling Anti-Message .."
+                        << endl;
+                multisetIterator[threadId]++;
+                continue;
+            }
+            unProcessedQueue[objId]->erase(multisetIterator[threadId]);
+            // Put the removed event here in case it needs to be used for comparisons in
+            // lazy cancellation.
+            this->getremovedLock(threadId, objId);
+            removedEventQueue[objId]->push_back(eventToRemove);
+            this->releaseremovedLock(threadId, objId);
+            eventWasRemoved = true;
+        } else {
+            multisetIterator[threadId]++;
+        }
+    }
+    unprocessed_queue_lock_.unlock();
+
+    return was_event_removed;
 }
 
 const std::unique_ptr<Event> TimeWarpEventSet::getEvent ( 

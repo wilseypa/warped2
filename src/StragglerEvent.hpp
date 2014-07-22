@@ -7,7 +7,7 @@ namespace warped {
 class StragglerEvent : public Event {
 public:
     StragglerEvent() = default;
-    SignalEvent(const std::string& receiver_name, unsigned int timestamp)
+    StragglerEvent(const std::string& receiver_name, unsigned int timestamp)
         : receiver_name_(receiver_name), timestamp_(timestamp)
     {}
 
