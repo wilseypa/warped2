@@ -56,9 +56,6 @@ private:
     //Lock to protect the processed queue
     std::mutex processed_queue_lock_;
 
-    //Lock to protect the removed queue
-    std::mutex removed_queue_lock_;
-
     //Number of simulation objects
     unsigned int num_of_objects_;
 
@@ -68,15 +65,11 @@ private:
     //Queues to hold the processed events for each simulation object
     std::vector<std::vector<const std::unique_ptr<Event>>*> processed_queue_;
 
-    //Queues to hold the removed events for each simulation object
-    std::vector<std::vector<const std::unique_ptr<Event>>*> removed_queue_;
-
     //Number of event schedulers
     unsigned int num_of_schedulers_;
 
     //Event schedulers
     std::vector<std::unique_ptr<TimeWarpEventScheduler>> event_scheduler_;
-
 };
 
 } // warped namespace
