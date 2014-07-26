@@ -76,8 +76,10 @@ void TimeWarpMatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) 
     }
 
     auto msg = make_unique<MatternGVTToken>(sender_id, (sender_id + 1) % num_processes,
-        T, min_red_msg_timestamp_, white_msg_counter_);
+        T, min_red_msg_timestamp_, white_msg_counter_ + msg_count_);
 
+    token_iteration_++;
+    min_of_all_lvt_ = infinityVT();
     white_msg_counter_ = 0;
 
     comm_manager_->sendMessage(std::move(msg));
@@ -92,21 +94,26 @@ MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
 
     if (process_id == 0) {
         // Initiator received the message
-        if (white_msg_counter_ + msg->count == 0) {
+        if ((white_msg_counter_ + msg->count == 0) && (token_iteration_ > 1)) {
             // At this point all white messages are accounted for so we can
             // calculate the GVT now
+
             gVT_ = std::min(msg->m_clock, msg->m_send);
             gVT_token_pending_ = false;
 
             sendGVTUpdate();
             flags |= MessageFlags::GVTUpdate;
 
-            // Reset to white, so another calculation can be made
+            // Reset
             white_msg_counter_ = 0;
+            msg_count_ = 0;
             color_ = MatternColor::WHITE;
+            token_iteration_ = 0;
 
         } else {
             min_red_msg_timestamp_ = std::min(msg->m_send, min_red_msg_timestamp_);
+            msg_count_ = 0;
+            white_msg_counter_ = 0;
             flags |= MessageFlags::PendingMatternToken;
         }
 
@@ -118,12 +125,17 @@ MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
         }
 
         min_of_all_lvt_ = std::min(min_of_all_lvt_, msg->m_clock);
-        min_red_msg_timestamp_ = std::min(msg->m_clock, min_red_msg_timestamp_);
-        white_msg_counter_ = white_msg_counter_ + msg->count;
+        min_red_msg_timestamp_ = std::min(msg->m_send, min_red_msg_timestamp_);
+        msg_count_ = msg->count;
 
         flags |= MessageFlags::PendingMatternToken;
     }
     return flags;
+}
+
+void TimeWarpMatternGVTManager::reset() {
+    token_iteration_ = 0;
+    color_ = MatternColor::WHITE;
 }
 
 } // namespace warped
