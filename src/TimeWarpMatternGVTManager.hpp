@@ -77,7 +77,7 @@ private:
     unsigned int token_iteration_ = 0;
 
     MatternColor color_ = MatternColor::WHITE;
-    std::atomic<int> white_msg_counter_ = ATOMIC_VAR_INIT(0);
+    int white_msg_counter_ = 0;
     unsigned int min_red_msg_timestamp_ = infinityVT();
 
     unsigned int min_of_all_lvt_ = infinityVT();
