@@ -56,17 +56,6 @@ void TimeWarpMPICommunicationManager::sendMessage(std::unique_ptr<TimeWarpKernel
     pending_sends_.push_back(make_unique<MPIMessage>(std::move(buf), std::move(request)));
 }
 
-int TimeWarpMPICommunicationManager::sendAllMessages() {
-    int count = 0;
-    auto next = dequeueSendMessage();
-    while (next) {
-        sendMessage(std::move(next));
-        count++;
-        next = dequeueSendMessage();
-    }
-    return count;
-}
-
 std::unique_ptr<TimeWarpKernelMessage> TimeWarpMPICommunicationManager::recvMessage() {
     int flag = 0;
     MPI_Status status;

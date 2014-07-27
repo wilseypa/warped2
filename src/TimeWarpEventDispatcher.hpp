@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
-#include <array>
+#include <deque>
 
 #include "TimeWarpFileStream.hpp"
 #include "TimeWarpCommunicationManager.hpp"
@@ -42,8 +42,6 @@ public:
 
     MessageFlags receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
-    void sendRemoteEvent(std::unique_ptr<Event> event, unsigned int receiver_id);
-
     void sendLocalEvent(std::unique_ptr<Event> event, unsigned int thread_id);
 
     void fossilCollect(unsigned int gvt);
@@ -56,6 +54,10 @@ public:
 
     FileStream& getFileStream(SimulationObject *object, const std::string& filename,
         std::ios_base::openmode mode);
+
+    void enqueueRemoteEvent(std::unique_ptr<Event> event, unsigned int receiver_id);
+
+    void sendRemoteEvents();
 
 private:
     void processEvents(unsigned int id);
@@ -75,17 +77,16 @@ private:
     const std::unique_ptr<TimeWarpStateManager> state_manager_;
     const std::unique_ptr<TimeWarpOutputManager> output_manager_;
 
+    std::deque<std::pair <std::unique_ptr<Event>, unsigned int>> remote_event_queue_;
+    std::mutex remote_event_queue_lock_;
+
     // flag to initiate minimum lvt calculation
     std::atomic<unsigned int> min_lvt_flag_ = ATOMIC_VAR_INIT(0);
-
     // local min lvt of each worker thread
     std::unique_ptr<unsigned int []> min_lvt_;
-
     // minimum timestamp of sent events used for minimum lvt calculation
     std::unique_ptr<unsigned int []> send_min_;
-
     std::unique_ptr<unsigned int []> local_min_lvt_flag_;
-
     // flag to determine if worker thread has already calculated min lvt
     std::unique_ptr<bool []> calculated_min_flag_;
 };

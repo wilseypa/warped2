@@ -71,6 +71,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         if (GVT_UPDATE(msg_flags)) {
             fossilCollect(gvt_manager_->getGVT());
             msg_flags &= ~MessageFlags::GVTUpdate;
+            auto mattern_gvt_manager = dynamic_cast<warped::TimeWarpMatternGVTManager*>
+                (gvt_manager_.get());
+            mattern_gvt_manager->reset();
         }
 
         if (calculate_gvt && comm_manager_->getID() == 0) {
@@ -94,15 +97,14 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         }
 
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
-            auto mattern_gvt_manager = static_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get());
+            auto mattern_gvt_manager = dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get());
             unsigned int local_min_lvt = getMinimumLVT();
             mattern_gvt_manager->sendMatternGVTToken(local_min_lvt);
             msg_flags &= ~MessageFlags::PendingMatternToken;
             started_min_lvt = false;
         }
 
-        // This sends all messages that are in the send buffer
-        comm_manager_->sendAllMessages();
+        sendRemoteEvents();
     }
 
     comm_manager_->finalize();
@@ -130,17 +132,6 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWa
 
    // TODO This is incomplete
    return MessageFlags::None;
-}
-
-void TimeWarpEventDispatcher::sendRemoteEvent(std::unique_ptr<Event> event,
-    unsigned int receiver_id) {
-
-    int color = gvt_manager_->getGvtInfo(event->timestamp());
-
-    auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id,
-        std::move(event), color);
-
-    comm_manager_->enqueueSendMessage(std::move(event_msg));
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::unique_ptr<Event> event, unsigned int thread_id) {
@@ -172,7 +163,7 @@ void TimeWarpEventDispatcher::cancelEvents(
         events_to_cancel->pop_back();
         unsigned int receiver_id = object_node_id_by_name_[event->receiverName()];
         if (receiver_id != comm_manager_->getID()) {
-            sendRemoteEvent(std::move(event), receiver_id);
+            enqueueRemoteEvent(std::move(event), receiver_id);
         } else {
             sendLocalEvent(std::move(event), 0); // TODO get thread_id of sender
         }
@@ -253,6 +244,30 @@ FileStream& TimeWarpEventDispatcher::getFileStream(
     TimeWarpFileStream* twfs = twfs_manager_->getFileStream(filename, mode, local_object_id);
 
     return *twfs;
+}
+
+void TimeWarpEventDispatcher::enqueueRemoteEvent(std::unique_ptr<Event> event,
+    unsigned int receiver_id) {
+
+    remote_event_queue_lock_.lock();
+    remote_event_queue_.push_back(std::make_pair(std::move(event), receiver_id));
+    remote_event_queue_lock_.unlock();
+}
+
+void TimeWarpEventDispatcher::sendRemoteEvents() {
+    remote_event_queue_lock_.lock();
+    while (!remote_event_queue_.empty()) {
+        auto event = std::move(remote_event_queue_.front());
+        remote_event_queue_.pop_front();
+
+        int color = gvt_manager_->getGvtInfo(event.first->timestamp());
+        unsigned int receiver_id = event.second;
+        auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id,
+            std::move(event.first), color);
+
+        comm_manager_->sendMessage(std::move(event_msg));
+    }
+    remote_event_queue_lock_.unlock();
 }
 
 } // namespace warped

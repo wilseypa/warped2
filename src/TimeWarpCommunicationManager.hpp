@@ -50,15 +50,6 @@ public:
     // Receives a single message
     virtual std::unique_ptr<TimeWarpKernelMessage> recvMessage() = 0;
 
-    // Sends all messages that are in the send buffer
-    virtual int sendAllMessages() = 0;
-
-    // Enqueues a message into the send queue
-    void enqueueSendMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
-
-    // dequeues a message from the send queue
-    std::unique_ptr<TimeWarpKernelMessage> dequeueSendMessage();
-
     // Passes messages to the correct message handler
     MessageFlags dispatchReceivedMessages();
 
@@ -67,12 +58,6 @@ public:
         std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> msg_handler);
 
 private:
-    // lock the the send queue, worker threads will need to enqueue, manager thread will dequeue
-    std::mutex send_queue_mutex_;
-
-    // Send queue
-    std::deque<std::unique_ptr<TimeWarpKernelMessage>> send_queue_;
-
     // Map to lookup message handler given a message type
     std::unordered_map<int, std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)>>
         msg_handler_by_msg_type_;

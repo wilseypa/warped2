@@ -2,23 +2,6 @@
 
 namespace warped {
 
-void TimeWarpCommunicationManager::enqueueSendMessage(std::unique_ptr<TimeWarpKernelMessage> msg) {
-    send_queue_mutex_.lock();
-    send_queue_.push_back(std::move(msg));
-    send_queue_mutex_.unlock();
-}
-
-std::unique_ptr<TimeWarpKernelMessage> TimeWarpCommunicationManager::dequeueSendMessage() {
-    std::unique_ptr<TimeWarpKernelMessage> msg = nullptr;
-    send_queue_mutex_.lock();
-    if (!send_queue_.empty()) {
-        msg = std::move(send_queue_.front());
-        send_queue_.pop_front();
-    }
-    send_queue_mutex_.unlock();
-    return msg;
-}
-
 void TimeWarpCommunicationManager::addRecvMessageHandler(MessageType msg_type,
     std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> msg_handler) {
 

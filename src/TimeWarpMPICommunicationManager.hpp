@@ -25,7 +25,6 @@ public:
     unsigned int getID();
 
     void sendMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
-    int sendAllMessages();
     std::unique_ptr<TimeWarpKernelMessage> recvMessage();
 
 private:
