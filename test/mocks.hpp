@@ -17,10 +17,13 @@ struct test_Event : public warped::Event {
         : receiver_name_(receiver_name), receive_time_(receive_time), x(x) {}
 
     const std::string& receiverName() const {return receiver_name_;}
+    const std::string& senderName() const {return sender_name_;}
+
     unsigned int timestamp() const {return receive_time_;}
 
     int x;
     std::string receiver_name_;
+    std::string sender_name_;
     unsigned int receive_time_;
 
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(receiver_name_, receive_time_, x)

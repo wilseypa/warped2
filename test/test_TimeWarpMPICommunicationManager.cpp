@@ -10,25 +10,6 @@
 TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialized","[mpi]"){
     auto mpi_manager = std::make_shared<warped::TimeWarpMPICommunicationManager>();
 
-    SECTION("Messages can be enqueued from multiple threads", "[mpi][enqueue][threads]") {
-        std::vector<std::thread> threads;
-        for (unsigned int i = 0; i < 4; ++i) {
-            threads.push_back(std::thread( [&](){
-                mpi_manager->enqueueMessage(warped::make_unique<warped::MatternGVTToken>
-                    (0, 0, 1, 6, 9));
-            }));
-        }
-
-        for (auto& t: threads) {
-            t.join();
-        }
-
-        for (unsigned int i = 0; i < 4; i++) {
-            auto msg = mpi_manager->dequeueMessage();
-                REQUIRE(msg.get() != nullptr);
-        }
-    }
-
     SECTION("Basic management routines return correct values", "[mpi]") {
         mpi_manager->initialize();
 
@@ -78,7 +59,7 @@ TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialize
                     mpi_manager->sendMessage(warped::make_unique<warped::GVTUpdateMessage>
                         (0, 0, 1234));
 
-                    warped::MessageFlags flags = mpi_manager->dispatchMessages();
+                    warped::MessageFlags flags = mpi_manager->dispatchReceivedMessages();
 
                     // Ensure gvt has been updated
                     CHECK(mattern_gvt_manager->getGVT() == 1234);
