@@ -34,7 +34,8 @@ public:
         std::unique_ptr<LTSFQueue> events,
         std::unique_ptr<TimeWarpGVTManager> gvt_manager,
         std::unique_ptr<TimeWarpStateManager> state_manager,
-        std::unique_ptr<TimeWarpOutputManager> output_manager);
+        std::unique_ptr<TimeWarpOutputManager> output_manager,
+        std::unique_ptr<TimeWarpFileStreamManager> twfs_manager);
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
@@ -68,14 +69,12 @@ private:
     std::unordered_map<std::string, unsigned int> local_object_id_by_name_;
     std::unordered_map<std::string, unsigned int> object_node_id_by_name_;
 
-    const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_ =
-        make_unique<TimeWarpFileStreamManager>();
-
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<LTSFQueue> events_;
     const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
     const std::unique_ptr<TimeWarpStateManager> state_manager_;
     const std::unique_ptr<TimeWarpOutputManager> output_manager_;
+    const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
 
     std::deque<std::pair <std::unique_ptr<Event>, unsigned int>> remote_event_queue_;
     std::mutex remote_event_queue_lock_;

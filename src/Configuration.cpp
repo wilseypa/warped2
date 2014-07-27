@@ -29,6 +29,7 @@
 #include "TimeWarpMPICommunicationManager.hpp"
 #include "TimeWarpPeriodicStateManager.hpp"
 #include "TimeWarpAggressiveOutputManager.hpp"
+#include "TimeWarpFileStreamManager.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
@@ -180,6 +181,9 @@ Configuration::makeDispatcher() {
 
         int num_partitions = comm_manager->initialize();
 
+        std::unique_ptr<TimeWarpFileStreamManager> twfs_manager =
+            make_unique<TimeWarpFileStreamManager>();
+
         std::unique_ptr<TimeWarpGVTManager> gvt_manager;
         if ((*root_)["time-warp"]["gvt-calculation"]["algorithm"].asString() == "mattern") {
             int period = (*root_)["gvt-calculation"]["period"].asInt();
@@ -201,7 +205,8 @@ Configuration::makeDispatcher() {
 
         return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,
             num_worker_threads, comm_manager, std::move(queue), std::move(gvt_manager),
-            std::move(state_manager), std::move(output_manager)), num_partitions);
+            std::move(state_manager), std::move(output_manager), std::move(twfs_manager)),
+            num_partitions);
     }
 
     // Return a SequentialEventDispatcher by default

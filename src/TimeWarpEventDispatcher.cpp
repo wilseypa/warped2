@@ -32,18 +32,19 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<LTSFQueue> events, std::unique_ptr<TimeWarpGVTManager> gvt_manager,
     std::unique_ptr<TimeWarpStateManager> state_manager,
-    std::unique_ptr<TimeWarpOutputManager> output_manager) :
+    std::unique_ptr<TimeWarpOutputManager> output_manager,
+    std::unique_ptr<TimeWarpFileStreamManager> twfs_manager) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
         comm_manager_(comm_manager), events_(std::move(events)),
         gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
-        output_manager_(std::move(output_manager)) {}
+        output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)) {}
 
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
     initialize(objects);
 
-    unsigned int thread_id;
-    thread_id = num_worker_threads_;
+    unsigned int thread_id = num_worker_threads_;
+    thread_id += 0; //TODO
     // Create worker threads
     std::vector<std::thread> threads;
     for (unsigned int i = 0; i < num_worker_threads_; ++i) {
@@ -186,7 +187,7 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
     //TODO this in incomplete, the restored_timestamp is the timestamp of the state of the
     // object that has been restored. All unprocessed event before or equal to this time must be
     // regenerated.
-    restored_timestamp = 1;
+    restored_timestamp += 0;
 }
 
 void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>&
@@ -228,7 +229,7 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
 }
 
 unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
-    unsigned int min;
+    unsigned int min = std::numeric_limits<unsigned int>::max();;
     for (unsigned int i = 0; i < num_worker_threads_; i++) {
         min = std::min(min, min_lvt_[i]);
         // Reset send_min back to very large number for next calculation
