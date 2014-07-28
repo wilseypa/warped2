@@ -22,6 +22,7 @@
 #include "TimeWarpStateManager.hpp"
 #include "TimeWarpOutputManager.hpp"
 #include "utility/memory.hpp"
+#include "utility/warnings.hpp"
 
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::EventMessage)
 
@@ -44,11 +45,14 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     initialize(objects);
 
     unsigned int thread_id = num_worker_threads_;
-    thread_id += 0; //TODO
+    unused<unsigned int>(std::move(thread_id));// TODO
+
     // Create worker threads
     std::vector<std::thread> threads;
     for (unsigned int i = 0; i < num_worker_threads_; ++i) {
-        threads.push_back(std::thread {&TimeWarpEventDispatcher::processEvents, this, i});
+        auto thread(std::thread {&TimeWarpEventDispatcher::processEvents, this, i});
+        thread.detach();
+        threads.push_back(std::move(thread));
     }
 
     MessageFlags msg_flags = MessageFlags::None;
@@ -112,17 +116,19 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
-    unsigned int thread_id;
-    thread_id = id;
+    unsigned int thread_id = id;
+    unused<unsigned int>(std::move(thread_id));
 
-    local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();
-    // Get event and handle rollback if necessary
+    while (gvt_manager_->getGVT() < max_sim_time_) {
+        local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();
+        // TODO, still incomplete
 
-    unsigned int min_lvt_of_this_thread = 0;
+        unsigned int min_lvt_of_this_thread = 0;
 
-    if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
-        min_lvt_[thread_id] = std::min(send_min_[thread_id], min_lvt_of_this_thread);
-        min_lvt_flag_--;
+        if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
+            min_lvt_[thread_id] = std::min(send_min_[thread_id], min_lvt_of_this_thread);
+            min_lvt_flag_--;
+        }
     }
 }
 
@@ -187,7 +193,7 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
     //TODO this in incomplete, the restored_timestamp is the timestamp of the state of the
     // object that has been restored. All unprocessed event before or equal to this time must be
     // regenerated.
-    restored_timestamp += 0;
+    unused<unsigned int>(std::move(restored_timestamp));
 }
 
 void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>&

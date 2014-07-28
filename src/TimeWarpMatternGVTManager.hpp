@@ -103,7 +103,7 @@ struct MatternGVTToken : public TimeWarpKernelMessage {
     unsigned int m_send;
 
     // Accumulated total of white messages in transit
-    unsigned int count;
+    int count;
 
     MessageType get_type() { return MessageType::MatternGVTToken; }
 
