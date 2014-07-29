@@ -17,6 +17,14 @@ public:
 
     void releaseScheduleQueueLock();
 
+    unsigned int TimeWarpEventScheduler::nextScheduledEvent();
+
+    bool TimeWarpEventScheduler::isScheduleQueueEmpty();
+
+    void TimeWarpEventScheduler::acquireObjectLock( unsigned int obj_id );
+
+    void TimeWarpEventScheduler::releaseObjectLock( unsigned int obj_id );
+
 private:
     //Lock to protect the schedule queue
     std::mutex schedule_queue_lock_;
@@ -24,6 +32,8 @@ private:
     //Queue to hold the scheduled events (one event from each object)
     std::unique_ptr<LTSFQueue> schedule_queue_;
 
+    //Object locks
+    std::vector<std::mutex> object_lock_;
 };
 
 } // warped namespace

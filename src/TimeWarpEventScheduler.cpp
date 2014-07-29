@@ -67,12 +67,12 @@ const Event* TimeWarpEventScheduler::peek(int threadId) {
 
 void TimeWarpEventScheduler::acquireObjectLock( unsigned int obj_id ) {
 
-    object_lock_->at(obj_id).lock();
+    object_lock_[obj_id].lock();
 }
 
 void TimeWarpEventScheduler::releaseObjectLock( unsigned int obj_id ) {
 
-    object_lock_->at(obj_id).unlock();
+    object_lock_[obj_id].unlock();
 }
 
 } // namespace warped
