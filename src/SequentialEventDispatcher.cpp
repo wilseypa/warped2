@@ -13,6 +13,7 @@
 #include "SimulationObject.hpp"
 #include "STLLTSFQueue.hpp"
 #include "utility/memory.hpp"
+#include "utility/warnings.hpp"
 
 namespace warped {
 
@@ -28,25 +29,30 @@ void SequentialEventDispatcher::startSimulation(
 
     std::unordered_map<std::string, SimulationObject*> objects_by_name;
     STLLTSFQueue events;
-    unsigned int current_sim_time = 0;
+    current_sim_time_ = 0;
 
     for (auto& ob : objects[0]) {
         auto new_events = ob->createInitialEvents();
-        stats_->record(ob->name_, current_sim_time, new_events);
+        stats_->record(ob->name_, current_sim_time_, new_events);
         events.push(std::move(new_events));
         objects_by_name[ob->name_] = ob;
     }
 
-    while (current_sim_time < max_sim_time_ && !events.empty()) {
+    while (current_sim_time_ < max_sim_time_ && !events.empty()) {
         auto event = events.pop();
-        current_sim_time = event->timestamp();
+        current_sim_time_ = event->timestamp();
         auto receiver = objects_by_name[event->receiverName()];
         auto new_events = receiver->receiveEvent(*event.get());
-        stats_->record(event->receiverName(), current_sim_time, new_events);
+        stats_->record(event->receiverName(), current_sim_time_, new_events);
         events.push(std::move(new_events));
     }
 
     stats_->writeToFile();
+}
+
+unsigned int SequentialEventDispatcher::getSimulationTime(SimulationObject* object) {
+    unused<SimulationObject*>(std::move(object));
+    return current_sim_time_;
 }
 
 FileStream& SequentialEventDispatcher::getFileStream(SimulationObject* object,

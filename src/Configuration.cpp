@@ -30,6 +30,7 @@
 #include "TimeWarpPeriodicStateManager.hpp"
 #include "TimeWarpAggressiveOutputManager.hpp"
 #include "TimeWarpFileStreamManager.hpp"
+#include "TimeWarpEventSet.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
@@ -168,18 +169,13 @@ Configuration::makeDispatcher() {
     }
 
     if ((*root_)["simulation-type"].asString() == "time-warp") {
-        //TODO: Create, configure, and return a TimeWarpEventDispatcher
-        // This is just a rough idea of how the dispatcher could be configured
-        // if ((*root_)["ltsf-queue"].asString() == "ladder-queue" {
-        //     std::unique_ptr<LTSFQueue> queue = make_unique<LadderQueue>();
-        // }
-
-        std::unique_ptr<LTSFQueue> queue = make_unique<STLLTSFQueue>();//TODO just a placeholder
 
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager =
                             std::make_shared<TimeWarpMPICommunicationManager>();
 
         int num_partitions = comm_manager->initialize();
+
+        std::unique_ptr<TimeWarpEventSet> event_set = make_unique<TimeWarpEventSet>();
 
         std::unique_ptr<TimeWarpFileStreamManager> twfs_manager =
             make_unique<TimeWarpFileStreamManager>();
@@ -204,9 +200,9 @@ Configuration::makeDispatcher() {
         int num_worker_threads = (*root_)["time-warp"]["worker-threads"].asInt();
 
         return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,
-            num_worker_threads, comm_manager, std::move(queue), std::move(gvt_manager),
-            std::move(state_manager), std::move(output_manager), std::move(twfs_manager)),
-            num_partitions);
+            num_worker_threads, comm_manager, std::move(event_set),
+            std::move(gvt_manager), std::move(state_manager), std::move(output_manager),
+            std::move(twfs_manager)), num_partitions);
     }
 
     // Return a SequentialEventDispatcher by default

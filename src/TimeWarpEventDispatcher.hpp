@@ -8,10 +8,10 @@
 #include <vector>
 #include <deque>
 
-#include "TimeWarpFileStream.hpp"
-#include "TimeWarpCommunicationManager.hpp"
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
+#include "TimeWarpFileStream.hpp"
+#include "TimeWarpCommunicationManager.hpp"
 
 namespace warped {
 
@@ -23,6 +23,7 @@ class TimeWarpGVTManager;
 class TimeWarpStateManager;
 class TimeWarpOutputManager;
 class TimeWarpFileStreamManager;
+class TimeWarpEventSet;
 
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
@@ -31,7 +32,7 @@ public:
     TimeWarpEventDispatcher(unsigned int max_sim_time,
         unsigned int num_worker_threads,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
-        std::unique_ptr<LTSFQueue> events,
+        std::unique_ptr<TimeWarpEventSet> event_set,
         std::unique_ptr<TimeWarpGVTManager> gvt_manager,
         std::unique_ptr<TimeWarpStateManager> state_manager,
         std::unique_ptr<TimeWarpOutputManager> output_manager,
@@ -43,7 +44,7 @@ public:
 
     MessageFlags receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
-    void sendLocalEvent(std::unique_ptr<Event> event, unsigned int thread_id);
+    void sendLocalEvent(std::unique_ptr<Event> event);
 
     void fossilCollect(unsigned int gvt);
 
@@ -52,6 +53,8 @@ public:
     void rollback(unsigned int straggler_time, unsigned int local_object_id, SimulationObject* ob);
 
     unsigned int getMinimumLVT();
+
+    unsigned int getSimulationTime(SimulationObject* object);
 
     FileStream& getFileStream(SimulationObject *object, const std::string& filename,
         std::ios_base::openmode mode);
@@ -70,14 +73,19 @@ private:
     std::unordered_map<std::string, unsigned int> object_node_id_by_name_;
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
+    const std::unique_ptr<TimeWarpEventSet> event_set_;
     const std::unique_ptr<LTSFQueue> events_;
     const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
     const std::unique_ptr<TimeWarpStateManager> state_manager_;
     const std::unique_ptr<TimeWarpOutputManager> output_manager_;
     const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
 
+    std::unique_ptr<unsigned int []> object_simulation_time_;
+
     std::deque<std::pair <std::unique_ptr<Event>, unsigned int>> remote_event_queue_;
     std::mutex remote_event_queue_lock_;
+
+    static thread_local unsigned int thread_id;
 
     // flag to initiate minimum lvt calculation
     std::atomic<unsigned int> min_lvt_flag_ = ATOMIC_VAR_INIT(0);

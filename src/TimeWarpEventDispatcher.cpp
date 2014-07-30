@@ -11,6 +11,7 @@
 #include <limits> // for std::numeric_limits<>::max();
 #include <algorithm>    // for std::min
 #include <chrono>   // for std::chrono::steady_clock
+#include <cstring> // for std::memset
 
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
@@ -21,6 +22,7 @@
 #include "TimeWarpMatternGVTManager.hpp"
 #include "TimeWarpStateManager.hpp"
 #include "TimeWarpOutputManager.hpp"
+#include "TimeWarpEventSet.hpp"
 #include "utility/memory.hpp"
 #include "utility/warnings.hpp"
 
@@ -28,15 +30,18 @@ WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::EventMessage)
 
 namespace warped {
 
+thread_local unsigned int TimeWarpEventDispatcher::thread_id;
+
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_worker_threads,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
-    std::unique_ptr<LTSFQueue> events, std::unique_ptr<TimeWarpGVTManager> gvt_manager,
+    std::unique_ptr<TimeWarpEventSet> event_set,
+    std::unique_ptr<TimeWarpGVTManager> gvt_manager,
     std::unique_ptr<TimeWarpStateManager> state_manager,
     std::unique_ptr<TimeWarpOutputManager> output_manager,
     std::unique_ptr<TimeWarpFileStreamManager> twfs_manager) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
-        comm_manager_(comm_manager), events_(std::move(events)),
+        comm_manager_(comm_manager), event_set_(std::move(event_set)),
         gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)) {}
 
@@ -44,7 +49,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                                               objects) {
     initialize(objects);
 
-    unsigned int thread_id = num_worker_threads_;
+    thread_id = num_worker_threads_;
     unused<unsigned int>(std::move(thread_id));// TODO
 
     // Create worker threads
@@ -116,14 +121,57 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
-    unsigned int thread_id = id;
-    unused<unsigned int>(std::move(thread_id));
+    thread_id = id;
 
     while (gvt_manager_->getGVT() < max_sim_time_) {
         local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();
-        // TODO, still incomplete
 
-        unsigned int min_lvt_of_this_thread = 0;
+        std::unique_ptr<Event> event = nullptr; //TODO, get next event
+        if (event != nullptr) {
+
+            unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
+            SimulationObject* current_object = objects_by_name_[event->receiverName()];
+
+            // Handle a negative event
+            if (event->event_type() == EventType::NEGATIVE) {
+                event_set_->handleAntiMessage(current_object_id, std::move(event));
+                continue;
+            }
+
+            // Check to see if straggler and rollback if necessary
+            if (event->timestamp() < object_simulation_time_[current_object_id]) {
+                rollback(event->timestamp(), current_object_id, current_object);
+            }
+
+            // Update simulation time
+            object_simulation_time_[current_object_id] = event->timestamp();
+            twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
+
+            // Save state
+            state_manager_->saveState(event->timestamp(), current_object_id, current_object);
+
+            // process event and get new events
+            auto new_events = current_object->receiveEvent(*event);
+
+            // Send new events
+            for (auto& e: new_events) {
+                auto object_id_it = local_object_id_by_name_.find(e->receiverName());
+
+                // Create copy to insert into output queue
+                std::unique_ptr<Event> negative_copy(e.get());
+                output_manager_->insertEvent(std::move(negative_copy), current_object_id);
+
+                if (object_id_it != local_object_id_by_name_.end()) {
+                    // Local event
+                    sendLocalEvent(std::move(e));
+                } else {
+                    // Remote event
+                    enqueueRemoteEvent(std::move(e), object_node_id_by_name_[e->receiverName()]);
+                }
+            }
+        }
+
+        unsigned int min_lvt_of_this_thread = std::numeric_limits<unsigned int>::max();//TODO
 
         if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
             min_lvt_[thread_id] = std::min(send_min_[thread_id], min_lvt_of_this_thread);
@@ -137,12 +185,15 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWa
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
     gvt_manager_->setGvtInfo(msg->gvt_mattern_color);
 
-   // TODO This is incomplete
-   return MessageFlags::None;
+    unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
+    event_set_->insertEvent(receiver_object_id, std::move(msg->event));
+
+    return MessageFlags::None;
 }
 
-void TimeWarpEventDispatcher::sendLocalEvent(std::unique_ptr<Event> event, unsigned int thread_id) {
-    // TODO, totally incomplete still, just added some probably temporary gvt stuff
+void TimeWarpEventDispatcher::sendLocalEvent(std::unique_ptr<Event> event) {
+    unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
+    event_set_->insertEvent(receiver_object_id, std::move(event));
 
     if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
         unsigned int send_min = send_min_[thread_id];
@@ -154,8 +205,7 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     twfs_manager_->fossilCollectAll(gvt);
     state_manager_->fossilCollectAll(gvt);
     output_manager_->fossilCollectAll(gvt);
-
-    //TODO still incomplete, input queues?
+    event_set_->fossilCollectAll(gvt);
 }
 
 void TimeWarpEventDispatcher::cancelEvents(
@@ -172,7 +222,7 @@ void TimeWarpEventDispatcher::cancelEvents(
         if (receiver_id != comm_manager_->getID()) {
             enqueueRemoteEvent(std::move(event), receiver_id);
         } else {
-            sendLocalEvent(std::move(event), 0); // TODO get thread_id of sender
+            sendLocalEvent(std::move(event));
         }
     } while (!events_to_cancel->empty());
 }
@@ -190,10 +240,7 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
         cancelEvents(std::move(events_to_cancel));
     }
 
-    //TODO this in incomplete, the restored_timestamp is the timestamp of the state of the
-    // object that has been restored. All unprocessed event before or equal to this time must be
-    // regenerated.
-    unused<unsigned int>(std::move(restored_timestamp));
+    event_set_->rollback(local_object_id, restored_timestamp);
 }
 
 void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>&
@@ -214,6 +261,8 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
     }
 
     unsigned int num_local_objects = objects[comm_manager_->getID()].size();
+    object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);
+    std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
 
     // Creates the state queues, output queues, and filestream queues for each local object
     state_manager_->initialize(num_local_objects);
@@ -242,6 +291,11 @@ unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
         send_min_[i] = std::numeric_limits<unsigned int>::max();
     }
     return min;
+}
+
+unsigned int TimeWarpEventDispatcher::getSimulationTime(SimulationObject* object) {
+    unsigned int object_id = local_object_id_by_name_[object->name_];
+    return object_simulation_time_[object_id];
 }
 
 FileStream& TimeWarpEventDispatcher::getFileStream(

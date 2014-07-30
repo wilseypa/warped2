@@ -17,13 +17,13 @@ public:
 
     void releaseScheduleQueueLock();
 
-    unsigned int TimeWarpEventScheduler::nextScheduledEvent();
+    unsigned int nextScheduledEvent();
 
-    bool TimeWarpEventScheduler::isScheduleQueueEmpty();
+    bool isScheduleQueueEmpty();
 
-    void TimeWarpEventScheduler::acquireObjectLock( unsigned int obj_id );
+    void acquireObjectLock( unsigned int obj_id );
 
-    void TimeWarpEventScheduler::releaseObjectLock( unsigned int obj_id );
+    void releaseObjectLock( unsigned int obj_id );
 
 private:
     //Lock to protect the schedule queue

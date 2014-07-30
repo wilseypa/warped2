@@ -43,7 +43,9 @@ WARPED_NOINST_HPP_FILES = \
     src/TimeWarpAggressiveOutputManager.hpp \
     src/TimeWarpFileStreamManager.hpp \
     src/FileStream.hpp \
-    src/TimeWarpFileStream.hpp
+    src/TimeWarpFileStream.hpp \
+    src/TimeWarpEventSet.hpp \
+    src/TimeWarpEventScheduler.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \

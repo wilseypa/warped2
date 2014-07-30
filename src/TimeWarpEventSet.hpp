@@ -9,6 +9,9 @@
 #include <unordered_map>
 #include <mutex>
 
+#include "TimeWarpEventScheduler.hpp"
+#include "STLLTSFQueue.hpp"
+
 namespace warped {
 
 class Event;
@@ -17,7 +20,7 @@ class TimeWarpEventScheduler;
 
 class TimeWarpEventSet {
 public:
-    TimeWarpEventSet = default;
+    TimeWarpEventSet() = default;
 
     void initialize ( 
                 unsigned int num_of_objects, 
@@ -35,7 +38,7 @@ public:
                 unsigned int object_id, 
                 unsigned int timestamp );
 
-    const std::<Event> peekEvent ( 
+    const std::unique_ptr<Event> peekEvent ( 
                 unsigned int object_id, 
                 unsigned int timestamp );
 
@@ -43,7 +46,7 @@ public:
                 unsigned int object_id, 
                 unsigned int timestamp ); 
 
-    void fossilCollect ( const std::unique_ptr<Event> event );
+    void fossilCollectAll(unsigned int timestamp);
 
     void rollback ( 
                 unsigned int object_id, 
@@ -63,7 +66,7 @@ private:
     std::vector<std::unique_ptr<STLLTSFQueue>> unprocessed_queue_;
 
     //Queues to hold the processed events for each simulation object
-    std::vector<std::vector<const std::unique_ptr<Event>>*> processed_queue_;
+    std::vector<std::vector<std::unique_ptr<Event>>*> processed_queue_;
 
     //Number of event schedulers
     unsigned int num_of_schedulers_;
