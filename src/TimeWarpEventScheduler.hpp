@@ -11,15 +11,17 @@ class LTSFQueue;
 
 class TimeWarpEventScheduler {
 public:
-    TimeWarpEventScheduler() = default;
+    TimeWarpEventScheduler();
 
     void acquireScheduleQueueLock();
 
     void releaseScheduleQueueLock();
 
-    unsigned int nextScheduledEvent();
+    const std::shared_ptr<Event> peekLowestScheduledEvent();
 
-    bool isScheduleQueueEmpty();
+    void scheduleNewEvent( const std::shared_ptr<Event> new_event );
+
+    const std::shared_ptr<Event> getEventForExecution();
 
     void acquireObjectLock( unsigned int obj_id );
 
