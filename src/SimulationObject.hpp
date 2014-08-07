@@ -37,12 +37,12 @@ public:
     // and return then as a vector, or return an empty vector if no events are
     // created. Events must not be created with a timestamp less than the
     // current simulation time.
-    virtual std::vector<std::unique_ptr<Event>> receiveEvent(const Event& event) = 0;
+    virtual std::vector<std::shared_ptr<Event>> receiveEvent(const Event& event) = 0;
 
     // Create events before the simulation starts.
     //
     // This is an optional method that is called before the simulation begins.
-    virtual std::vector<std::unique_ptr<Event>> createInitialEvents();
+    virtual std::vector<std::shared_ptr<Event>> createInitialEvents();
 
     unsigned int getSimulationTime();
 

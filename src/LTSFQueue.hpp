@@ -32,15 +32,15 @@ public:
     // Remove the lowest timestamped event from the queue and give ownership
     // to the caller. It is undefined behavior to call this function when
     // size() == 0.
-    virtual std::unique_ptr<Event> pop() = 0;
+    virtual std::shared_ptr<Event> pop() = 0;
 
     // Add one event to the queue. Ownership of the event is transferred to
     // the queue.
-    virtual void push(std::unique_ptr<Event> event) = 0;
+    virtual void push(std::shared_ptr<Event> event) = 0;
 
     // Add multiple events to the queue at once. Ownership of all events is
     // transfered to the queue.
-    virtual void push(std::vector<std::unique_ptr<Event>>&& events) = 0;
+    virtual void push(std::vector<std::shared_ptr<Event>>&& events) = 0;
 };
 
 } // namespace warped

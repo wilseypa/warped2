@@ -13,7 +13,7 @@ void EventStatistics::writeToFile() {
 }
 
 void EventStatistics::record(const std::string& source, unsigned int send_time,
-                             const std::vector<std::unique_ptr<Event>>& events) {
+                             const std::vector<std::shared_ptr<Event>>& events) {
     for (const auto& e : events) {
         record(source, send_time, e.get());
     }

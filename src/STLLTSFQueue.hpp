@@ -20,9 +20,9 @@ public:
     bool empty() const;
     std::size_t size() const;
     Event* peek() const;
-    std::unique_ptr<Event> pop();
-    void push(std::unique_ptr<Event> event);
-    void push(std::vector<std::unique_ptr<Event>>&& events);
+    std::shared_ptr<Event> pop();
+    void push(std::shared_ptr<Event> event);
+    void push(std::vector<std::shared_ptr<Event>>&& events);
 
 private:
     // use a std::function with a lambda to do event comparison

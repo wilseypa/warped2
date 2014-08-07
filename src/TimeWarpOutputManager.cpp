@@ -6,15 +6,14 @@
 namespace warped {
 
 void TimeWarpOutputManager::initialize(unsigned int num_local_objects) {
-    output_queue_ = make_unique<std::vector<std::unique_ptr<Event>> []>(num_local_objects);
+    output_queue_ = make_unique<std::vector<std::shared_ptr<Event>> []>(num_local_objects);
     output_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
 }
 
-void TimeWarpOutputManager::insertEvent(std::unique_ptr<Event> event,
+void TimeWarpOutputManager::insertEvent(std::shared_ptr<Event> event,
     unsigned int local_object_id) {
-    event->setNegative();
     output_queue_lock_[local_object_id].lock();
-    output_queue_[local_object_id].push_back(std::move(event));
+    output_queue_[local_object_id].push_back(event);
     output_queue_lock_[local_object_id].unlock();
 }
 
@@ -43,17 +42,17 @@ void TimeWarpOutputManager::fossilCollectAll(unsigned int gvt) {
     }
 }
 
-std::unique_ptr<std::vector<std::unique_ptr<Event>>>
+std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 TimeWarpOutputManager::removeEventsSentAtOrAfter(unsigned int rollback_time,
     unsigned int local_object_id) {
 
-    auto events_to_cancel = make_unique<std::vector<std::unique_ptr<Event>>>();
+    auto events_to_cancel = make_unique<std::vector<std::shared_ptr<Event>>>();
 
     output_queue_lock_[local_object_id].lock();
 
     auto max = std::prev(output_queue_[local_object_id].end());
     while (max->get()->timestamp() >= rollback_time) {
-        events_to_cancel->push_back(std::move(*max));
+        events_to_cancel->push_back(*max);
         output_queue_[local_object_id].erase(max--);
     }
 

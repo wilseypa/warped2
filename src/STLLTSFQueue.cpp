@@ -32,19 +32,19 @@ Event* STLLTSFQueue::peek() const {
     return queue_.top();
 }
 
-std::unique_ptr<Event> STLLTSFQueue::pop() {
+std::shared_ptr<Event> STLLTSFQueue::pop() {
     auto ret = queue_.top();
     queue_.pop();
-    return std::unique_ptr<Event>{ret};
+    return std::shared_ptr<Event>{ret};
 }
 
-void STLLTSFQueue::push(std::unique_ptr<Event> event) {
-    queue_.push(event.release());
+void STLLTSFQueue::push(std::shared_ptr<Event> event) {
+    queue_.push(event.get());
 }
 
-void STLLTSFQueue::push(std::vector<std::unique_ptr<Event>>&& events) {
+void STLLTSFQueue::push(std::vector<std::shared_ptr<Event>>&& events) {
     for (auto& event: events) {
-        queue_.push(event.release());
+        queue_.push(event.get());
     }
 }
 

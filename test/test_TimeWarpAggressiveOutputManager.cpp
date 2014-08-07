@@ -17,17 +17,17 @@ TEST_CASE("Aggressive output manager is aggressive", "[output][queues]") {
     }
 
     SECTION("Add a series of event to an output queue", "[output][queue][add]") {
-        om.insertEvent(warped::make_unique<test_Event>("receiver_name", 27, 0), 2);
+        om.insertEvent(warped::make_unique<test_Event>("receiver_name", "sender_name", 27, 0), 2);
         REQUIRE(om.size(2) == 1);
 
-        om.insertEvent(warped::make_unique<test_Event>("receiver_name", 29, 0), 2);
+        om.insertEvent(warped::make_unique<test_Event>("receiver_name", "sender_name", 29, 0), 2);
         REQUIRE(om.size(2) == 2);
 
-        om.insertEvent(warped::make_unique<test_Event>("receiver_name", 33, 0), 2);
-        om.insertEvent(warped::make_unique<test_Event>("receiver_name", 33, 0), 2);
-        om.insertEvent(warped::make_unique<test_Event>("receiver_name", 38, 0), 2);
-        om.insertEvent(warped::make_unique<test_Event>("receiver_name", 40, 0), 2);
-        om.insertEvent(warped::make_unique<test_Event>("receiver_name", 45, 0), 2);
+        om.insertEvent(warped::make_unique<test_Event>("receiver_name", "sender_name", 33, 0), 2);
+        om.insertEvent(warped::make_unique<test_Event>("receiver_name", "sender_name", 33, 0), 2);
+        om.insertEvent(warped::make_unique<test_Event>("receiver_name", "sender_name", 38, 0), 2);
+        om.insertEvent(warped::make_unique<test_Event>("receiver_name", "sender_name", 40, 0), 2);
+        om.insertEvent(warped::make_unique<test_Event>("receiver_name", "sender_name", 45, 0), 2);
         REQUIRE(om.size(2) == 7);
 
         SECTION("Fossil Collection removes correct events", "[output][queue][fossilCollection]") {

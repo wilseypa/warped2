@@ -44,11 +44,11 @@ public:
 
     MessageFlags receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
-    void sendLocalEvent(std::unique_ptr<Event> event);
+    void sendLocalEvent(std::shared_ptr<Event> event);
 
     void fossilCollect(unsigned int gvt);
 
-    void cancelEvents(std::unique_ptr<std::vector<std::unique_ptr<Event>>> events_to_cancel);
+    void cancelEvents(std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel);
 
     void rollback(unsigned int straggler_time, unsigned int local_object_id, SimulationObject* ob);
 
@@ -59,7 +59,7 @@ public:
     FileStream& getFileStream(SimulationObject *object, const std::string& filename,
         std::ios_base::openmode mode);
 
-    void enqueueRemoteEvent(std::unique_ptr<Event> event, unsigned int receiver_id);
+    void enqueueRemoteEvent(std::shared_ptr<Event> event, unsigned int receiver_id);
 
     void sendRemoteEvents();
 
@@ -82,7 +82,7 @@ private:
 
     std::unique_ptr<unsigned int []> object_simulation_time_;
 
-    std::deque<std::pair <std::unique_ptr<Event>, unsigned int>> remote_event_queue_;
+    std::deque<std::pair <std::shared_ptr<Event>, unsigned int>> remote_event_queue_;
     std::mutex remote_event_queue_lock_;
 
     static thread_local unsigned int thread_id;
@@ -102,12 +102,12 @@ enum class MatternColor;
 
 struct EventMessage : public TimeWarpKernelMessage {
     EventMessage() = default;
-    EventMessage(unsigned int sender, unsigned int receiver, std::unique_ptr<Event> e, int c) :
+    EventMessage(unsigned int sender, unsigned int receiver, std::shared_ptr<Event> e, int c) :
         TimeWarpKernelMessage(sender, receiver),
-        event(std::move(e)),
+        event(e),
         gvt_mattern_color(c) {}
 
-    std::unique_ptr<Event> event;
+    std::shared_ptr<Event> event;
     int gvt_mattern_color; // 0 for white, 1 for red
 
     MessageType get_type() { return MessageType::EventMessage; }
@@ -116,6 +116,23 @@ struct EventMessage : public TimeWarpKernelMessage {
         gvt_mattern_color)
 };
 
+class NegativeEvent : public Event {
+public:
+    NegativeEvent(const std::string& receiver_name, const std::string& sender_name,
+        unsigned int receive_time) :
+            receiver_name_(receiver_name), sender_name_(sender_name), receive_time_(receive_time) {
+        setNegative();
+    }
+
+    const std::string& receiverName() const {return receiver_name_;}
+    const std::string& senderName() const {return sender_name_;}
+    unsigned int timestamp() const {return receive_time_;}
+
+private:
+    std::string receiver_name_;
+    std::string sender_name_;
+    unsigned int receive_time_;
+};
 
 } // namespace warped
 

@@ -9,7 +9,7 @@
 
 TEST_CASE("AggregateEventStatistics records stats", "[AggregateEventStatistics]") {
     warped::AggregateEventStatistics stats {"", warped::AggregateEventStatistics::OutputType::Metis};
-    test_Event e {"a", 1};
+    test_Event e {"a", "sender", 1};
     stats.record("b", 1, &e);
 
     SECTION("single edge") {
@@ -28,7 +28,7 @@ TEST_CASE("AggregateEventStatistics records stats", "[AggregateEventStatistics]"
     }
 
     SECTION("edges are undirected") {
-        test_Event e2 {"b", 1};
+        test_Event e2 {"b", "sender", 1};
         stats.record("a", 1, &e2);
 
         REQUIRE(stats.getStat(stats.makeEdge("a", "b")) == 2);

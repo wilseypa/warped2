@@ -14,7 +14,7 @@ class TimeWarpAggressiveOutputManager : public TimeWarpOutputManager {
 public:
     TimeWarpAggressiveOutputManager() = default;
 
-    std::unique_ptr<std::vector<std::unique_ptr<Event>>>
+    std::unique_ptr<std::vector<std::shared_ptr<Event>>>
         rollback(unsigned int rollback_time, unsigned int local_object_id);
 
 };

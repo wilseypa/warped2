@@ -21,7 +21,7 @@ public:
     
     // Record zero or more events at once
     virtual void record(const std::string& source, unsigned int send_time,
-                        const std::vector<std::unique_ptr<Event>>& events);
+                        const std::vector<std::shared_ptr<Event>>& events);
 
     // Write the statistics to a file
     virtual void writeToFile();
