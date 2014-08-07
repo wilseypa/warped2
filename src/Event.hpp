@@ -3,6 +3,8 @@
 
 #include <string>
 
+#include "serialization.hpp"
+
 namespace warped {
 
 enum class EventType : bool {
@@ -14,6 +16,7 @@ enum class EventType : bool {
 // serializable. See serialization.hpp for info on serializing Events.
 class Event {
 public:
+    Event() = default;
     virtual ~Event() {}
 
     bool operator== (const Event &other) {
@@ -39,8 +42,10 @@ public:
 
     void setNegative() { event_type_ = EventType::NEGATIVE; }
 
-private:
     EventType event_type_ = EventType::POSITIVE;
+
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(event_type_);
+
 };
 
 } // namespace warped

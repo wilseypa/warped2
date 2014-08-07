@@ -27,6 +27,8 @@
 #include "utility/warnings.hpp"
 
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::EventMessage)
+WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::Event)
+WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::NegativeEvent)
 
 namespace warped {
 
