@@ -256,9 +256,11 @@ void TimeWarpEventDispatcher::coastForward(unsigned int start_time, unsigned int
         unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
         SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
-        current_object->receiveEvent(*event);
+        object_simulation_time_[current_object_id] = event->timestamp();
+        twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
 
         state_manager_->saveState(event->timestamp(), current_object_id, current_object);
+        current_object->receiveEvent(*event);
     }
 }
 
