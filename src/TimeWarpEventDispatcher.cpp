@@ -243,8 +243,23 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
         cancelEvents(std::move(events_to_cancel));
     }
 
-    unused<unsigned int>(std::move(restored_timestamp));
 //    event_set_->rollback(local_object_id, restored_timestamp);
+
+    coastForward(restored_timestamp, straggler_time);
+}
+
+void TimeWarpEventDispatcher::coastForward(unsigned int start_time, unsigned int stop_time) {
+    unsigned int current_time = start_time;
+    while (current_time < stop_time) {
+        std::shared_ptr<Event> event = nullptr; //TODO, get next event
+
+        unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
+        SimulationObject* current_object = objects_by_name_[event->receiverName()];
+
+        current_object->receiveEvent(*event);
+
+        state_manager_->saveState(event->timestamp(), current_object_id, current_object);
+    }
 }
 
 void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>&

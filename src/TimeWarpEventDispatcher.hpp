@@ -52,6 +52,8 @@ public:
 
     void rollback(unsigned int straggler_time, unsigned int local_object_id, SimulationObject* ob);
 
+    void coastForward(unsigned int start_time, unsigned int stop_time);
+
     unsigned int getMinimumLVT();
 
     unsigned int getSimulationTime(SimulationObject* object);
