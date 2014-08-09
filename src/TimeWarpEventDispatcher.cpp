@@ -270,7 +270,7 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
         unsigned int object_id = 0;
-        for (auto& ob : partition) {
+        for (auto ob : partition) {
             events_->push(ob->createInitialEvents());
             if (partition_id == comm_manager_->getID()) {
                 objects_by_name_[ob->name_] = ob;
@@ -287,6 +287,9 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
 
     // Creates the state queues, output queues, and filestream queues for each local object
     state_manager_->initialize(num_local_objects);
+    for (auto ob: objects_by_name_) {
+        state_manager_->saveState(0, local_object_id_by_name_[ob.first], ob.second);
+    }
     output_manager_->initialize(num_local_objects);
     twfs_manager_->initialize(num_local_objects);
 
