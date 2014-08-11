@@ -6,17 +6,27 @@
  */
 
 #include <vector>
+#include <multiset>
 #include <unordered_map>
 #include <mutex>
-
-#include "TimeWarpEventScheduler.hpp"
-#include "STLLTSFQueue.hpp"
 
 namespace warped {
 
 class Event;
-class STLLTSFQueue;
-class TimeWarpEventScheduler;
+class LTSFQueue;
+
+/* Compares two events to see if one has a receive time less than to the other
+ */
+class compareEvent :
+    public std::binary_function<const std::shared_ptr<Event>, 
+                                const std::shared_ptr<Event>, 
+                                bool > {
+public:
+    bool operator() ( const std::shared_ptr<Event> first, 
+                      const std::shared_ptr<Event> second ) {
+        return first->timestamp() < second->timestamp();
+    }
+};
 
 class TimeWarpEventSet {
 public:
@@ -28,17 +38,17 @@ public:
 
     void insertEvent ( 
                 unsigned int object_id, 
-                const std::unique_ptr<Event> event );
+                const std::shared_ptr<Event> event );
 
     bool handleAntiMessage ( 
                 unsigned int object_id, 
-                const std::unique_ptr<Event> cancel_event );
+                const std::shared_ptr<Event> cancel_event );
 
-    const std::unique_ptr<Event> getEvent ( 
+    const std::shared_ptr<Event> getEvent ( 
                 unsigned int object_id, 
                 unsigned int timestamp );
 
-    const std::unique_ptr<Event> peekEvent ( 
+    const std::shared_ptr<Event> peekEvent ( 
                 unsigned int object_id, 
                 unsigned int timestamp );
 
@@ -53,26 +63,29 @@ public:
                 unsigned int rollback_time ); 
 
 private:
-    //Lock to protect the unprocessed queue
-    std::mutex unprocessed_queue_lock_;
-
-    //Lock to protect the processed queue
-    std::mutex processed_queue_lock_;
-
     //Number of simulation objects
     unsigned int num_of_objects_;
 
+    //Lock to protect the unprocessed queues
+    std::vector<std::mutex> unprocessed_queue_lock_;
+
     //Queues to hold the unprocessed events for each simulation object
-    std::vector<std::unique_ptr<STLLTSFQueue>> unprocessed_queue_;
+    std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, compareEvents>>> unprocessed_queue_;
+
+    //Lock to protect the processed queues
+    std::vector<std::mutex> processed_queue_lock_;
 
     //Queues to hold the processed events for each simulation object
-    std::vector<std::vector<std::unique_ptr<Event>>*> processed_queue_;
+    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> processed_queue_;
 
     //Number of event schedulers
     unsigned int num_of_schedulers_;
 
-    //Event schedulers
-    std::vector<std::unique_ptr<TimeWarpEventScheduler>> event_scheduler_;
+    //Lock to protect the schedule queues
+    std::vector<std::mutex> schedule_queue_lock_;
+
+    //Queues to hold the scheduled events
+    std::vector<std::unique_ptr<LTSFQueue>> schedule_queue_;
 };
 
 } // warped namespace
