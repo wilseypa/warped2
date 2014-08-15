@@ -64,9 +64,9 @@ public:
 
     void sendMatternGVTToken(unsigned int local_minimum);
 
-    void setGvtInfo(int color);
+    void receiveEventUpdate(MatternColor color);
 
-    int getGvtInfo(unsigned int timestamp);
+    MatternColor sendEventUpdate(unsigned int timestamp);
 
     void reset();
 

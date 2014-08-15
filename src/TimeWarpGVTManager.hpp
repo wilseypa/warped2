@@ -22,10 +22,6 @@ public:
 
     virtual MessageFlags calculateGVT() = 0;
 
-    virtual void setGvtInfo(int) = 0;
-
-    virtual int getGvtInfo(unsigned int) = 0;
-
     unsigned int getGVTPeriod();
 
     void sendGVTUpdate();
@@ -33,8 +29,6 @@ public:
     MessageFlags receiveGVTUpdate(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
     unsigned int getGVT() { return gVT_; }
-
-    void setGVT(unsigned int g) { gVT_ = g; }
 
 protected:
 

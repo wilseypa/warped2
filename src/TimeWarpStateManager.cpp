@@ -41,11 +41,11 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
         state_queue_[local_object_id].erase(min);
     }
 
-    state_queue_lock_[local_object_id].unlock();
-
     if (min != state_queue_[local_object_id].end()) {
         retval = min->first;
     }
+
+    state_queue_lock_[local_object_id].unlock();
 
     return retval;
 }

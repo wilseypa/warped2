@@ -52,7 +52,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     initialize(objects);
 
     thread_id = num_worker_threads_;
-    unused<unsigned int>(std::move(thread_id));// TODO
+    unused<unsigned int>(std::move(thread_id));
 
     // Create worker threads
     std::vector<std::thread> threads;
@@ -83,8 +83,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         if (GVT_UPDATE(msg_flags)) {
             fossilCollect(gvt_manager_->getGVT());
             msg_flags &= ~MessageFlags::GVTUpdate;
-            auto mattern_gvt_manager = dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get());
-            mattern_gvt_manager->reset();
+            dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
         }
 
         if (calculate_gvt && comm_manager_->getID() == 0) {
@@ -108,9 +107,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         }
 
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
-            auto mattern_gvt_manager = dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get());
             unsigned int local_min_lvt = getMinimumLVT();
-            mattern_gvt_manager->sendMatternGVTToken(local_min_lvt);
+            dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
+                local_min_lvt);
             msg_flags &= ~MessageFlags::PendingMatternToken;
             started_min_lvt = false;
         }
@@ -134,7 +133,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
             // Handle a negative event
-            if (event->event_type() == EventType::NEGATIVE) {
+            if (event->event_type_ == EventType::NEGATIVE) {
 //                event_set_->handleAntiMessage(current_object_id, std::move(event));
                 continue;
             }
@@ -153,11 +152,11 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             object_simulation_time_[current_object_id] = event->timestamp();
             twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
 
-            // Save state
-            state_manager_->saveState(event->timestamp(), current_object_id, current_object);
-
             // process event and get new events
             auto new_events = current_object->receiveEvent(*event);
+
+            // Save state
+            state_manager_->saveState(event->timestamp(), current_object_id, current_object);
 
             // Send new events
             for (auto& e: new_events) {
@@ -180,7 +179,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage>
     kmsg) {
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
-    gvt_manager_->setGvtInfo(msg->gvt_mattern_color);
+    dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->receiveEventUpdate(
+        msg->gvt_mattern_color);
 
     unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
     unused<unsigned int>(std::move(receiver_object_id));
@@ -259,8 +259,8 @@ void TimeWarpEventDispatcher::coastForward(unsigned int start_time, unsigned int
         object_simulation_time_[current_object_id] = event->timestamp();
         twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
 
-        state_manager_->saveState(event->timestamp(), current_object_id, current_object);
         current_object->receiveEvent(*event);
+        state_manager_->saveState(event->timestamp(), current_object_id, current_object);
     }
 }
 
@@ -345,7 +345,9 @@ void TimeWarpEventDispatcher::sendRemoteEvents() {
         auto event = std::move(remote_event_queue_.front());
         remote_event_queue_.pop_front();
 
-        int color = gvt_manager_->getGvtInfo(event.first->timestamp());
+        MatternColor color = dynamic_cast<TimeWarpMatternGVTManager*>
+            (gvt_manager_.get())->sendEventUpdate(event.first->timestamp());
+
         unsigned int receiver_id = event.second;
         auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id,
             event.first, color);

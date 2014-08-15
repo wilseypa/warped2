@@ -6,7 +6,7 @@
  */
 
 #include <vector>
-#include <multiset>
+#include <set>
 #include <unordered_map>
 #include <mutex>
 
@@ -17,7 +17,7 @@ class LTSFQueue;
 
 /* Compares two events to see if one has a receive time less than to the other
  */
-class compareEvent :
+class compareEvents :
     public std::binary_function<const std::shared_ptr<Event>, 
                                 const std::shared_ptr<Event>, 
                                 bool > {

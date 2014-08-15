@@ -38,10 +38,6 @@ public:
     // The timestamp of when the event should be received.
     virtual unsigned int timestamp() const = 0;
 
-    EventType event_type() { return event_type_; }
-
-    void setNegative() { event_type_ = EventType::NEGATIVE; }
-
     EventType event_type_ = EventType::POSITIVE;
 
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(event_type_);
