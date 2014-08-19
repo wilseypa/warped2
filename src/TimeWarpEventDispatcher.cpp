@@ -132,20 +132,20 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
+            // Check to see if straggler and rollback if necessary
+            if (event->timestamp() < object_simulation_time_[current_object_id]) {
+                rollback(event->timestamp(), current_object_id, current_object);
+            }
+
             // Handle a negative event
             if (event->event_type_ == EventType::NEGATIVE) {
 //                event_set_->handleAntiMessage(current_object_id, std::move(event));
                 continue;
             }
 
-            // Check to see if straggler and rollback if necessary
-            if (event->timestamp() < object_simulation_time_[current_object_id]) {
-                rollback(event->timestamp(), current_object_id, current_object);
-            } else {
-                if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
-                    min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
-                    min_lvt_flag_--;
-                }
+            if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
+                min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
+                min_lvt_flag_--;
             }
 
             // Update simulation time
@@ -160,16 +160,16 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Send new events
             for (auto& e: new_events) {
-                auto object_id_it = local_object_id_by_name_.find(e->receiverName());
+                unsigned int node_id = object_node_id_by_name_[event->receiverName()];
 
                 output_manager_->insertEvent(e, current_object_id);
 
-                if (object_id_it != local_object_id_by_name_.end()) {
+                if (node_id == comm_manager_->getID()) {
                     // Local event
                     sendLocalEvent(e);
                 } else {
                     // Remote event
-                    enqueueRemoteEvent(e, object_node_id_by_name_[e->receiverName()]);
+                    enqueueRemoteEvent(e, node_id);
                 }
             }
         }
