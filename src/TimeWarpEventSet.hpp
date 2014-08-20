@@ -6,7 +6,7 @@
  */
 
 #include <vector>
-#include <multiset>
+#include <set>
 #include <unordered_map>
 #include <mutex>
 
@@ -17,7 +17,7 @@ class LTSFQueue;
 
 /* Compares two events to see if one has a receive time less than to the other
  */
-class compareEvent :
+class compareEvents :
     public std::binary_function<const std::shared_ptr<Event>, 
                                 const std::shared_ptr<Event>, 
                                 bool > {
@@ -67,13 +67,13 @@ private:
     unsigned int num_of_objects_;
 
     //Lock to protect the unprocessed queues
-    std::vector<std::mutex> unprocessed_queue_lock_;
+    std::unique_ptr<std::mutex []> unprocessed_queue_lock_;
 
     //Queues to hold the unprocessed events for each simulation object
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, compareEvents>>> unprocessed_queue_;
 
     //Lock to protect the processed queues
-    std::vector<std::mutex> processed_queue_lock_;
+    std::unique_ptr<std::mutex []> processed_queue_lock_;
 
     //Queues to hold the processed events for each simulation object
     std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> processed_queue_;
@@ -82,7 +82,7 @@ private:
     unsigned int num_of_schedulers_;
 
     //Lock to protect the schedule queues
-    std::vector<std::mutex> schedule_queue_lock_;
+    std::unique_ptr<std::mutex []> schedule_queue_lock_;
 
     //Queues to hold the scheduled events
     std::vector<std::unique_ptr<LTSFQueue>> schedule_queue_;

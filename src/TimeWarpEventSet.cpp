@@ -8,16 +8,19 @@ void TimeWarpEventSet::initialize( unsigned int num_of_objects, unsigned int num
     num_of_objects_ = num_of_objects;
     num_of_schedulers_ = num_of_schedulers;
 
-    //Create the unprocessed and processed queues
+    //Create the unprocessed and processed queues and their locks
     for (unsigned int obj_index = 0; obj_index < num_of_objects; obj_index++) {
-        unprocessed_queue_.push_back(new STLLTSFQueue());
-        processed_queue_.push_back(new STLLTSFQueue());
+        unprocessed_queue_.push_back(new std::multiset<std::shared_ptr<Event>, compareEvents>);
+        processed_queue_.push_back(new std::multiset<std::shared_ptr<Event>, compareEvents>);
     }
+    unprocessed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
+    processed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
 
-    //Create the event schedulers
+    //Create the event schedulers and their locks
     for (unsigned int scheduler_index = 0; scheduler_index < num_of_schedulers; scheduler_index++) {
-        event_scheduler_.push_back(new TimeWarpEventScheduler());
+        event_scheduler_.push_back(new STLLTSFQueue());
     }
+    schedule_queue_lock_ = make_unique<std::mutex []>(num_of_schedulers);
 }
 
 void TimeWarpEventSet::insertEvent( unsigned int obj_id, const std::unique_ptr<Event> event ) {
