@@ -2,6 +2,8 @@ SUBDIRS = deps test
 
 lib_LTLIBRARIES = libwarped.la
 
+AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpiheader=/usr/include/mpich2 --with-mpi=/usr/lib/mpich2
+
 # These are the headers that will be installed. Only list headers included
 # (directly or indirectly) through warped.hpp. Keep all these source listings
 # sorted.
@@ -44,8 +46,7 @@ WARPED_NOINST_HPP_FILES = \
     src/TimeWarpFileStreamManager.hpp \
     src/FileStream.hpp \
     src/TimeWarpFileStream.hpp \
-    src/TimeWarpEventSet.hpp \
-    src/TimeWarpEventScheduler.hpp
+    src/TimeWarpEventSet.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \

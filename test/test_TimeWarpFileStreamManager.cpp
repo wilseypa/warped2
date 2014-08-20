@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <cstring>
+#include <fstream>
 
 #include "TimeWarpFileStream.hpp"
 
@@ -124,6 +125,11 @@ TEST_CASE("Get filestreams, fossil collection, rollback operate correctly for ou
 }
 
 TEST_CASE("Can get input streams and use them.", "[filestream][input]") {
+    std::fstream file("test_in.txt", std::fstream::out | std::fstream::trunc);
+    const char *string = "line 1\n10\n56.78\nline 4\nline 5";
+    file.write(string, std::strlen(string));
+    file.close();
+
     unsigned int num_objects = 2;
     warped::TimeWarpFileStreamManager twfsm;
     twfsm.initialize(num_objects);

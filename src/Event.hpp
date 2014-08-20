@@ -40,7 +40,7 @@ public:
 
     EventType event_type_ = EventType::POSITIVE;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(event_type_);
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(event_type_)
 
 };
 

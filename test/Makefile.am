@@ -29,3 +29,4 @@ noinst_HEADERS = catch.hpp mocks.hpp
 TESTS = $(WARPED_TEST_PROGS)
 check_PROGRAMS = $(WARPED_TEST_PROGS)
 
+CLEANFILES = test_in.txt test_out1.txt test_out2.txt test_out3.txt
