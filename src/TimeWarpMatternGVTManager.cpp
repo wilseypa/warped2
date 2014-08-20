@@ -27,19 +27,19 @@ unsigned int TimeWarpMatternGVTManager::infinityVT() {
     return std::numeric_limits<unsigned int>::max();
 }
 
-void TimeWarpMatternGVTManager::setGvtInfo(int color) {
-    if (static_cast<MatternColor>(color) == MatternColor::WHITE) {
+void TimeWarpMatternGVTManager::receiveEventUpdate(MatternColor color) {
+    if (color == MatternColor::WHITE) {
         white_msg_counter_--;
     }
 }
 
-int TimeWarpMatternGVTManager::getGvtInfo(unsigned int timestamp) {
+MatternColor TimeWarpMatternGVTManager::sendEventUpdate(unsigned int timestamp) {
     if (color_ == MatternColor::WHITE) {
         white_msg_counter_++;
     } else {
         min_red_msg_timestamp_ = std::min(min_red_msg_timestamp_, timestamp);
     }
-    return static_cast<int>(color_);
+    return color_;
 }
 
 // This initiates the gvt calculation by sending the initial

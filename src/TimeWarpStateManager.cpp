@@ -14,7 +14,6 @@ void TimeWarpStateManager::initialize(unsigned int num_local_objects) {
 
 }
 
-// TODO this function assumes right now that there will always be a valid state to restore
 unsigned int TimeWarpStateManager::restoreState(unsigned int rollback_time,
     unsigned int local_object_id, SimulationObject *object) {
 
@@ -37,15 +36,15 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
     state_queue_lock_[local_object_id].lock();
 
     auto min = state_queue_[local_object_id].begin();
-    while (min->first <= gvt && min != state_queue_[local_object_id].end()) {
+    while (min->first < gvt && min != state_queue_[local_object_id].end()) {
         state_queue_[local_object_id].erase(min);
     }
-
-    state_queue_lock_[local_object_id].unlock();
 
     if (min != state_queue_[local_object_id].end()) {
         retval = min->first;
     }
+
+    state_queue_lock_[local_object_id].unlock();
 
     return retval;
 }

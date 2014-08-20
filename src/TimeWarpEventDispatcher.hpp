@@ -104,13 +104,14 @@ enum class MatternColor;
 
 struct EventMessage : public TimeWarpKernelMessage {
     EventMessage() = default;
-    EventMessage(unsigned int sender, unsigned int receiver, std::shared_ptr<Event> e, int c) :
+    EventMessage(unsigned int sender, unsigned int receiver, std::shared_ptr<Event> e,
+      MatternColor c) :
         TimeWarpKernelMessage(sender, receiver),
         event(e),
         gvt_mattern_color(c) {}
 
     std::shared_ptr<Event> event;
-    int gvt_mattern_color; // 0 for white, 1 for red
+    MatternColor gvt_mattern_color; // 0 for white, 1 for red
 
     MessageType get_type() { return MessageType::EventMessage; }
 
@@ -124,7 +125,7 @@ public:
     NegativeEvent(const std::string& receiver_name, const std::string& sender_name,
         unsigned int receive_time) :
             receiver_name_(receiver_name), sender_name_(sender_name), receive_time_(receive_time) {
-        setNegative();
+        event_type_ = EventType::NEGATIVE;
     }
 
     const std::string& receiverName() const {return receiver_name_;}
