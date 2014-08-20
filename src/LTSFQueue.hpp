@@ -27,7 +27,7 @@ public:
 
     // Return a non-owning pointer to the top of the queue, or nullptr iff the
     // queue is empty.
-    virtual Event* peek() const = 0;
+    virtual std::shared_ptr<Event> peek() const = 0;
 
     // Remove the lowest timestamped event from the queue and give ownership
     // to the caller. It is undefined behavior to call this function when

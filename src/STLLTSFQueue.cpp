@@ -13,7 +13,7 @@
 namespace warped {
 
 STLLTSFQueue::STLLTSFQueue()
-    : queue_([](Event* lhs, Event* rhs) {
+    : queue_([](std::shared_ptr<Event> lhs, std::shared_ptr<Event> rhs) {
                     return lhs->timestamp() > rhs->timestamp();
                 }) {}
 
@@ -25,7 +25,7 @@ std::size_t STLLTSFQueue::size() const {
     return queue_.size();
 }
 
-Event* STLLTSFQueue::peek() const {
+std::shared_ptr<Event> STLLTSFQueue::peek() const {
     if (queue_.empty()) {
         return nullptr;
     }
@@ -39,12 +39,12 @@ std::shared_ptr<Event> STLLTSFQueue::pop() {
 }
 
 void STLLTSFQueue::push(std::shared_ptr<Event> event) {
-    queue_.push(event.get());
+    queue_.push(event);
 }
 
 void STLLTSFQueue::push(std::vector<std::shared_ptr<Event>>&& events) {
     for (auto& event: events) {
-        queue_.push(event.get());
+        queue_.push(event);
     }
 }
 
