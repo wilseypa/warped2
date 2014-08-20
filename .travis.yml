@@ -11,7 +11,7 @@ before_install:
 
   - sudo apt-get update -qq
 install:
-  - sudo apt-get install -qq libtool automake 
+  - sudo apt-get install -qq libtool automake mpich2
 
   # Always install g++
   - sudo apt-get install -qq g++-4.8
@@ -25,6 +25,6 @@ install:
 before_script:
   - mkdir -p $HOME/lib
   - autoreconf -i 
-  - ./configure --prefix=$HOME/lib/warped 
+  - ./configure --prefix=$HOME/lib/warped --with-mpiheader=/usr/include/mpich2 --with-mpi=/usr/lib/mpich2
 script: 
   - make -j5 && make check && make install && make distcheck -j5
