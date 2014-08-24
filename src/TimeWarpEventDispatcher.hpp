@@ -52,7 +52,7 @@ public:
 
     void rollback(unsigned int straggler_time, unsigned int local_object_id, SimulationObject* ob);
 
-    void coastForward(unsigned int start_time, unsigned int stop_time);
+    void coastForward(SimulationObject *object, unsigned int stop_time);
 
     unsigned int getMinimumLVT();
 
@@ -76,7 +76,6 @@ private:
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<TimeWarpEventSet> event_set_;
-    const std::unique_ptr<LTSFQueue> events_;
     const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
     const std::unique_ptr<TimeWarpStateManager> state_manager_;
     const std::unique_ptr<TimeWarpOutputManager> output_manager_;
@@ -91,11 +90,15 @@ private:
 
     // flag to initiate minimum lvt calculation
     std::atomic<unsigned int> min_lvt_flag_ = ATOMIC_VAR_INIT(0);
+
     // local min lvt of each worker thread
     std::unique_ptr<unsigned int []> min_lvt_;
+
     // minimum timestamp of sent events used for minimum lvt calculation
     std::unique_ptr<unsigned int []> send_min_;
+
     std::unique_ptr<unsigned int []> local_min_lvt_flag_;
+
     // flag to determine if worker thread has already calculated min lvt
     std::unique_ptr<bool []> calculated_min_flag_;
 };

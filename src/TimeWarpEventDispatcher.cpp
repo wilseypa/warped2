@@ -12,6 +12,7 @@
 #include <algorithm>    // for std::min
 #include <chrono>   // for std::chrono::steady_clock
 #include <cstring> // for std::memset
+#include <iostream>
 
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
@@ -91,7 +92,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             // start another one.
             MessageFlags flags = gvt_manager_->calculateGVT();
             msg_flags |= flags;
-            if (PENDING_MATTERN_TOKEN(msg_flags)) {
+            if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0)
+                && !started_min_lvt ) {
                 min_lvt_flag_.store(num_worker_threads_);
                 started_min_lvt = true;
                 calculate_gvt = false;
@@ -108,8 +110,13 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
             unsigned int local_min_lvt = getMinimumLVT();
-            dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
-                local_min_lvt);
+            if (comm_manager_->getNumProcesses() > 1) {
+                dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
+                    local_min_lvt);
+            } else {
+                gvt_manager_->setGVT(local_min_lvt);
+                dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
+            }
             msg_flags &= ~MessageFlags::PendingMatternToken;
             started_min_lvt = false;
         }
@@ -145,6 +152,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
+                calculated_min_flag_[thread_id] = true;
                 min_lvt_flag_--;
             }
 
@@ -172,6 +180,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                     enqueueRemoteEvent(e, node_id);
                 }
             }
+        } else {
+            // TODO, do something here
         }
     }
 }
@@ -184,7 +194,7 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWa
 
     unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
     unused<unsigned int>(std::move(receiver_object_id));
-//    event_set_->insertEvent(receiver_object_id, std::move(msg->event));
+//    event_set_->insertEvent(receiver_object_id, msg->event);
 
     return MessageFlags::None;
 }
@@ -192,7 +202,7 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWa
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
     unused<unsigned int>(std::move(receiver_object_id));
-    //event_set_->insertEvent(receiver_object_id, event);
+//    event_set_->insertEvent(receiver_object_id, event);
 
     if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
         unsigned int send_min = send_min_[thread_id];
@@ -245,43 +255,55 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
 
 //    event_set_->rollback(local_object_id, restored_timestamp);
 
-    coastForward(restored_timestamp, straggler_time);
+    object_simulation_time_[local_object_id] = restored_timestamp;
+    twfs_manager_->setObjectCurrentTime(restored_timestamp, local_object_id);
+
+    coastForward(object, straggler_time);
 }
 
-void TimeWarpEventDispatcher::coastForward(unsigned int start_time, unsigned int stop_time) {
-    unsigned int current_time = start_time;
-    while (current_time < stop_time) {
-        std::shared_ptr<Event> event = nullptr; //TODO, get next event
+void TimeWarpEventDispatcher::coastForward(SimulationObject* object, unsigned int stop_time) {
 
-        unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
-        SimulationObject* current_object = objects_by_name_[event->receiverName()];
+    unsigned int current_object_id = local_object_id_by_name_[object->name_];
+
+    unsigned int next_timestamp = 0; // TODO, get the timestamp of the next event for the object
+                                     // that has just been rolled back
+
+    while (next_timestamp <= stop_time) {
+        std::shared_ptr<Event> event = nullptr; // TODO, get the next event for the object that
+                                                // has just been rolled back.
 
         object_simulation_time_[current_object_id] = event->timestamp();
         twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
 
-        current_object->receiveEvent(*event);
-        state_manager_->saveState(event->timestamp(), current_object_id, current_object);
+        object->receiveEvent(*event);
+        state_manager_->saveState(event->timestamp(), current_object_id, object);
+
+        next_timestamp = 0; // TODO, get the timestamp of the next event for the same object.
     }
 }
 
 void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>&
     objects) {
 
+    unsigned int num_local_objects = objects[comm_manager_->getID()].size();
+    // TODO, initialize event set here so that we can insert initial events into unprocessed queues
+
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
         unsigned int object_id = 0;
-        for (auto ob : partition) {
-            events_->push(ob->createInitialEvents());
+        for (auto& ob : partition) {
             if (partition_id == comm_manager_->getID()) {
                 objects_by_name_[ob->name_] = ob;
-                local_object_id_by_name_[ob->name_] = object_id++;
+                local_object_id_by_name_[ob->name_] = object_id;
+                auto new_events = ob->createInitialEvents();
+                // TODO, insert initial events
+                object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;
         }
         partition_id++;
     }
 
-    unsigned int num_local_objects = objects[comm_manager_->getID()].size();
     object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);
     std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
 
@@ -305,6 +327,13 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
     min_lvt_ = make_unique<unsigned int []>(num_worker_threads_);
     send_min_ = make_unique<unsigned int []>(num_worker_threads_);
     calculated_min_flag_ = make_unique<bool []>(num_worker_threads_);
+    local_min_lvt_flag_ = make_unique<unsigned int []>(num_worker_threads_);
+    for (unsigned int i = 0; i < num_worker_threads_; i++) {
+        min_lvt_[i] = std::numeric_limits<unsigned int>::max();
+        send_min_[i] = std::numeric_limits<unsigned int>::max();
+        calculated_min_flag_[i] = false;
+        local_min_lvt_flag_[i] = 0;
+    }
 }
 
 unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
@@ -313,6 +342,8 @@ unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
         min = std::min(min, min_lvt_[i]);
         // Reset send_min back to very large number for next calculation
         send_min_[i] = std::numeric_limits<unsigned int>::max();
+        calculated_min_flag_[i] = false;
+        min_lvt_[i] = std::numeric_limits<unsigned int>::max();
     }
     return min;
 }

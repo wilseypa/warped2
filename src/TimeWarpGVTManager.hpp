@@ -30,9 +30,11 @@ public:
 
     unsigned int getGVT() { return gVT_; }
 
+    void setGVT(unsigned int gvt) { gVT_ = gvt; }
+
 protected:
 
-    unsigned int gVT_;
+    unsigned int gVT_ = 0;
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
 

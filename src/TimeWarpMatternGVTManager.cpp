@@ -42,8 +42,6 @@ MatternColor TimeWarpMatternGVTManager::sendEventUpdate(unsigned int timestamp) 
     return color_;
 }
 
-// This initiates the gvt calculation by sending the initial
-// control message to node 1 (assuming this must be node 0 calling this)
 MessageFlags TimeWarpMatternGVTManager::calculateGVT() {
 
     MessageFlags flags = MessageFlags::None;
@@ -99,6 +97,7 @@ MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
             // calculate the GVT now
 
             gVT_ = std::min(msg->m_clock, msg->m_send);
+            std::cout << "GVT: " << gVT_ << std::endl;
             gVT_token_pending_ = false;
 
             sendGVTUpdate();
@@ -136,6 +135,7 @@ MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
 void TimeWarpMatternGVTManager::reset() {
     token_iteration_ = 0;
     color_ = MatternColor::WHITE;
+    gVT_token_pending_ = false;
 }
 
 } // namespace warped
