@@ -37,6 +37,7 @@ thread_local unsigned int TimeWarpEventDispatcher::thread_id;
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_worker_threads,
+    unsigned int num_schedulers,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<TimeWarpEventSet> event_set,
     std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -44,8 +45,9 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpOutputManager> output_manager,
     std::unique_ptr<TimeWarpFileStreamManager> twfs_manager) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
-        comm_manager_(comm_manager), event_set_(std::move(event_set)),
-        gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
+        num_schedulers_(num_schedulers), comm_manager_(comm_manager), 
+        event_set_(std::move(event_set)), gvt_manager_(std::move(gvt_manager)), 
+        state_manager_(std::move(state_manager)), 
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)) {}
 
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
@@ -133,7 +135,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     while (gvt_manager_->getGVT() < max_sim_time_) {
         local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();
 
-        std::shared_ptr<Event> event = nullptr; //TODO, get next event
+        std::shared_ptr<Event> event = event_set_->getEvent();
         if (event != nullptr) {
 
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
@@ -186,15 +188,15 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     }
 }
 
-MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage>
-    kmsg) {
+MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
+        std::unique_ptr<TimeWarpKernelMessage> kmsg) {
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
     dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->receiveEventUpdate(
         msg->gvt_mattern_color);
 
     unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
     unused<unsigned int>(std::move(receiver_object_id));
-//    event_set_->insertEvent(receiver_object_id, msg->event);
+    event_set_->insertEvent(receiver_object_id, msg->event);
 
     return MessageFlags::None;
 }
@@ -202,7 +204,7 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWa
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
     unused<unsigned int>(std::move(receiver_object_id));
-//    event_set_->insertEvent(receiver_object_id, event);
+    event_set_->insertEvent(receiver_object_id, event);
 
     if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
         unsigned int send_min = send_min_[thread_id];
@@ -241,7 +243,7 @@ void TimeWarpEventDispatcher::cancelEvents(
 }
 
 void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int local_object_id,
-    SimulationObject* object) {
+        SimulationObject* object) {
 
     twfs_manager_->rollback(straggler_time, local_object_id);
 
@@ -265,12 +267,9 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object, unsigned in
 
     unsigned int current_object_id = local_object_id_by_name_[object->name_];
 
-    unsigned int next_timestamp = 0; // TODO, get the timestamp of the next event for the object
-                                     // that has just been rolled back
-
+    unsigned int next_timestamp = event_set_->readObjTimestamp(current_object_id); //TODO
     while (next_timestamp <= stop_time) {
-        std::shared_ptr<Event> event = nullptr; // TODO, get the next event for the object that
-                                                // has just been rolled back.
+        std::shared_ptr<Event> event = event_set_->readLowestEventFromObj(); //TODO
 
         object_simulation_time_[current_object_id] = event->timestamp();
         twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
@@ -278,15 +277,14 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object, unsigned in
         object->receiveEvent(*event);
         state_manager_->saveState(event->timestamp(), current_object_id, object);
 
-        next_timestamp = 0; // TODO, get the timestamp of the next event for the same object.
+        next_timestamp = event_set_->readObjTimestamp(current_object_id); //TODO
     }
 }
 
-void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>&
-    objects) {
-
+void TimeWarpEventDispatcher::initialize(
+        const std::vector<std::vector<SimulationObject*>>& objects) {
     unsigned int num_local_objects = objects[comm_manager_->getID()].size();
-    // TODO, initialize event set here so that we can insert initial events into unprocessed queues
+    event_set_->initialize(num_local_objects, num_schedulers_);
 
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
@@ -296,7 +294,7 @@ void TimeWarpEventDispatcher::initialize(const std::vector<std::vector<Simulatio
                 objects_by_name_[ob->name_] = ob;
                 local_object_id_by_name_[ob->name_] = object_id;
                 auto new_events = ob->createInitialEvents();
-                // TODO, insert initial events
+                event_set_->insertEventVec(object_id, new_events);
                 object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;

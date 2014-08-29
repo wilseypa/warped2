@@ -62,7 +62,9 @@ const static std::string DEFAULT_CONFIG = R"x({
 
     "cancellation": "aggressive",
 
-    "worker-threads: 3
+    "worker-threads": 3,
+
+    "scheduler-count": 1
 },
 
 "partitioning": {
@@ -199,8 +201,10 @@ Configuration::makeDispatcher() {
 
         int num_worker_threads = (*root_)["time-warp"]["worker-threads"].asInt();
 
+        int num_schedulers = (*root_)["time-warp"]["scheduler-count"].asInt();
+
         return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,
-            num_worker_threads, comm_manager, std::move(event_set),
+            num_worker_threads, num_schedulers, comm_manager, std::move(event_set),
             std::move(gvt_manager), std::move(state_manager), std::move(output_manager),
             std::move(twfs_manager)), num_partitions);
     }

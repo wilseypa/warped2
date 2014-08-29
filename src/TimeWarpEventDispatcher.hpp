@@ -31,6 +31,7 @@ class TimeWarpEventDispatcher : public EventDispatcher {
 public:
     TimeWarpEventDispatcher(unsigned int max_sim_time,
         unsigned int num_worker_threads,
+        unsigned int num_schedulers,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
         std::unique_ptr<TimeWarpEventSet> event_set,
         std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -69,6 +70,8 @@ private:
     void processEvents(unsigned int id);
 
     unsigned int num_worker_threads_;
+
+    unsigned int num_schedulers_;
 
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
     std::unordered_map<std::string, unsigned int> local_object_id_by_name_;

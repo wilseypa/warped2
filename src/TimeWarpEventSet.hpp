@@ -29,28 +29,27 @@ public:
 };
 
 class TimeWarpEventSet {
+
 public:
     TimeWarpEventSet() = default;
 
-    void initialize ( 
-                unsigned int num_of_objects, 
-                unsigned int num_of_schedulers );
+    void initialize(unsigned int num_of_objects, unsigned int num_of_schedulers);
 
-    void insertEvent ( 
-                unsigned int object_id, 
-                const std::shared_ptr<Event> event );
+    void insertEvent(unsigned int object_id, const std::shared_ptr<Event> event);
+
+    void insertEventVector(unsigned int object_id, 
+            std::vector<const std::shared_ptr<Event>> event_vector);
+
+    const std::shared_ptr<Event> getEvent();
+
+    const std::shared_ptr<Event> readLowestEventFromObj(unsigned int object_id);
+
+
+    //TODO: These APIs might need re-design
 
     bool handleAntiMessage ( 
                 unsigned int object_id, 
                 const std::shared_ptr<Event> cancel_event );
-
-    const std::shared_ptr<Event> getEvent ( 
-                unsigned int object_id, 
-                unsigned int timestamp );
-
-    const std::shared_ptr<Event> peekEvent ( 
-                unsigned int object_id, 
-                unsigned int timestamp );
 
     void fossilCollect ( 
                 unsigned int object_id, 
@@ -70,13 +69,13 @@ private:
     std::unique_ptr<std::mutex []> unprocessed_queue_lock_;
 
     //Queues to hold the unprocessed events for each simulation object
-    std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, compareEvents>>> unprocessed_queue_;
+    std::vector<std::unique_ptr<std::multiset<const std::shared_ptr<Event>, compareEvents>>> unprocessed_queue_;
 
     //Lock to protect the processed queues
     std::unique_ptr<std::mutex []> processed_queue_lock_;
 
     //Queues to hold the processed events for each simulation object
-    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> processed_queue_;
+    std::vector<std::unique_ptr<std::vector<const std::shared_ptr<Event>>>> processed_queue_;
 
     //Number of event schedulers
     unsigned int num_of_schedulers_;
