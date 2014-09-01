@@ -33,16 +33,18 @@ class TimeWarpEventSet {
 public:
     TimeWarpEventSet() = default;
 
-    void initialize(unsigned int num_of_objects, unsigned int num_of_schedulers);
+    void initialize (unsigned int num_of_objects, 
+                     unsigned int num_of_schedulers,
+                     unsigned int num_of_worker_threads);
 
-    void insertEvent(unsigned int object_id, const std::shared_ptr<Event> event);
+    void insertEvent (unsigned int obj_id, const std::shared_ptr<Event> event);
 
-    void insertEventVector(unsigned int object_id, 
-            std::vector<const std::shared_ptr<Event>> event_vector);
+    void insertEventVector (unsigned int obj_id, 
+                    std::vector<const std::shared_ptr<Event>> events);
 
-    const std::shared_ptr<Event> getEvent();
+    const std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
-    const std::shared_ptr<Event> readLowestEventFromObj(unsigned int object_id);
+    const std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id);
 
 
     //TODO: These APIs might need re-design
@@ -85,6 +87,12 @@ private:
 
     //Queues to hold the scheduled events
     std::vector<std::unique_ptr<LTSFQueue>> schedule_queue_;
+
+    //Map unprocessed queue to a schedule queue
+    std::vector<unsigned int> unprocessed_queue_scheduler_map_;
+
+    //Map worker thread to a schedule queue
+    std::vector<unsigned int> worker_thread_scheduler_map_;
 };
 
 } // warped namespace

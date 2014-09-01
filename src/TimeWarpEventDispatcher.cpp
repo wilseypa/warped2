@@ -135,7 +135,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     while (gvt_manager_->getGVT() < max_sim_time_) {
         local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();
 
-        std::shared_ptr<Event> event = event_set_->getEvent();
+        std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
 
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
@@ -284,7 +284,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object, unsigned in
 void TimeWarpEventDispatcher::initialize(
         const std::vector<std::vector<SimulationObject*>>& objects) {
     unsigned int num_local_objects = objects[comm_manager_->getID()].size();
-    event_set_->initialize(num_local_objects, num_schedulers_);
+    event_set_->initialize(num_local_objects, num_schedulers_, num_worker_threads_);
 
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
@@ -294,7 +294,7 @@ void TimeWarpEventDispatcher::initialize(
                 objects_by_name_[ob->name_] = ob;
                 local_object_id_by_name_[ob->name_] = object_id;
                 auto new_events = ob->createInitialEvents();
-                event_set_->insertEventVec(object_id, new_events);
+                event_set_->insertEventVector(object_id, new_events);
                 object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;
