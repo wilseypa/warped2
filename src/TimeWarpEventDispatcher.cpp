@@ -148,7 +148,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Handle a negative event
             if (event->event_type_ == EventType::NEGATIVE) {
-//                event_set_->handleAntiMessage(current_object_id, std::move(event));
+                // event_set_->handleAntiMessage(current_object_id, std::move(event));
+                // TODO: schedule queue replenishment needs to be considered here
                 continue;
             }
 
@@ -182,6 +183,10 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                     enqueueRemoteEvent(e, node_id);
                 }
             }
+
+            // Move the next event from object into the schedule queue
+            event_set_->populateScheduler(current_object_id, std::move(event));
+
         } else {
             // TODO, do something here
         }

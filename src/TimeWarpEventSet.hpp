@@ -46,6 +46,9 @@ public:
 
     const std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id);
 
+    void populateScheduler (unsigned int obj_id, 
+                            const std::shared_ptr<Event> old_event);
+
 
     //TODO: These APIs might need re-design
 

@@ -100,6 +100,26 @@ const std::shared_ptr<Event> readLowestEventFromObj( unsigned int obj_id ) {
     return event;
 }
 
+void populateScheduler (unsigned int obj_id, const std::shared_ptr<Event> old_event) {
+
+    // Move old event from unprocessed queue to processed queue
+    unprocessed_queue_lock_[obj_id].lock();
+    (void) unprocessed_queue_[obj_id]->erase(old_event);
+    processed_queue_lock_[obj_id].lock();
+    // TODO: Add old_event to processed queue. Need to rethink the ds of processed queue
+    processed_queue_lock_[obj_id].unlock();
+
+    if (unprocessed_queue_[obj_id]->empty() == true) {
+        return;
+    }
+    unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
+    schedule_queue_lock_[scheduler_id].lock();
+    schedule_queue_[scheduler_id]->push(*unprocessed_queue_[obj_id]->begin());
+    schedule_queue_lock_[scheduler_id].unlock();
+    unprocessed_queue_lock_[obj_id].unlock();
+}
+
+
 //TODO: APIs not ready
 bool TimeWarpEventSet::handleAntiMessage ( 
                                     unsigned int obj_id, 
