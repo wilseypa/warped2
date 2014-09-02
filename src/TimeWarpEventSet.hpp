@@ -46,8 +46,10 @@ public:
 
     const std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id);
 
-    void populateScheduler (unsigned int obj_id, 
-                            const std::shared_ptr<Event> old_event);
+    void replenishScheduler (unsigned int obj_id, 
+                             const std::shared_ptr<Event> old_event);
+
+    void fossilCollectAll(unsigned int time_stamp);
 
 
     //TODO: These APIs might need re-design
@@ -55,12 +57,6 @@ public:
     bool handleAntiMessage ( 
                 unsigned int object_id, 
                 const std::shared_ptr<Event> cancel_event );
-
-    void fossilCollect ( 
-                unsigned int object_id, 
-                unsigned int timestamp ); 
-
-    void fossilCollectAll(unsigned int timestamp);
 
     void rollback ( 
                 unsigned int object_id, 

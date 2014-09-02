@@ -100,13 +100,13 @@ const std::shared_ptr<Event> readLowestEventFromObj( unsigned int obj_id ) {
     return event;
 }
 
-void populateScheduler (unsigned int obj_id, const std::shared_ptr<Event> old_event) {
+void replenishScheduler (unsigned int obj_id, const std::shared_ptr<Event> old_event) {
 
     // Move old event from unprocessed queue to processed queue
     unprocessed_queue_lock_[obj_id].lock();
     (void) unprocessed_queue_[obj_id]->erase(old_event);
     processed_queue_lock_[obj_id].lock();
-    // TODO: Add old_event to processed queue. Need to rethink the ds of processed queue
+    processed_queue_[obj_id]->push_back(std::move(old_event));
     processed_queue_lock_[obj_id].unlock();
 
     if (unprocessed_queue_[obj_id]->empty() == true) {
@@ -119,24 +119,26 @@ void populateScheduler (unsigned int obj_id, const std::shared_ptr<Event> old_ev
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
+void TimeWarpEventSet::fossilCollectAll (unsigned int time_stamp) {
+
+    const std::shared_ptr<Event> event = nullptr;
+    for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {
+        processed_queue_lock_[obj_id].lock();
+        while (processed_queue_[obj_id]->begin() != processed_queue_[obj_id]->end() ) {
+            event = *processed_queue_[obj_id]->begin();
+            if (event->timestamp() >= time_stamp) break;
+            processed_queue_[obj_id]->erase(processed_queue_[obj_id]->begin());
+            delete event;
+        }
+        processed_queue_lock_[obj_id].unlock();
+    }
+}
+
 
 //TODO: APIs not ready
 bool TimeWarpEventSet::handleAntiMessage ( 
                                     unsigned int obj_id, 
                                     const std::unique_ptr<Event> cancel_event ) { 
-
-}
-
-void TimeWarpEventSet::fossilCollect ( 
-                                    SimulationObject* object, 
-                                    unsigned int timestamp, 
-                                    unsigned int thread_id ) {
-
-}
-
-void TimeWarpEventSet::fossilCollect ( 
-                                    const std::unique_ptr<Event> event, 
-                                    unsigned int thread_id ) {
 
 }
 

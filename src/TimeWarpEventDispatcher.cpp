@@ -185,7 +185,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             // Move the next event from object into the schedule queue
-            event_set_->populateScheduler(current_object_id, std::move(event));
+            event_set_->replenishScheduler(current_object_id, std::move(event));
 
         } else {
             // TODO, do something here
@@ -221,7 +221,7 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     twfs_manager_->fossilCollectAll(gvt);
     state_manager_->fossilCollectAll(gvt);
     output_manager_->fossilCollectAll(gvt);
-//    event_set_->fossilCollectAll(gvt);
+    event_set_->fossilCollectAll(gvt);
 }
 
 void TimeWarpEventDispatcher::cancelEvents(
