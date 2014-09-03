@@ -18,12 +18,11 @@ class LTSFQueue;
 /* Compares two events to see if one has a receive time less than to the other
  */
 class compareEvents :
-    public std::binary_function<const std::shared_ptr<Event>, 
-                                const std::shared_ptr<Event>, 
-                                bool > {
+    public std::binary_function<std::shared_ptr<Event>, 
+                                    std::shared_ptr<Event>, bool> {
 public:
-    bool operator() ( const std::shared_ptr<Event> first, 
-                      const std::shared_ptr<Event> second ) {
+    bool operator() (std::shared_ptr<Event> first, 
+                        std::shared_ptr<Event> second) {
         return first->timestamp() < second->timestamp();
     }
 };
@@ -37,30 +36,28 @@ public:
                      unsigned int num_of_schedulers,
                      unsigned int num_of_worker_threads);
 
-    void insertEvent (unsigned int obj_id, const std::shared_ptr<Event> event);
+    void insertEvent (unsigned int obj_id, std::shared_ptr<Event> event);
 
     void insertEventVector (unsigned int obj_id, 
-                    std::vector<const std::shared_ptr<Event>> events);
+                                std::vector<std::shared_ptr<Event>> events);
 
-    const std::shared_ptr<Event> getEvent (unsigned int thread_id);
+    std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
-    const std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id);
+    std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id);
 
     void replenishScheduler (unsigned int obj_id, 
-                             const std::shared_ptr<Event> old_event);
+                                std::shared_ptr<Event> old_event);
 
-    void fossilCollectAll(unsigned int time_stamp);
+    void fossilCollectAll (unsigned int time_stamp);
+
+    void rollback (unsigned int object_id, unsigned int rollback_time); 
 
 
     //TODO: These APIs might need re-design
 
     bool handleAntiMessage ( 
                 unsigned int object_id, 
-                const std::shared_ptr<Event> cancel_event );
-
-    void rollback ( 
-                unsigned int object_id, 
-                unsigned int rollback_time ); 
+                std::shared_ptr<Event> cancel_event );
 
 private:
     //Number of simulation objects
@@ -70,13 +67,13 @@ private:
     std::unique_ptr<std::mutex []> unprocessed_queue_lock_;
 
     //Queues to hold the unprocessed events for each simulation object
-    std::vector<std::unique_ptr<std::multiset<const std::shared_ptr<Event>, compareEvents>>> unprocessed_queue_;
+    std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, compareEvents>>> unprocessed_queue_;
 
     //Lock to protect the processed queues
     std::unique_ptr<std::mutex []> processed_queue_lock_;
 
     //Queues to hold the processed events for each simulation object
-    std::vector<std::unique_ptr<std::vector<const std::shared_ptr<Event>>>> processed_queue_;
+    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> processed_queue_;
 
     //Number of event schedulers
     unsigned int num_of_schedulers_;
