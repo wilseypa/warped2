@@ -73,7 +73,8 @@ WARPED_CPP_FILES = \
     src/TimeWarpAggressiveOutputManager.cpp \
     src/TimeWarpFileStreamManager.cpp \
     src/FileStream.cpp \
-    src/TimeWarpFileStream.cpp
+    src/TimeWarpFileStream.cpp \
+    src/TimeWarpEventSet.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \
