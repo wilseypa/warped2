@@ -148,7 +148,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Handle a negative event
             if (event->event_type_ == EventType::NEGATIVE) {
-                // event_set_->handleAntiMessage(current_object_id, std::move(event));
+                event_set_->handleAntiMessage(current_object_id, std::move(event));
                 // TODO: schedule queue replenishment needs to be considered here
                 continue;
             }

@@ -48,16 +48,12 @@ public:
     void replenishScheduler (unsigned int obj_id, 
                                 std::shared_ptr<Event> old_event);
 
-    void fossilCollectAll (unsigned int time_stamp);
+    void fossilCollectAll (unsigned int fossil_collect_time);
 
-    void rollback (unsigned int object_id, unsigned int rollback_time); 
+    void rollback (unsigned int obj_id, unsigned int rollback_time); 
 
-
-    //TODO: These APIs might need re-design
-
-    bool handleAntiMessage ( 
-                unsigned int object_id, 
-                std::shared_ptr<Event> cancel_event );
+    void handleAntiMessage (unsigned int obj_id, 
+                            std::shared_ptr<Event> cancel_event );
 
 private:
     //Number of simulation objects
@@ -67,13 +63,15 @@ private:
     std::unique_ptr<std::mutex []> unprocessed_queue_lock_;
 
     //Queues to hold the unprocessed events for each simulation object
-    std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, compareEvents>>> unprocessed_queue_;
+    std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
+                                        compareEvents>>> unprocessed_queue_;
 
     //Lock to protect the processed queues
     std::unique_ptr<std::mutex []> processed_queue_lock_;
 
     //Queues to hold the processed events for each simulation object
-    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> processed_queue_;
+    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> 
+                                                        processed_queue_;
 
     //Number of event schedulers
     unsigned int num_of_schedulers_;

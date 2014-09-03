@@ -3,9 +3,9 @@
 
 namespace warped {
 
-void TimeWarpEventSet::initialize( unsigned int num_of_objects, 
+void TimeWarpEventSet::initialize (unsigned int num_of_objects, 
                                    unsigned int num_of_schedulers,
-                                   unsigned int num_of_worker_threads ) {
+                                   unsigned int num_of_worker_threads) {
 
     num_of_objects_ = num_of_objects;
     num_of_schedulers_ = num_of_schedulers;
@@ -36,8 +36,8 @@ void TimeWarpEventSet::initialize( unsigned int num_of_objects,
     }
 }
 
-void TimeWarpEventSet::insertEvent( unsigned int obj_id, 
-                                    std::shared_ptr<Event> event ) {
+void TimeWarpEventSet::insertEvent (unsigned int obj_id, 
+                                    std::shared_ptr<Event> event) {
 
     unprocessed_queue_lock_[obj_id].lock();
     unprocessed_queue_[obj_id]->insert(event);
@@ -52,7 +52,7 @@ void TimeWarpEventSet::insertEvent( unsigned int obj_id,
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
-void insertEventVector( unsigned int obj_id, 
+void insertEventVector (unsigned int obj_id, 
                         std::vector<std::shared_ptr<Event>> events) {
 
     bool is_no_event_scheduled = false;
@@ -77,7 +77,7 @@ void insertEventVector( unsigned int obj_id,
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
-std::shared_ptr<Event> TimeWarpEventSet::getEvent( unsigned int thread_id ) { 
+std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) { 
 
     std::shared_ptr<Event> event = nullptr;
     schedule_queue_lock_[worker_thread_scheduler_map_[thread_id]].lock();
@@ -89,7 +89,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent( unsigned int thread_id ) {
     return event;
 }
 
-std::shared_ptr<Event> readLowestEventFromObj( unsigned int obj_id ) {
+std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id) {
 
     std::shared_ptr<Event> event = nullptr;
     unprocessed_queue_lock_[obj_id].lock();
@@ -119,14 +119,14 @@ void replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event) 
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
-void TimeWarpEventSet::fossilCollectAll (unsigned int time_stamp) {
+void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
 
     std::shared_ptr<Event> event = nullptr;
     for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {
         processed_queue_lock_[obj_id].lock();
         while (processed_queue_[obj_id]->begin() != processed_queue_[obj_id]->end() ) {
             event = *processed_queue_[obj_id]->begin();
-            if (event->timestamp() >= time_stamp) break;
+            if (event->timestamp() >= fossil_collect_time) break;
             processed_queue_[obj_id]->erase(processed_queue_[obj_id]->begin());
             delete event;
         }
@@ -155,9 +155,8 @@ void TimeWarpEventSet::rollback (unsigned int obj_id,
     processed_queue_lock_[obj_id].unlock();
 }
 
-//TODO: APIs not ready
-bool TimeWarpEventSet::handleAntiMessage (unsigned int obj_id, 
-                                          std::shared_ptr<Event> cancel_event ) { 
+void TimeWarpEventSet::handleAntiMessage (unsigned int obj_id, 
+                                          std::shared_ptr<Event> cancel_event) { 
 
 }
 
