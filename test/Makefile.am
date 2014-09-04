@@ -1,9 +1,16 @@
 CPPFLAGS += -I$(top_srcdir)/deps -I$(top_srcdir)/src
-LDFLAGS = -export-dynamic -lmpi
+if HAVE_MPICH
+    LDFLAGS = -static
+else
+if HAVE_MPI
+    LDFLAGS = -export-dynamic -lmpi -lmpi_cxx
+endif
+endif
+
 LDADD = $(top_builddir)/libwarped.la
 
 # With a default ext specified, we can skip defining SOURCES for a progarm
-# that has only one file  
+# that has only one file
 AM_DEFAULT_SOURCE_EXT = .cpp
 
 WARPED_TEST_PROGS = \
