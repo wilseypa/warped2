@@ -2,8 +2,6 @@ SUBDIRS = deps test
 
 lib_LTLIBRARIES = libwarped.la
 
-AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpiheader=/usr/include/mpich2 --with-mpi=/usr/lib/mpich2
-
 # These are the headers that will be installed. Only list headers included
 # (directly or indirectly) through warped.hpp. Keep all these source listings
 # sorted.
@@ -89,11 +87,13 @@ libwarped_la_LIBADD = \
 
 # When MPI support is added, uncomment these next blocks
 if HAVE_MPICH
-    libwarped_la_LIBADD += -lmpich
+    libwarped_la_LIBADD += -lmpich -lmpl
+    AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpiheader=/usr/include/mpich2 --with-mpi=/usr/lib/mpich2
 else
 if HAVE_MPI
-	libwarped_la_LDFLAGS += -export-dynamic
+    libwarped_la_LDFLAGS = -export-dynamic
     libwarped_la_LIBADD += -lmpi
+    AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpiheader=/usr/include/openmpi --with-mpi=/usr/lib/openmpi
 endif
 endif
 
