@@ -9,11 +9,13 @@
 #include <set>
 #include <unordered_map>
 #include <mutex>
+#include <memory>
+
+#include "Event.hpp"
+#include "STLLTSFQueue.hpp"
+#include "utility/memory.hpp"
 
 namespace warped {
-
-class Event;
-class LTSFQueue;
 
 /* Compares two events to see if one has a receive time less than to the other
  */

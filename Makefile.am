@@ -89,10 +89,11 @@ libwarped_la_LIBADD = \
 
 # When MPI support is added, uncomment these next blocks
 if HAVE_MPICH
-    libwarped_la_LIBADD += -lmpich -lmpl -lpthread
+    libwarped_la_LIBADD += -lmpich
 else
 if HAVE_MPI
-    libwarped_la_LIBADD += -lmpi -lpthread
+	libwarped_la_LDFLAGS += -export-dynamic
+    libwarped_la_LIBADD += -lmpi
 endif
 endif
 

@@ -1,6 +1,8 @@
 #include "TimeWarpEventSet.hpp"
 #include "STLLTSFQueue.hpp"
 
+#include "utility/warnings.hpp"
+
 namespace warped {
 
 void TimeWarpEventSet::initialize (unsigned int num_of_objects, 
@@ -14,9 +16,9 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
        Also create the uprocessed queue to schedule queue map. */
     for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
         unprocessed_queue_.push_back(
-            new std::multiset<std::shared_ptr<Event>, compareEvents>);
+            make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
         processed_queue_.push_back(
-            new std::multiset<std::shared_ptr<Event>, compareEvents>);
+            make_unique<std::vector<std::shared_ptr<Event>>>());
         unprocessed_queue_scheduler_map_.push_back(obj_id / num_of_schedulers);
     }
     unprocessed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
@@ -25,7 +27,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
     // Create the schedule queues and their locks
     for (unsigned int scheduler_id = 0; 
             scheduler_id < num_of_schedulers; scheduler_id++) {
-        schedule_queue_.push_back(new STLLTSFQueue());
+        schedule_queue_.push_back(make_unique<STLLTSFQueue>());
     }
     schedule_queue_lock_ = make_unique<std::mutex []>(num_of_schedulers);
 
@@ -43,7 +45,7 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
     unprocessed_queue_[obj_id]->insert(event);
 
     // Insert event into schedule queue if no event has been scheduled
-    if (unprocessed_queue_[obj_id]->count() == 1) {
+    if (unprocessed_queue_[obj_id]->size() == 1) {
         unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
         schedule_queue_[scheduler_id]->push(event);
@@ -52,7 +54,7 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
-void insertEventVector (unsigned int obj_id, 
+void TimeWarpEventSet::insertEventVector (unsigned int obj_id, 
                         std::vector<std::shared_ptr<Event>> events) {
 
     bool is_no_event_scheduled = false;
@@ -89,7 +91,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     return event;
 }
 
-std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id) {
+std::shared_ptr<Event> TimeWarpEventSet::readLowestEventFromObj (unsigned int obj_id) {
 
     std::shared_ptr<Event> event = nullptr;
     unprocessed_queue_lock_[obj_id].lock();
@@ -100,7 +102,7 @@ std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id) {
     return event;
 }
 
-void replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event) {
+void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event) {
 
     // Move old event from unprocessed queue to processed queue
     unprocessed_queue_lock_[obj_id].lock();
@@ -128,7 +130,6 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
             event = *processed_queue_[obj_id]->begin();
             if (event->timestamp() >= fossil_collect_time) break;
             processed_queue_[obj_id]->erase(processed_queue_[obj_id]->begin());
-            delete event;
         }
         processed_queue_lock_[obj_id].unlock();
     }
@@ -141,13 +142,13 @@ void TimeWarpEventSet::rollback (unsigned int obj_id,
     unsigned int processed_queue_len = processed_queue_[obj_id]->size();
     // No need for rollback if processed queue only has events before the time of rollback
     if ((processed_queue_len > 0) && 
-        (processed_queue_[obj_id][processed_queue_len-1]->timestamp() < rollback_time)) {
+        ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() < rollback_time)) {
         return;
     }
     unprocessed_queue_lock_[obj_id].lock();
     while ((processed_queue_len > 0) && 
-           (processed_queue_[obj_id][processed_queue_len-1]->timestamp() >= rollback_time)) {
-        unprocessed_queue_[obj_id]->insert(processed_queue_[obj_id][processed_queue_len-1]);
+           ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() >= rollback_time)) {
+        unprocessed_queue_[obj_id]->insert((*processed_queue_[obj_id])[processed_queue_len-1]);
         processed_queue_[obj_id]->pop_back();
         processed_queue_len--;
     }
@@ -158,6 +159,8 @@ void TimeWarpEventSet::rollback (unsigned int obj_id,
 void TimeWarpEventSet::handleAntiMessage (unsigned int obj_id, 
                                           std::shared_ptr<Event> cancel_event) { 
 
+    unused<unsigned int>(std::move(obj_id));
+    unused<std::shared_ptr<Event>>(std::move(cancel_event));
 }
 
 } // namespace warped
