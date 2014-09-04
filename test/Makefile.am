@@ -1,9 +1,11 @@
 CPPFLAGS += -I$(top_srcdir)/deps -I$(top_srcdir)/src
+
+LDFLAGS=
 if HAVE_MPICH
-    LDFLAGS = -static
+    LDFLAGS += -static
 else
 if HAVE_MPI
-    LDFLAGS = -export-dynamic -lmpi -lmpi_cxx
+    LDFLAGS += -export-dynamic -lmpi -lmpi_cxx
 endif
 endif
 
