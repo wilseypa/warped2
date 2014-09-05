@@ -45,8 +45,8 @@ havempich=no
 
 AC_CHECK_HEADER( mpi.h,,
   AC_MSG_ERROR(Couldn't find mpi.h. You probably need to install MPI or define an include path with the --with-mpiheader option.) )
-AC_CHECK_LIB( mpi, MPI_Init, havempi=yes,
-  AC_CHECK_LIB( mpich, MPI_Init, havempich=yes,
+AC_CHECK_LIB( mpich, MPI_Init, havempich=yes,
+  AC_CHECK_LIB( mpi, MPI_Init, havempi=yes,
     AC_MSG_ERROR([Could neither find libmpi.a nor libmpich.a. You probably need to define the lib path with the --with-mpi option]), -lmpl))
 
 AM_CONDITIONAL(HAVE_MPICH, test $havempich = yes)
