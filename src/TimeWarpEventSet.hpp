@@ -26,6 +26,7 @@ public:
     bool operator() (std::shared_ptr<Event> first, 
                         std::shared_ptr<Event> second) {
         return first->timestamp() < second->timestamp();
+        // TODO: modify the check condition
     }
 };
 

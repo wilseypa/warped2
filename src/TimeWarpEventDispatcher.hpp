@@ -1,6 +1,12 @@
 #ifndef TIME_WARP_EVENT_DISPATCHER_H
 #define TIME_WARP_EVENT_DISPATCHER_H
 
+#ifdef __GNUC__ 
+  #if __GNUC_MINOR__ < 8
+    #define thread_local __thread
+  #endif
+#endif
+
 #include <atomic>
 #include <memory>
 #include <unordered_map>
