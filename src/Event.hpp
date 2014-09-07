@@ -8,8 +8,8 @@
 namespace warped {
 
 enum class EventType : bool {
-    POSITIVE,
-    NEGATIVE,
+    NEGATIVE = 0,
+    POSITIVE
 };
 
 // Events are passed between objects. They may contain data, and must be

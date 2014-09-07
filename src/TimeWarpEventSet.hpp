@@ -29,7 +29,8 @@ public:
         return (first->timestamp() < second->timestamp()
                 || first->receiverName() < second->receiverName()
                 || first->sender_name_ < second->sender_name_
-                || first->rollback_cnt_ < second->rollback_cnt_);
+                || first->rollback_cnt_ < second->rollback_cnt_
+                || first->event_type_ < second->event_type_);
     }
 };
 
