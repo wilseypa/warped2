@@ -19,9 +19,10 @@ public:
     Event() = default;
     virtual ~Event() {}
 
+    // Operator can be used in its current form only for handling anti-messages.
+    // Receiver name comparison might needed for general use elsewhere.
     bool operator== (const Event &other) {
-        return (this->receiverName() == other.receiverName()
-                && this->sender_name_ == other.sender_name_
+        return (this->sender_name_ == other.sender_name_
                 && this->timestamp() == other.timestamp()
                 && this->rollback_cnt_ == other.rollback_cnt_);
     }
