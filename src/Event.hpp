@@ -34,11 +34,11 @@ public:
     // The name of the SimualtionObject that should receive this event.
     virtual const std::string& receiverName() const = 0;
 
-    // The name of the SimualtionObject that sends this event.
-    std::string sender_name_ = 0;
-
     // The timestamp of when the event should be received.
     virtual unsigned int timestamp() const = 0;
+
+    // The name of the SimualtionObject that sends this event.
+    std::string sender_name_ = 0;
 
     // Event type - positive or negative
     EventType event_type_ = EventType::POSITIVE;
@@ -46,7 +46,7 @@ public:
     // Rollback id
     unsigned int rollback_cnt_ = 0;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(event_type_)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_name_, event_type_, rollback_cnt_)
 
 };
 

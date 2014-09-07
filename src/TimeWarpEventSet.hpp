@@ -26,10 +26,25 @@ public:
     bool operator() (std::shared_ptr<Event> first, 
                         std::shared_ptr<Event> second) {
 
-        return (first->timestamp() < second->timestamp()
-                || first->sender_name_ < second->sender_name_
-                || first->rollback_cnt_ < second->rollback_cnt_
-                || first->event_type_ < second->event_type_);
+        bool is_less = false;
+        if (first->timestamp() > second->timestamp()) {
+            is_less = false;
+        } else if (first->timestamp() == second->timestamp()) {
+            if (first->sender_name_ != second->sender_name_) {
+                is_less = false;
+            } else { // first->sender_name_ == second->sender_name_
+                if (first->rollback_cnt_ > second->rollback_cnt_) {
+                    is_less = false;
+                } else if (first->rollback_cnt_ == second->rollback_cnt_) {
+                    is_less = (first->event_type_ < second->event_type_) ? true : false;
+                } else { // first->rollback_cnt_ < second->rollback_cnt_
+                    is_less = true;
+                }
+            }
+        } else { // first->timestamp() < second->timestamp())
+            is_less = true;
+        }
+        return is_less;
     }
 };
 

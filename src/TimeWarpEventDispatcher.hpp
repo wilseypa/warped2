@@ -138,7 +138,8 @@ public:
     NegativeEvent() = default;
     NegativeEvent(const std::string& receiver_name, const std::string& sender_name,
         unsigned int receive_time, unsigned int rollback_count) :
-            receiver_name_(receiver_name), sender_name_(sender_name), receive_time_(receive_time) {
+            receiver_name_(receiver_name), receive_time_(receive_time) {
+        sender_name_ = sender_name;
         event_type_ = EventType::NEGATIVE;
         rollback_cnt_ = rollback_count;
     }
@@ -146,11 +147,9 @@ public:
     const std::string& receiverName() const {return receiver_name_;}
     unsigned int timestamp() const {return receive_time_;}
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<Event>(this), receiver_name_,
-        sender_name_, receive_time_)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<Event>(this), receiver_name_, receive_time_)
 
     std::string receiver_name_;
-    std::string sender_name_;
     unsigned int receive_time_;
 };
 
