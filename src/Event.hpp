@@ -21,8 +21,9 @@ public:
 
     bool operator== (const Event &other) {
         return (this->receiverName() == other.receiverName()
-                && this->senderName() == other.senderName()
-                && this->timestamp() == other.timestamp());
+                && this->sender_name_ == other.sender_name_
+                && this->timestamp() == other.timestamp()
+                && this->rollback_cnt_ == other.rollback_cnt_);
     }
 
     bool operator!= (const Event &other) {
@@ -33,12 +34,16 @@ public:
     virtual const std::string& receiverName() const = 0;
 
     // The name of the SimualtionObject that sends this event.
-    virtual const std::string& senderName() const = 0;
+    std::string sender_name_ = 0;
 
     // The timestamp of when the event should be received.
     virtual unsigned int timestamp() const = 0;
 
+    // Event type - positive or negative
     EventType event_type_ = EventType::POSITIVE;
+
+    // Rollback id
+    unsigned int rollback_cnt_ = 0;
 
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(event_type_)
 

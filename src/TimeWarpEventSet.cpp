@@ -54,31 +54,6 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
-void TimeWarpEventSet::insertEventVector (unsigned int obj_id, 
-                        std::vector<std::shared_ptr<Event>> events) {
-
-    bool is_no_event_scheduled = false;
-    unprocessed_queue_lock_[obj_id].lock();
-
-    // Check whether schedule queue is empty
-    if (unprocessed_queue_[obj_id]->empty() == true) {
-        is_no_event_scheduled = true;
-    }
-    for (auto& event : events) {
-        unprocessed_queue_[obj_id]->insert(event);
-    }
-
-    // Insert lowest event into schedule queue if no event has been scheduled
-    if (is_no_event_scheduled) {
-        unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
-        schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->push(
-                                        *unprocessed_queue_[obj_id]->begin());
-        schedule_queue_lock_[scheduler_id].unlock();
-    }
-    unprocessed_queue_lock_[obj_id].unlock();
-}
-
 std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) { 
 
     std::shared_ptr<Event> event = nullptr;

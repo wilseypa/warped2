@@ -144,6 +144,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Check to see if straggler and rollback if necessary
             if (event->timestamp() < object_simulation_time_[current_object_id]) {
                 rollback(event->timestamp(), current_object_id, current_object);
+                rollback_count_++;
             }
 
             // Handle a negative event
@@ -172,7 +173,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Send new events
             for (auto& e: new_events) {
                 unsigned int node_id = object_node_id_by_name_[event->receiverName()];
-
+                e->sender_name_ = current_object->name_;
+                e->rollback_cnt_ = rollback_count_;
                 output_manager_->insertEvent(e, current_object_id);
 
                 if (node_id == comm_manager_->getID()) {
@@ -234,8 +236,8 @@ void TimeWarpEventDispatcher::cancelEvents(
     do {
         auto event = events_to_cancel->back();
 
-        auto neg_event = std::make_shared<NegativeEvent>(event->receiverName(), event->senderName(),
-            event->timestamp());
+        auto neg_event = std::make_shared<NegativeEvent>(event->receiverName(), event->sender_name_,
+            event->timestamp(), event->rollback_cnt_);
 
         events_to_cancel->pop_back();
         unsigned int receiver_id = object_node_id_by_name_[event->receiverName()];
@@ -289,6 +291,7 @@ void TimeWarpEventDispatcher::initialize(
         const std::vector<std::vector<SimulationObject*>>& objects) {
     unsigned int num_local_objects = objects[comm_manager_->getID()].size();
     event_set_->initialize(num_local_objects, num_schedulers_, num_worker_threads_);
+    rollback_count_ = 0;
 
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
@@ -298,7 +301,12 @@ void TimeWarpEventDispatcher::initialize(
                 objects_by_name_[ob->name_] = ob;
                 local_object_id_by_name_[ob->name_] = object_id;
                 auto new_events = ob->createInitialEvents();
-                event_set_->insertEventVector(object_id, new_events);
+                for (auto& e: new_events) {
+                    e->sender_name_ = ob->name_;
+                    e->rollback_cnt_ = rollback_count_;
+                    event_set_->insertEvent(object_id, e);
+                }
+                // TODO: event_set_->startScheduling();
                 object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;

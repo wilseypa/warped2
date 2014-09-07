@@ -25,8 +25,11 @@ class compareEvents :
 public:
     bool operator() (std::shared_ptr<Event> first, 
                         std::shared_ptr<Event> second) {
-        return first->timestamp() < second->timestamp();
-        // TODO: modify the check condition
+
+        return (first->timestamp() < second->timestamp()
+                || first->receiverName() < second->receiverName()
+                || first->sender_name_ < second->sender_name_
+                || first->rollback_cnt_ < second->rollback_cnt_);
     }
 };
 
@@ -40,9 +43,6 @@ public:
                      unsigned int num_of_worker_threads);
 
     void insertEvent (unsigned int obj_id, std::shared_ptr<Event> event);
-
-    void insertEventVector (unsigned int obj_id, 
-                                std::vector<std::shared_ptr<Event>> events);
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
