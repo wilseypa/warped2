@@ -149,7 +149,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Handle a negative event
             if (event->event_type_ == EventType::NEGATIVE) {
-                event_set_->handleAntiMessage(current_object_id);
+                event_set_->handleAntiMessage(current_object_id, event);
                 event_set_->startScheduling(current_object_id);
                 continue;
             }

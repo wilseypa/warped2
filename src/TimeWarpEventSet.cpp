@@ -108,13 +108,12 @@ void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<
     processed_queue_[obj_id]->push_back(std::move(old_event));
     processed_queue_lock_[obj_id].unlock();
 
-    if (unprocessed_queue_[obj_id]->empty() == true) {
-        return;
+    if (unprocessed_queue_[obj_id]->empty() == false) {
+        unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
+        schedule_queue_lock_[scheduler_id].lock();
+        schedule_queue_[scheduler_id]->push(*unprocessed_queue_[obj_id]->begin());
+        schedule_queue_lock_[scheduler_id].unlock();
     }
-    unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
-    schedule_queue_lock_[scheduler_id].lock();
-    schedule_queue_[scheduler_id]->push(*unprocessed_queue_[obj_id]->begin());
-    schedule_queue_lock_[scheduler_id].unlock();
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
@@ -152,16 +151,19 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int rollback_time
     processed_queue_lock_[obj_id].unlock();
 }
 
-void TimeWarpEventSet::handleAntiMessage (unsigned int obj_id) { 
+void TimeWarpEventSet::handleAntiMessage (unsigned int obj_id, 
+                                            std::shared_ptr<Event> negative_event) { 
 
     // Note: Positive event will occur after negative event in an unprocessed queue.
+    // Negative event needs to be passed as argument because it might not be the  
+    // smallest in the unprocessed queue.
     unprocessed_queue_lock_[obj_id].lock();
-    std::shared_ptr<Event> negative_event = *unprocessed_queue_[obj_id]->begin();
-    unprocessed_queue_[obj_id]->erase(unprocessed_queue_[obj_id]->begin());
-    auto event_iterator = unprocessed_queue_[obj_id]->begin();
-    if (negative_event == *event_iterator 
-            && negative_event->event_type_ < (*event_iterator)->event_type_) {
-        unprocessed_queue_[obj_id]->erase(event_iterator);
+    auto negative_event_iterator = unprocessed_queue_[obj_id]->find(negative_event);
+    auto positive_event_iterator = negative_event_iterator++;
+    unprocessed_queue_[obj_id]->erase(negative_event_iterator);
+    if (negative_event == *positive_event_iterator 
+            && negative_event->event_type_ < (*positive_event_iterator)->event_type_) {
+        unprocessed_queue_[obj_id]->erase(positive_event_iterator);
     } else { // positive event has not arrived yet
         // TODO: unlikely scenario to be handled
     }
