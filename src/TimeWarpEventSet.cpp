@@ -77,11 +77,25 @@ std::shared_ptr<Event> TimeWarpEventSet::readLowestEventFromObj (unsigned int ob
     return event;
 }
 
-void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event) {
+void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
+
+    unprocessed_queue_lock_[obj_id].lock();
+    if (unprocessed_queue_[obj_id]->empty() == true) {
+        return;
+    }
+    unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
+    schedule_queue_lock_[scheduler_id].lock();
+    schedule_queue_[scheduler_id]->push(*unprocessed_queue_[obj_id]->begin());
+    schedule_queue_lock_[scheduler_id].unlock();
+    unprocessed_queue_lock_[obj_id].unlock();
+}
+
+void TimeWarpEventSet::replenishScheduler (unsigned int obj_id) {
 
     // Move old event from unprocessed queue to processed queue
     unprocessed_queue_lock_[obj_id].lock();
-    (void) unprocessed_queue_[obj_id]->erase(old_event);
+    auto old_event = *unprocessed_queue_[obj_id]->begin();
+    unprocessed_queue_[obj_id]->erase(unprocessed_queue_[obj_id]->begin());
     processed_queue_lock_[obj_id].lock();
     processed_queue_[obj_id]->push_back(std::move(old_event));
     processed_queue_lock_[obj_id].unlock();
@@ -110,8 +124,7 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
     }
 }
 
-void TimeWarpEventSet::rollback (unsigned int obj_id, 
-                                 unsigned int rollback_time) {
+void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int rollback_time) {
 
     processed_queue_lock_[obj_id].lock();
     unsigned int processed_queue_len = processed_queue_[obj_id]->size();
@@ -131,11 +144,20 @@ void TimeWarpEventSet::rollback (unsigned int obj_id,
     processed_queue_lock_[obj_id].unlock();
 }
 
-void TimeWarpEventSet::handleAntiMessage (unsigned int obj_id, 
-                                          std::shared_ptr<Event> cancel_event) { 
+void TimeWarpEventSet::handleAntiMessage (unsigned int obj_id) { 
 
-    unused<unsigned int>(std::move(obj_id));
-    unused<std::shared_ptr<Event>>(std::move(cancel_event));
+    // Note: Positive event will occur after negative event in an unprocessed queue.
+    unprocessed_queue_lock_[obj_id].lock();
+    auto negative_event = *unprocessed_queue_[obj_id]->begin();
+    unprocessed_queue_[obj_id]->erase(unprocessed_queue_[obj_id]->begin());
+    auto event_iterator = unprocessed_queue_[obj_id]->begin();
+    if (negative_event == *event_iterator 
+            && negative_event->event_type_ < (*event_iterator)->event_type_) {
+        unprocessed_queue_[obj_id]->erase(event_iterator);
+    } else { // positive event has not arrived yet
+        // TODO: unlikely scenario to be handled
+    }
+    unprocessed_queue_lock_[obj_id].unlock();
 }
 
 } // namespace warped

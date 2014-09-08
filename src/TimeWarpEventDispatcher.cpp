@@ -149,8 +149,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Handle a negative event
             if (event->event_type_ == EventType::NEGATIVE) {
-                event_set_->handleAntiMessage(current_object_id, std::move(event));
-                // TODO: schedule queue replenishment needs to be considered here
+                event_set_->handleAntiMessage(current_object_id);
+                event_set_->startScheduling(current_object_id);
                 continue;
             }
 
@@ -187,7 +187,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             // Move the next event from object into the schedule queue
-            event_set_->replenishScheduler(current_object_id, std::move(event));
+            event_set_->replenishScheduler(current_object_id);
 
         } else {
             // TODO, do something here
@@ -306,7 +306,7 @@ void TimeWarpEventDispatcher::initialize(
                     e->rollback_cnt_ = rollback_count_;
                     event_set_->insertEvent(object_id, e);
                 }
-                // TODO: event_set_->startScheduling();
+                event_set_->startScheduling(object_id);
                 object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;

@@ -63,15 +63,15 @@ public:
 
     std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id);
 
-    void replenishScheduler (unsigned int obj_id, 
-                                std::shared_ptr<Event> old_event);
+    void startScheduling (unsigned int obj_id);
+
+    void replenishScheduler (unsigned int obj_id);
 
     void fossilCollectAll (unsigned int fossil_collect_time);
 
     void rollback (unsigned int obj_id, unsigned int rollback_time); 
 
-    void handleAntiMessage (unsigned int obj_id, 
-                            std::shared_ptr<Event> cancel_event );
+    void handleAntiMessage (unsigned int obj_id);
 
 private:
     //Number of simulation objects
