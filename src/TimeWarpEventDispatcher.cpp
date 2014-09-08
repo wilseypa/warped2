@@ -187,7 +187,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             // Move the next event from object into the schedule queue
-            event_set_->replenishScheduler(current_object_id);
+            event_set_->replenishScheduler(current_object_id, std::move(event));
 
         } else {
             // TODO, do something here
@@ -274,7 +274,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object, unsigned in
 
     unsigned int current_object_id = local_object_id_by_name_[object->name_];
 
-    std::shared_ptr<Event> event = event_set_->readLowestEventFromObj(current_object_id);
+    std::shared_ptr<Event> event = event_set_->getLowestEventFromObj(current_object_id);
     while ((event != nullptr) && (event->timestamp() <= stop_time)) {
 
         object_simulation_time_[current_object_id] = event->timestamp();
@@ -283,7 +283,11 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object, unsigned in
         object->receiveEvent(*event);
         state_manager_->saveState(event->timestamp(), current_object_id, object);
 
-        event = event_set_->readLowestEventFromObj(current_object_id);
+        event = event_set_->getLowestEventFromObj(current_object_id);
+    }
+
+    if (event != nullptr) {
+        event_set_->insertEventIntoObj(current_object_id, event);
     }
 }
 

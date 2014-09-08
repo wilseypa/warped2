@@ -61,11 +61,13 @@ public:
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
-    std::shared_ptr<Event> readLowestEventFromObj (unsigned int obj_id);
+    void insertEventIntoObj (unsigned int obj_id, std::shared_ptr<Event> event);
+
+    std::shared_ptr<Event> getLowestEventFromObj (unsigned int obj_id);
 
     void startScheduling (unsigned int obj_id);
 
-    void replenishScheduler (unsigned int obj_id);
+    void replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event);
 
     void fossilCollectAll (unsigned int fossil_collect_time);
 

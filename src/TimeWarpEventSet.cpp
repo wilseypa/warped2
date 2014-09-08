@@ -66,12 +66,20 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     return event;
 }
 
-std::shared_ptr<Event> TimeWarpEventSet::readLowestEventFromObj (unsigned int obj_id) {
+void TimeWarpEventSet::insertEventIntoObj (unsigned int obj_id, std::shared_ptr<Event> event) {
+
+    unprocessed_queue_lock_[obj_id].lock();
+    unprocessed_queue_[obj_id]->insert(event);
+    unprocessed_queue_lock_[obj_id].unlock();
+}
+
+std::shared_ptr<Event> TimeWarpEventSet::getLowestEventFromObj (unsigned int obj_id) {
 
     std::shared_ptr<Event> event = nullptr;
     unprocessed_queue_lock_[obj_id].lock();
     if (unprocessed_queue_[obj_id]->empty() == false) {
         event = *unprocessed_queue_[obj_id]->begin();
+        unprocessed_queue_[obj_id]->erase(unprocessed_queue_[obj_id]->begin());
     }
     unprocessed_queue_lock_[obj_id].unlock();
     return event;
@@ -90,12 +98,12 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
-void TimeWarpEventSet::replenishScheduler (unsigned int obj_id) {
+void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event) {
 
-    // Move old event from unprocessed queue to processed queue
+    // Move old event from unprocessed queue to processed queue. 
+    // Note: Old event might not be the smallest event in unprocessed queue.
     unprocessed_queue_lock_[obj_id].lock();
-    auto old_event = *unprocessed_queue_[obj_id]->begin();
-    unprocessed_queue_[obj_id]->erase(unprocessed_queue_[obj_id]->begin());
+    unprocessed_queue_[obj_id]->erase(old_event);
     processed_queue_lock_[obj_id].lock();
     processed_queue_[obj_id]->push_back(std::move(old_event));
     processed_queue_lock_[obj_id].unlock();
@@ -148,7 +156,7 @@ void TimeWarpEventSet::handleAntiMessage (unsigned int obj_id) {
 
     // Note: Positive event will occur after negative event in an unprocessed queue.
     unprocessed_queue_lock_[obj_id].lock();
-    auto negative_event = *unprocessed_queue_[obj_id]->begin();
+    std::shared_ptr<Event> negative_event = *unprocessed_queue_[obj_id]->begin();
     unprocessed_queue_[obj_id]->erase(unprocessed_queue_[obj_id]->begin());
     auto event_iterator = unprocessed_queue_[obj_id]->begin();
     if (negative_event == *event_iterator 
