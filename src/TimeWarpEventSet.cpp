@@ -135,11 +135,6 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int rollback_time
 
     processed_queue_lock_[obj_id].lock();
     unsigned int processed_queue_len = processed_queue_[obj_id]->size();
-    // No need for rollback if processed queue only has events before the time of rollback
-    if ((processed_queue_len > 0) && 
-        ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() < rollback_time)) {
-        return;
-    }
     unprocessed_queue_lock_[obj_id].lock();
     while ((processed_queue_len > 0) && 
            ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() >= rollback_time)) {
