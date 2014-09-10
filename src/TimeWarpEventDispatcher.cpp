@@ -173,10 +173,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Send new events
             for (auto& e: new_events) {
                 unsigned int node_id = object_node_id_by_name_[event->receiverName()];
-                if (e->event_type_ == EventType::POSITIVE) {
-                    e->sender_name_ = current_object->name_;
-                    e->rollback_cnt_ = rollback_count_;
-                }
+                e->sender_name_ = current_object->name_;
+                e->rollback_cnt_ = rollback_count_;
                 output_manager_->insertEvent(e, current_object_id);
 
                 if (node_id == comm_manager_->getID()) {
@@ -308,7 +306,6 @@ void TimeWarpEventDispatcher::initialize(
                 local_object_id_by_name_[ob->name_] = object_id;
                 auto new_events = ob->createInitialEvents();
                 for (auto& e: new_events) {
-                    // Check for negative event is not needed during initialization
                     e->sender_name_ = ob->name_;
                     e->rollback_cnt_ = rollback_count_;
                     event_set_->insertEvent(object_id, e);
