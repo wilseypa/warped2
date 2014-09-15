@@ -38,7 +38,7 @@ public:
     virtual unsigned int timestamp() const = 0;
 
     // The name of the SimualtionObject that sends this event.
-    std::string sender_name_ = 0;
+    std::string sender_name_;
 
     // Event type - positive or negative
     EventType event_type_ = EventType::POSITIVE;
