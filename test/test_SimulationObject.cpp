@@ -26,13 +26,12 @@ TEST_CASE("SimualtionObjects support getState method", "[SimulationObject]") {
 
 TEST_CASE("SimualtionObjects support event methods", "[SimulationObject]") {
     test_SimulationObject ob {"ob", 1};
-    test_Event e {"e", "e2", 1};
+    test_Event e {"e", 1};
 
     SECTION("SimualtionObjects support receiveEvent") {
         auto out = ob.receiveEvent(e);
         REQUIRE(out.size() == 1);
         CHECK(out[0]->receiverName() == "e");
-        CHECK(out[0]->senderName() == "e2");
         REQUIRE(out[0]->timestamp() == 1);
     }
 

@@ -13,22 +13,17 @@ WARPED_DEFINE_OBJECT_STATE_STRUCT(test_ObjectState) {
 
 struct test_Event : public warped::Event {
     test_Event() = default;
-    test_Event(const std::string& receiver_name, const std::string& sender_name,
-        unsigned int receive_time, int x=0)
-        : receiver_name_(receiver_name), sender_name_(sender_name),
-        receive_time_(receive_time), x(x) {}
+    test_Event(const std::string& receiver_name, unsigned int receive_time)
+        : receiver_name_(receiver_name), receive_time_(receive_time) {}
 
     const std::string& receiverName() const {return receiver_name_;}
-    const std::string& senderName() const {return sender_name_;}
 
     unsigned int timestamp() const {return receive_time_;}
 
     std::string receiver_name_;
-    std::string sender_name_;
     unsigned int receive_time_;
-    int x;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(receiver_name_, sender_name_, receive_time_, x)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(receiver_name_, sender_name_, receive_time_)
 };
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(test_Event)
 
@@ -41,7 +36,7 @@ public:
 
     std::vector<std::shared_ptr<warped::Event>> receiveEvent(const warped::Event& event) {
         std::vector<std::shared_ptr<warped::Event>> v;
-        v.emplace_back(new test_Event(event.receiverName(), event.senderName(), event.timestamp()));
+        v.emplace_back(new test_Event(event.receiverName(), event.timestamp()));
         return v;
     }
 
