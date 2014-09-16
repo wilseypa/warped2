@@ -236,8 +236,7 @@ void TimeWarpEventDispatcher::cancelEvents(
     do {
         auto event = events_to_cancel->back();
 
-        auto neg_event = std::make_shared<NegativeEvent>(event->receiverName(), event->sender_name_,
-            event->timestamp(), event->rollback_cnt_);
+        auto neg_event = std::make_shared<NegativeEvent>(event);
 
         events_to_cancel->pop_back();
         unsigned int receiver_id = object_node_id_by_name_[event->receiverName()];

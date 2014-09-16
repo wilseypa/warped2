@@ -136,21 +136,21 @@ struct EventMessage : public TimeWarpKernelMessage {
 class NegativeEvent : public Event {
 public:
     NegativeEvent() = default;
-    NegativeEvent(const std::string& receiver_name, const std::string& sender_name,
-        unsigned int receive_time, unsigned int rollback_count) :
-            receiver_name_(receiver_name), receive_time_(receive_time) {
-        sender_name_ = sender_name;
+    NegativeEvent(std::shared_ptr<Event> e) {
+        receiver_name_ = e->receiverName();
+        receive_time_ = e->timestamp();
+        sender_name_ = e->sender_name_;
         event_type_ = EventType::NEGATIVE;
-        rollback_cnt_ = rollback_count;
+        rollback_cnt_ = e->rollback_cnt_;
     }
 
     const std::string& receiverName() const {return receiver_name_;}
     unsigned int timestamp() const {return receive_time_;}
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<Event>(this), receiver_name_, receive_time_)
-
     std::string receiver_name_;
     unsigned int receive_time_;
+
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<Event>(this), receiver_name_, receive_time_)
 };
 
 } // namespace warped
