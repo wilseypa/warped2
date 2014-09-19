@@ -286,7 +286,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object, unsigned in
     }
 
     if (event != nullptr) {
-        event_set_->insertEventIntoObj(current_object_id, event);
+        event_set_->insertEvent(current_object_id, event);
     }
 }
 
