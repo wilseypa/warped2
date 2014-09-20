@@ -117,6 +117,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                     local_min_lvt);
             } else {
                 gvt_manager_->setGVT(local_min_lvt);
+                std::cout << "GVT: " << local_min_lvt << std::endl;
                 dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
             }
             msg_flags &= ~MessageFlags::PendingMatternToken;

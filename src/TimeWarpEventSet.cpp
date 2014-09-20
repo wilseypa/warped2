@@ -19,7 +19,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
         processed_queue_.push_back(
             make_unique<std::vector<std::shared_ptr<Event>>>());
-        unprocessed_queue_scheduler_map_.push_back(obj_id / num_of_schedulers);
+        unprocessed_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
     }
     unprocessed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
     processed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
