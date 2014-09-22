@@ -54,9 +54,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                                               objects) {
     initialize(objects);
 
-    thread_id = num_worker_threads_;
-    unused<unsigned int>(std::move(thread_id));
-
     // Create worker threads
     std::vector<std::thread> threads;
     for (unsigned int i = 0; i < num_worker_threads_; ++i) {
@@ -203,7 +200,6 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
         msg->gvt_mattern_color);
 
     unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
-    unused<unsigned int>(std::move(receiver_object_id));
     event_set_->insertEvent(receiver_object_id, msg->event);
 
     return MessageFlags::None;
@@ -211,7 +207,6 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
-    unused<unsigned int>(std::move(receiver_object_id));
     event_set_->insertEvent(receiver_object_id, event);
 
     if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
