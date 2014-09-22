@@ -53,6 +53,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
     initialize(objects);
+    comm_manager_->waitForAllProcesses();
 
     // Create worker threads
     std::vector<std::thread> threads;

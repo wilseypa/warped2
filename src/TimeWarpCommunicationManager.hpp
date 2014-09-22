@@ -44,6 +44,8 @@ public:
 
     virtual unsigned int getID() = 0;
 
+    virtual int waitForAllProcesses() = 0;
+
     // Sends a single message
     virtual void sendMessage(std::unique_ptr<TimeWarpKernelMessage> msg) = 0;
 

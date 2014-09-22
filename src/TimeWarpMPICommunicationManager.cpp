@@ -95,5 +95,9 @@ unsigned int TimeWarpMPICommunicationManager::getID() {
     return id;
 }
 
+int waitForAllProcesses() {
+    return MPI_Barrier(MPI_COMM_WORLD);
+}
+
 } // namespace warped
 

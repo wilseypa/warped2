@@ -23,6 +23,7 @@ public:
     void finalize();
     unsigned int getNumProcesses();
     unsigned int getID();
+    int waitForAllProcesses();
 
     void sendMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
     std::unique_ptr<TimeWarpKernelMessage> recvMessage();
