@@ -1,6 +1,4 @@
 #include "TimeWarpEventSet.hpp"
-#include "STLLTSFQueue.hpp"
-
 #include "utility/warnings.hpp"
 
 namespace warped {

@@ -19,12 +19,10 @@ namespace warped {
 
 /* Compares two events to see if one has a receive time less than to the other
  */
-class compareEvents :
-    public std::binary_function<std::shared_ptr<Event>, 
-                                    std::shared_ptr<Event>, bool> {
+struct compareEvents {
 public:
-    bool operator() (std::shared_ptr<Event> first, 
-                        std::shared_ptr<Event> second) {
+    bool operator() (const std::shared_ptr<Event>& first, 
+                        const std::shared_ptr<Event>& second) const {
 
         bool is_less = false;
         if (first->timestamp() > second->timestamp()) {
