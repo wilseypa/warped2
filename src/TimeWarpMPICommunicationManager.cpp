@@ -95,7 +95,7 @@ unsigned int TimeWarpMPICommunicationManager::getID() {
     return id;
 }
 
-int waitForAllProcesses() {
+int TimeWarpMPICommunicationManager::waitForAllProcesses() {
     return MPI_Barrier(MPI_COMM_WORLD);
 }
 
