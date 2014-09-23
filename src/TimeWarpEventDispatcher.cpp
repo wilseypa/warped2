@@ -92,8 +92,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             // start another one.
             MessageFlags flags = gvt_manager_->calculateGVT();
             msg_flags |= flags;
-            if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0)
-                && !started_min_lvt ) {
+            if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt ) {
                 min_lvt_flag_.store(num_worker_threads_);
                 started_min_lvt = true;
                 calculate_gvt = false;
@@ -116,6 +115,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             } else {
                 gvt_manager_->setGVT(local_min_lvt);
                 std::cout << "GVT: " << local_min_lvt << std::endl;
+                fossilCollect(gvt_manager_->getGVT());
                 dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
             }
             msg_flags &= ~MessageFlags::PendingMatternToken;

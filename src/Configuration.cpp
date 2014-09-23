@@ -184,7 +184,7 @@ Configuration::makeDispatcher() {
 
         std::unique_ptr<TimeWarpGVTManager> gvt_manager;
         if ((*root_)["time-warp"]["gvt-calculation"]["algorithm"].asString() == "mattern") {
-            int period = (*root_)["gvt-calculation"]["period"].asInt();
+            int period = (*root_)["time-warp"]["gvt-calculation"]["period"].asInt();
             gvt_manager = make_unique<TimeWarpMatternGVTManager>(comm_manager, period);
         }
 
