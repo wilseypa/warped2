@@ -27,17 +27,25 @@ public:
         bool is_less = false;
         if (first->timestamp() > second->timestamp()) {
             is_less = false;
+
         } else if (first->timestamp() == second->timestamp()) {
-            if (first->sender_name_ != second->sender_name_) {
+
+            int compare_val = first->sender_name_.compare(second->sender_name_);
+            if (compare_val > 0) {
                 is_less = false;
-            } else { // first->sender_name_ == second->sender_name_
+
+            } else if (compare_val == 0) {
                 if (first->rollback_cnt_ > second->rollback_cnt_) {
                     is_less = false;
+
                 } else if (first->rollback_cnt_ == second->rollback_cnt_) {
                     is_less = (first->event_type_ < second->event_type_) ? true : false;
+
                 } else { // first->rollback_cnt_ < second->rollback_cnt_
                     is_less = true;
                 }
+            } else { // compare_val < 0
+                is_less = true;
             }
         } else { // first->timestamp() < second->timestamp())
             is_less = true;
