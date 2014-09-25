@@ -51,9 +51,16 @@ TimeWarpOutputManager::removeEventsSentAtOrAfter(unsigned int rollback_time,
     output_queue_lock_[local_object_id].lock();
 
     auto max = std::prev(output_queue_[local_object_id].end());
-    while ((max->get()->timestamp() >= rollback_time) && (max->get()->timestamp() != 0)) {
+    while ((max->get()->timestamp() >= rollback_time)
+           && (max != output_queue_[local_object_id].begin())) {
         events_to_cancel->push_back(*max);
         output_queue_[local_object_id].erase(max--);
+    }
+
+    if ((max != output_queue_[local_object_id].begin())
+        && (max->get()->timestamp() >= rollback_time)) {
+        events_to_cancel->push_back(*max);
+        output_queue_[local_object_id].erase(max);
     }
 
     output_queue_lock_[local_object_id].unlock();
