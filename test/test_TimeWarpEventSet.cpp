@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "Event.hpp"
+#include "TimeWarpEventDispatcher.hpp"
 #include "TimeWarpEventSet.hpp"
 #include "mocks.hpp"
 
@@ -43,4 +44,23 @@ TEST_CASE("Test the event set operations") {
         CHECK(spe->timestamp() == 15);
     }
 
+    SECTION("handle anti-message") {
+        REQUIRE(twes.getEvent(0) == nullptr);
+        REQUIRE(twes.getEvent(1) == nullptr);
+        twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 14}));
+        spe = std::shared_ptr<warped::Event> (new test_Event("a", 14));
+        spe->event_type_ = warped::EventType::NEGATIVE;
+        twes.insertEvent(0, spe);
+        twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 15}));
+        //spe = twes.getLowestEventFromObj(0);
+        //REQUIRE(spe != nullptr);
+        //CHECK(spe->receiverName() == "a");
+        //CHECK(spe->timestamp() == 14);
+        //CHECK(spe->event_type_ == warped::EventType::NEGATIVE);
+        twes.handleAntiMessage(0, spe);
+        spe = twes.getLowestEventFromObj(0);
+        REQUIRE(spe != nullptr);
+        CHECK(spe->receiverName() == "a");
+        CHECK(spe->timestamp() == 15);
+    }
 }
