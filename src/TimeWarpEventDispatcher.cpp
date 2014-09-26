@@ -141,9 +141,11 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
             // Check to see if straggler and rollback if necessary
+            bool did_rollback_occur = false;
             if (event->timestamp() < object_simulation_time_[current_object_id]) {
                 rollback(event->timestamp(), current_object_id, current_object);
                 rollback_count_++;
+                did_rollback_occur = true;
             }
 
             // Handle a negative event
@@ -186,7 +188,12 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             // Move the next event from object into the schedule queue
-            event_set_->replenishScheduler(current_object_id, std::move(event));
+            // Also transfer old event to processed queue if no rollback occured
+            if (did_rollback_occur) {
+                event_set_->startScheduling(current_object_id);
+            } else {
+                event_set_->replenishScheduler(current_object_id, std::move(event));
+            }
 
         } else {
             // TODO, do something here
@@ -250,8 +257,8 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
 
     twfs_manager_->rollback(straggler_time, local_object_id);
 
-    unsigned int restored_timestamp = state_manager_->restoreState(straggler_time, local_object_id,
-        object);
+    unsigned int restored_timestamp = 
+                    state_manager_->restoreState(straggler_time, local_object_id, object);
     auto events_to_cancel = output_manager_->rollback(straggler_time, local_object_id);
 
     if (events_to_cancel != nullptr) {

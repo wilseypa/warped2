@@ -62,7 +62,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getLowestEventFromObj (unsigned int obj
     unprocessed_queue_lock_[obj_id].lock();
     if (unprocessed_queue_[obj_id]->empty() == false) {
         event = *unprocessed_queue_[obj_id]->begin();
-        unprocessed_queue_[obj_id]->erase(unprocessed_queue_[obj_id]->begin());
+        unprocessed_queue_[obj_id]->erase(event);
     }
     unprocessed_queue_lock_[obj_id].unlock();
     return event;
@@ -72,9 +72,10 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
 
     unprocessed_queue_lock_[obj_id].lock();
     if (unprocessed_queue_[obj_id]->empty() == false) {
+        std::shared_ptr<Event> event = *unprocessed_queue_[obj_id]->begin();
         unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->push(*unprocessed_queue_[obj_id]->begin());
+        schedule_queue_[scheduler_id]->push(event);
         schedule_queue_lock_[scheduler_id].unlock();
     }
     unprocessed_queue_lock_[obj_id].unlock();
@@ -84,16 +85,17 @@ void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<
 
     // Move old event from unprocessed queue to processed queue. 
     // Note: Old event might not be the smallest event in unprocessed queue.
-    unprocessed_queue_lock_[obj_id].lock();
-    unprocessed_queue_[obj_id]->erase(old_event);
     processed_queue_lock_[obj_id].lock();
     processed_queue_[obj_id]->push_back(std::move(old_event));
     processed_queue_lock_[obj_id].unlock();
 
+    unprocessed_queue_lock_[obj_id].lock();
+    unprocessed_queue_[obj_id]->erase(old_event);
     if (unprocessed_queue_[obj_id]->empty() == false) {
+        std::shared_ptr<Event> event = *unprocessed_queue_[obj_id]->begin();
         unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->push(*unprocessed_queue_[obj_id]->begin());
+        schedule_queue_[scheduler_id]->push(event);
         schedule_queue_lock_[scheduler_id].unlock();
     }
     unprocessed_queue_lock_[obj_id].unlock();
@@ -106,7 +108,7 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
         while (processed_queue_[obj_id]->begin() != processed_queue_[obj_id]->end() ) {
             std::shared_ptr<Event> event = *processed_queue_[obj_id]->begin();
             if (event->timestamp() >= fossil_collect_time) break;
-            processed_queue_[obj_id]->erase(processed_queue_[obj_id]->begin());
+            processed_queue_[obj_id]->erase(event);
         }
         processed_queue_lock_[obj_id].unlock();
     }
