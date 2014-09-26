@@ -106,9 +106,9 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
     for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {
         processed_queue_lock_[obj_id].lock();
         while (processed_queue_[obj_id]->begin() != processed_queue_[obj_id]->end() ) {
-            std::shared_ptr<Event> event = *processed_queue_[obj_id]->begin();
-            if (event->timestamp() >= fossil_collect_time) break;
-            processed_queue_[obj_id]->erase(event);
+            auto event_iterator = processed_queue_[obj_id]->begin();
+            if ((*event_iterator)->timestamp() >= fossil_collect_time) break;
+            processed_queue_[obj_id]->erase(event_iterator);
         }
         processed_queue_lock_[obj_id].unlock();
     }
