@@ -27,27 +27,15 @@ public:
         bool is_less = false;
         if (first->timestamp() > second->timestamp()) {
             is_less = false;
-
         } else if (first->timestamp() == second->timestamp()) {
-
-            int compare_val = first->sender_name_.compare(second->sender_name_);
-            if (compare_val > 0) {
+            if (first->rollback_cnt_ > second->rollback_cnt_) {
                 is_less = false;
-
-            } else if (compare_val == 0) {
-                if (first->rollback_cnt_ > second->rollback_cnt_) {
-                    is_less = false;
-
-                } else if (first->rollback_cnt_ == second->rollback_cnt_) {
-                    is_less = (first->event_type_ < second->event_type_) ? true : false;
-
-                } else { // first->rollback_cnt_ < second->rollback_cnt_
-                    is_less = true;
-                }
-            } else { // compare_val < 0
+            } else if (first->rollback_cnt_ == second->rollback_cnt_) {
+                is_less = (first->event_type_ < second->event_type_) ? true : false;
+            } else {
                 is_less = true;
             }
-        } else { // first->timestamp() < second->timestamp())
+        } else {
             is_less = true;
         }
         return is_less;
@@ -67,7 +55,8 @@ public:
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
-    std::shared_ptr<Event> getLowestEventFromObj (unsigned int obj_id);
+    std::unique_ptr<std::vector<std::shared_ptr<Event>>> 
+                            getEventsForCoastForward (unsigned int obj_id);
 
     void startScheduling (unsigned int obj_id);
 
@@ -87,16 +76,23 @@ private:
     //Lock to protect the unprocessed queues
     std::unique_ptr<std::mutex []> unprocessed_queue_lock_;
 
+    //Lock to protect the unprocessed queues
+    std::unique_ptr<bool []> is_unprocessed_queue_empty_;
+
     //Queues to hold the unprocessed events for each simulation object
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
                                         compareEvents>>> unprocessed_queue_;
 
-    //Lock to protect the processed queues
+    //Lock to protect the processed and coast forward queues
     std::unique_ptr<std::mutex []> processed_queue_lock_;
 
     //Queues to hold the processed events for each simulation object
     std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> 
                                                         processed_queue_;
+
+    //Queues to hold the events for coast forwarding of each simulation object
+    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> 
+                                                        coast_forward_queue_;
 
     //Number of event schedulers
     unsigned int num_of_schedulers_;

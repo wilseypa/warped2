@@ -141,11 +141,14 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
             // Check to see if straggler and rollback if necessary
-            bool did_rollback_occur = false;
             if (event->timestamp() < object_simulation_time_[current_object_id]) {
-                rollback(event->timestamp(), current_object_id, current_object);
+                rollback(event, current_object_id, current_object);
                 rollback_count_++;
-                did_rollback_occur = true;
+
+                if (event->event_type_ == EventType::NEGATIVE) {
+                    event_set_->startScheduling(current_object_id);
+                    continue;
+                }
             }
 
             // Handle a negative event
@@ -188,12 +191,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             // Move the next event from object into the schedule queue
-            // Also transfer old event to processed queue if no rollback occured
-            if (did_rollback_occur) {
-                event_set_->startScheduling(current_object_id);
-            } else {
-                event_set_->replenishScheduler(current_object_id, std::move(event));
-            }
+            // Also transfer old event to processed queue
+            event_set_->replenishScheduler(current_object_id, std::move(event));
 
         } else {
             // TODO, do something here
@@ -252,9 +251,10 @@ void TimeWarpEventDispatcher::cancelEvents(
     } while (!events_to_cancel->empty());
 }
 
-void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int local_object_id,
-        SimulationObject* object) {
+void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event, 
+                            unsigned int local_object_id, SimulationObject* object) {
 
+    unsigned int straggler_time = straggler_event->timestamp();
     twfs_manager_->rollback(straggler_time, local_object_id);
 
     unsigned int restored_timestamp = 
@@ -270,27 +270,25 @@ void TimeWarpEventDispatcher::rollback(unsigned int straggler_time, unsigned int
     object_simulation_time_[local_object_id] = restored_timestamp;
     twfs_manager_->setObjectCurrentTime(restored_timestamp, local_object_id);
 
-    coastForward(object, straggler_time);
+    coastForward(object, straggler_event);
 }
 
-void TimeWarpEventDispatcher::coastForward(SimulationObject* object, unsigned int stop_time) {
+void TimeWarpEventDispatcher::coastForward(SimulationObject* object, 
+                                            std::shared_ptr<Event> straggler_event) {
 
+    unsigned int stop_time = straggler_event->timestamp();
     unsigned int current_object_id = local_object_id_by_name_[object->name_];
 
-    std::shared_ptr<Event> event = event_set_->getLowestEventFromObj(current_object_id);
-    while ((event != nullptr) && (event->timestamp() <= stop_time)) {
-
+    auto events = event_set_->getEventsForCoastForward(current_object_id);
+    for (auto& event : *events) {
+        if (((straggler_event->event_type_ == EventType::NEGATIVE) && 
+                (event == straggler_event)) || (event->timestamp() > stop_time)) {
+            continue;
+        }
         object_simulation_time_[current_object_id] = event->timestamp();
         twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
-
         object->receiveEvent(*event);
         state_manager_->saveState(event->timestamp(), current_object_id, object);
-
-        event = event_set_->getLowestEventFromObj(current_object_id);
-    }
-
-    if (event != nullptr) {
-        event_set_->insertEvent(current_object_id, event);
     }
 }
 

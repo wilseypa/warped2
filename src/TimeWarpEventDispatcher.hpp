@@ -57,9 +57,9 @@ public:
 
     void cancelEvents(std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel);
 
-    void rollback(unsigned int straggler_time, unsigned int local_object_id, SimulationObject* ob);
+    void rollback(std::shared_ptr<Event> straggler_event, unsigned int local_object_id, SimulationObject* ob);
 
-    void coastForward(SimulationObject *object, unsigned int stop_time);
+    void coastForward(SimulationObject *object, std::shared_ptr<Event> stop_event);
 
     unsigned int getMinimumLVT();
 
