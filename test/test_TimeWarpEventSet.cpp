@@ -23,10 +23,18 @@ TEST_CASE("Test the event set operations") {
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 11}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 10, false}));
         twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9}));
+        twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9, false}));
         spe = twes.getEvent(0);
         REQUIRE(spe != nullptr);
         CHECK(spe->receiverName() == "b");
         CHECK(spe->timestamp() == 9);
+        CHECK(spe->event_type_ == warped::EventType::POSITIVE);
+        twes.replenishScheduler(1, spe);
+        spe = twes.getEvent(0);
+        REQUIRE(spe != nullptr);
+        CHECK(spe->receiverName() == "b");
+        CHECK(spe->timestamp() == 9);
+        CHECK(spe->event_type_ == warped::EventType::NEGATIVE);
         spe = twes.getEvent(0);
         REQUIRE(spe != nullptr);
         CHECK(spe->receiverName() == "a");
