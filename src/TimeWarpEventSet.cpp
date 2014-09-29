@@ -12,6 +12,11 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
 
     /* Create the unprocessed and processed queues and their locks.
        Also create the uprocessed queue to schedule queue map. */
+
+    is_unprocessed_queue_empty_ = make_unique<bool []>(num_of_objects); 
+    unprocessed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
+    processed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
+
     for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
         unprocessed_queue_.push_back(
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
@@ -20,11 +25,10 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
         coast_forward_queue_.push_back(
             make_unique<std::vector<std::shared_ptr<Event>>>());
         unprocessed_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
+
+        // Initialization for the boolean array
+        is_unprocessed_queue_empty_[obj_id] = false;
     }
-    unprocessed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
-    //TODO: initialization might be required for the boolean array
-    is_unprocessed_queue_empty_ = make_unique<bool []>(num_of_objects); 
-    processed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
 
     // Create the schedule queues and their locks
     for (unsigned int scheduler_id = 0; 
@@ -44,16 +48,27 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
                                     std::shared_ptr<Event> event) {
 
     unprocessed_queue_lock_[obj_id].lock();
-    if (!unprocessed_queue_[obj_id]->size() && is_unprocessed_queue_empty_[obj_id]) {
-
-        unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
-        schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->push(event);
-        schedule_queue_lock_[scheduler_id].unlock();
-        is_unprocessed_queue_empty_[obj_id] = false;
-
+    if (event->event_type_ == EventType::NEGATIVE) {
+        for (auto event_iterator = unprocessed_queue_[obj_id]->begin();
+                    event_iterator != unprocessed_queue_[obj_id]->end() && 
+                                (*event_iterator)->timestamp() <= event->timestamp(); 
+                    event_iterator++) {
+            if (*event == **event_iterator) {
+                unprocessed_queue_[obj_id]->erase(event_iterator);
+                break;
+            }
+        }
     } else {
-        unprocessed_queue_[obj_id]->insert(event);
+        if (!unprocessed_queue_[obj_id]->size() && 
+                is_unprocessed_queue_empty_[obj_id]) {
+            unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
+            schedule_queue_lock_[scheduler_id].lock();
+            schedule_queue_[scheduler_id]->push(event);
+            schedule_queue_lock_[scheduler_id].unlock();
+            is_unprocessed_queue_empty_[obj_id] = false;
+        } else {
+            unprocessed_queue_[obj_id]->insert(event);
+        }
     }
     unprocessed_queue_lock_[obj_id].unlock();
 }
@@ -61,8 +76,8 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
 std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) { 
 
     std::shared_ptr<Event> event = nullptr;
-    schedule_queue_lock_[worker_thread_scheduler_map_[thread_id]].lock();
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
+    schedule_queue_lock_[scheduler_id].lock();
     if (schedule_queue_[scheduler_id]->empty() == false) {
         event = schedule_queue_[scheduler_id]->pop();
     }
@@ -132,21 +147,6 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int rollback_time
         processed_queue_len--;
     }
     processed_queue_lock_[obj_id].unlock();
-}
-
-void TimeWarpEventSet::handleAntiMessage (unsigned int obj_id, 
-                                            std::shared_ptr<Event> negative_event) { 
-
-    // Note: Positive event appears after negative event in an unprocessed queue.
-    unprocessed_queue_lock_[obj_id].lock();
-    for (auto event_iterator = unprocessed_queue_[obj_id]->begin();
-                event_iterator != unprocessed_queue_[obj_id]->end(); event_iterator++) {
-        if (*event_iterator == negative_event) {
-            unprocessed_queue_[obj_id]->erase(event_iterator);
-            break;
-        }
-    }
-    unprocessed_queue_lock_[obj_id].unlock();
 }
 
 } // namespace warped

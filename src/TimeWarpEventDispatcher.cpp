@@ -151,13 +151,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 }
             }
 
-            // Handle a negative event
-            if (event->event_type_ == EventType::NEGATIVE) {
-                event_set_->handleAntiMessage(current_object_id, event);
-                event_set_->startScheduling(current_object_id);
-                continue;
-            }
-
             if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
                 calculated_min_flag_[thread_id] = true;
@@ -282,7 +275,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
     auto events = event_set_->getEventsForCoastForward(current_object_id);
     for (auto& event : *events) {
         if (((straggler_event->event_type_ == EventType::NEGATIVE) && 
-                (event == straggler_event)) || (event->timestamp() > stop_time)) {
+                (*event == *straggler_event)) || (event->timestamp() > stop_time)) {
             continue;
         }
         object_simulation_time_[current_object_id] = event->timestamp();

@@ -66,9 +66,6 @@ public:
 
     void rollback (unsigned int obj_id, unsigned int rollback_time); 
 
-    void handleAntiMessage (unsigned int obj_id, 
-                            std::shared_ptr<Event> negative_event);
-
 private:
     //Number of simulation objects
     unsigned int num_of_objects_;
