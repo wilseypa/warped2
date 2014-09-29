@@ -140,8 +140,9 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
-            // Check to see if straggler and rollback if necessary
-            if (event->timestamp() < object_simulation_time_[current_object_id]) {
+            // Check to see if straggler/negative event and rollback if true
+            if ((event->timestamp() < object_simulation_time_[current_object_id]) || 
+                                            (event->event_type_ == EventType::NEGATIVE)) {
                 rollback(event, current_object_id, current_object);
                 rollback_count_++;
 
@@ -304,7 +305,6 @@ void TimeWarpEventDispatcher::initialize(
                     e->rollback_cnt_ = rollback_count_;
                     event_set_->insertEvent(object_id, e);
                 }
-                event_set_->startScheduling(object_id);
                 object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;

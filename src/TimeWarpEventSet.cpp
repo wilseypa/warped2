@@ -27,7 +27,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
         unprocessed_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
 
         // Initialization for the boolean array
-        is_unprocessed_queue_empty_[obj_id] = false;
+        is_unprocessed_queue_empty_[obj_id] = true;
     }
 
     // Create the schedule queues and their locks
@@ -49,14 +49,19 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
 
     unprocessed_queue_lock_[obj_id].lock();
     if (event->event_type_ == EventType::NEGATIVE) {
+        bool found_event = false;
         for (auto event_iterator = unprocessed_queue_[obj_id]->begin();
                     event_iterator != unprocessed_queue_[obj_id]->end() && 
                                 (*event_iterator)->timestamp() <= event->timestamp(); 
                     event_iterator++) {
             if (*event == **event_iterator) {
                 unprocessed_queue_[obj_id]->erase(event_iterator);
+                found_event = true;
                 break;
             }
+        }
+        if (!found_event) {
+            unprocessed_queue_[obj_id]->insert(event);
         }
     } else {
         if (!unprocessed_queue_[obj_id]->size() && 
