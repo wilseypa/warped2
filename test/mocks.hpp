@@ -16,6 +16,11 @@ struct test_Event : public warped::Event {
     test_Event(const std::string& receiver_name, unsigned int receive_time)
         : receiver_name_(receiver_name), receive_time_(receive_time) {}
 
+    test_Event(const std::string& receiver_name, unsigned int receive_time, bool is_positive)
+                : receiver_name_(receiver_name), receive_time_(receive_time) {
+        event_type_ = is_positive ? warped::EventType::POSITIVE : warped::EventType::NEGATIVE;
+    }
+
     const std::string& receiverName() const {return receiver_name_;}
 
     unsigned int timestamp() const {return receive_time_;}
