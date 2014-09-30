@@ -147,7 +147,8 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int rollback_time
     unsigned int processed_queue_len = processed_queue_[obj_id]->size();
     while ((processed_queue_len > 0) && 
            ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() >= rollback_time)) {
-        coast_forward_queue_[obj_id]->push_back((*processed_queue_[obj_id])[processed_queue_len-1]);
+        coast_forward_queue_[obj_id]->insert(coast_forward_queue_[obj_id]->begin(), 
+                                                (*processed_queue_[obj_id])[processed_queue_len-1]);
         processed_queue_[obj_id]->pop_back();
         processed_queue_len--;
     }
