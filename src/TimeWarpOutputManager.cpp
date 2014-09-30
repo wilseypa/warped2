@@ -20,6 +20,10 @@ void TimeWarpOutputManager::insertEvent(std::shared_ptr<Event> event,
 unsigned int TimeWarpOutputManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
 
     unsigned int retval = std::numeric_limits<unsigned int>::max();
+
+    if (output_queue_[local_object_id].empty())
+        return retval;
+
     output_queue_lock_[local_object_id].lock();
 
     auto min = output_queue_[local_object_id].begin();
