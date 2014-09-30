@@ -68,7 +68,7 @@ TEST_CASE("Test the event set operations") {
         twes.rollback(0, 10);
         auto list_obj0 = twes.getEventsForCoastForward(0);
         CHECK(list_obj0->size() == 2);
-        CHECK((*list_obj0)[0]->timestamp() == 11);
-        CHECK((*list_obj0)[1]->timestamp() == 15);
+        CHECK((*list_obj0)[0]->timestamp() == 15);
+        CHECK((*list_obj0)[1]->timestamp() == 11);
     }
 }
