@@ -83,9 +83,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     std::shared_ptr<Event> event = nullptr;
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
     schedule_queue_lock_[scheduler_id].lock();
-    if (schedule_queue_[scheduler_id]->empty() == false) {
-        event = schedule_queue_[scheduler_id]->pop();
-    }
+    event = schedule_queue_[scheduler_id]->pop();
     schedule_queue_lock_[scheduler_id].unlock();
     return event;
 }

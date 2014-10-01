@@ -33,6 +33,9 @@ std::shared_ptr<Event> STLLTSFQueue::peek() const {
 }
 
 std::shared_ptr<Event> STLLTSFQueue::pop() {
+    if (queue_.empty()) {
+        return nullptr;
+    }
     auto ret = queue_.top();
     queue_.pop();
     return std::shared_ptr<Event>{ret};
