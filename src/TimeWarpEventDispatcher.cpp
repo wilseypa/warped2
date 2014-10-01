@@ -305,6 +305,7 @@ void TimeWarpEventDispatcher::initialize(
                     e->rollback_cnt_ = rollback_count_;
                     event_set_->insertEvent(object_id, e);
                 }
+                event_set_->startScheduling(object_id);
                 object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;

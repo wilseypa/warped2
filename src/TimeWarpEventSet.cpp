@@ -27,7 +27,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
         unprocessed_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
 
         // Initialization for the boolean array
-        is_unprocessed_queue_empty_[obj_id] = true;
+        is_unprocessed_queue_empty_[obj_id] = false;
     }
 
     // Create the schedule queues and their locks
@@ -64,7 +64,7 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
             unprocessed_queue_[obj_id]->insert(event);
         }
     } else {
-        if (!unprocessed_queue_[obj_id]->size() && 
+        if (unprocessed_queue_[obj_id]->empty() && 
                 is_unprocessed_queue_empty_[obj_id]) {
             unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
             schedule_queue_lock_[scheduler_id].lock();
@@ -104,7 +104,7 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
 
     unprocessed_queue_lock_[obj_id].lock();
-    if (unprocessed_queue_[obj_id]->empty() == false) {
+    if (!unprocessed_queue_[obj_id]->empty()) {
         std::shared_ptr<Event> event = *unprocessed_queue_[obj_id]->begin();
         unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
