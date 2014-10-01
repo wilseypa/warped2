@@ -23,7 +23,10 @@ TEST_CASE("Test the event set operations") {
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 10}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 11}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 10, false}));
+        twes. startScheduling(0);
+
         twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9}));
+        twes. startScheduling(1);
         twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9, false}));
 
         spe = twes.getEvent(0);
@@ -51,14 +54,14 @@ TEST_CASE("Test the event set operations") {
         spe = twes.getEvent(0);
         REQUIRE(spe != nullptr);
         CHECK(spe->receiverName() == "a");
-        CHECK(spe->timestamp() == 15);
+        CHECK(spe->timestamp() == 11);
 
         twes.replenishScheduler(0, spe);
 
         spe = twes.getEvent(0);
         REQUIRE(spe != nullptr);
         CHECK(spe->receiverName() == "a");
-        CHECK(spe->timestamp() == 11);
+        CHECK(spe->timestamp() == 15);
 
         twes.replenishScheduler(0, spe);
 
@@ -68,7 +71,7 @@ TEST_CASE("Test the event set operations") {
         twes.rollback(0, 10);
         auto list_obj0 = twes.getEventsForCoastForward(0);
         CHECK(list_obj0->size() == 2);
-        CHECK((*list_obj0)[0]->timestamp() == 15);
-        CHECK((*list_obj0)[1]->timestamp() == 11);
+        CHECK((*list_obj0)[0]->timestamp() == 11);
+        CHECK((*list_obj0)[1]->timestamp() == 15);
     }
 }
