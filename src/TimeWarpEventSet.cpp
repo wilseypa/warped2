@@ -17,6 +17,8 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
     unprocessed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
     processed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
 
+    rollback_warning_.assign(num_of_objects_, gvt_calc_request_cnt_);
+
     for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
         unprocessed_queue_.push_back(
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());

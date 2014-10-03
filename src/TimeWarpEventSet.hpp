@@ -68,7 +68,7 @@ public:
 
 private:
     //Number of simulation objects
-    unsigned int num_of_objects_;
+    unsigned int num_of_objects_ = 0;
 
     //Lock to protect the unprocessed queues
     std::unique_ptr<std::mutex []> unprocessed_queue_lock_;
@@ -92,7 +92,7 @@ private:
                                                         coast_forward_queue_;
 
     //Number of event schedulers
-    unsigned int num_of_schedulers_;
+    unsigned int num_of_schedulers_ = 0;
 
     //Lock to protect the schedule queues
     std::unique_ptr<std::mutex []> schedule_queue_lock_;
@@ -105,6 +105,18 @@ private:
 
     //Map worker thread to a schedule queue
     std::vector<unsigned int> worker_thread_scheduler_map_;
+
+    //Rollback warning for objects
+    std::vector<unsigned long long> rollback_warning_;
+
+    //Count of GVT calculation request
+    unsigned long long gvt_calc_request_cnt_ = 0;
+
+    //Old rollback warning count
+    unsigned int old_rollback_warning_cnt_ = 0;
+
+    //New rollback warning count
+    unsigned int new_rollback_warning_cnt_ = 0;
 };
 
 } // warped namespace
