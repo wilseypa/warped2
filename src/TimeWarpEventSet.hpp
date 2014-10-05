@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <mutex>
 #include <memory>
+#include <atomic>
 
 #include "Event.hpp"
 #include "STLLTSFQueue.hpp"
@@ -107,16 +108,16 @@ private:
     std::vector<unsigned int> worker_thread_scheduler_map_;
 
     //Rollback warning for objects
-    std::vector<unsigned long long> rollback_warning_;
+    std::vector<unsigned int> rollback_warning_;
 
-    //Count of GVT calculation request
-    unsigned long long gvt_calc_request_cnt_ = 0;
+    //GVT calculation interval count
+    std::atomic<unsigned int> gvt_calc_interval_cnt_ = ATOMIC_VAR_INIT(1);
 
     //Old rollback warning count
-    unsigned int old_rollback_warning_cnt_ = 0;
+    std::atomic<unsigned int> old_rollback_warning_cnt_ = ATOMIC_VAR_INIT(0);
 
     //New rollback warning count
-    unsigned int new_rollback_warning_cnt_ = 0;
+    std::atomic<unsigned int> new_rollback_warning_cnt_ = ATOMIC_VAR_INIT(0);
 };
 
 } // warped namespace
