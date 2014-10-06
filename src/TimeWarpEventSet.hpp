@@ -43,8 +43,16 @@ public:
     }
 };
 
-class TimeWarpEventSet {
+/* Rollback warning for all objects on a node */
+class RollbackWarning {
+public:
+    RollbackWarning() = default;
 
+    std::vector<bool> warning_for_obj_;
+    std::atomic<unsigned int> warning_cnt_ = ATOMIC_VAR_INIT(0);
+};
+
+class TimeWarpEventSet {
 public:
     TimeWarpEventSet() = default;
 
@@ -73,9 +81,6 @@ private:
 
     //Lock to protect the unprocessed queues
     std::unique_ptr<std::mutex []> unprocessed_queue_lock_;
-
-    //Lock to protect the unprocessed queues
-    std::unique_ptr<bool []> is_unprocessed_queue_empty_;
 
     //Queues to hold the unprocessed events for each simulation object
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
@@ -107,17 +112,14 @@ private:
     //Map worker thread to a schedule queue
     std::vector<unsigned int> worker_thread_scheduler_map_;
 
-    //Rollback warning for objects
-    std::vector<unsigned int> rollback_warning_;
+    //Which event has been scheduled from an object
+    std::vector<std::shared_ptr<Event>> event_scheduled_from_obj_;
+    
+    //Rollback warning for objects - one current, the other old
+    RollbackWarning warning_[2];
 
-    //GVT calculation interval count
-    std::atomic<unsigned int> gvt_calc_interval_cnt_ = ATOMIC_VAR_INIT(1);
-
-    //Old rollback warning count
-    std::atomic<unsigned int> old_rollback_warning_cnt_ = ATOMIC_VAR_INIT(0);
-
-    //New rollback warning count
-    std::atomic<unsigned int> new_rollback_warning_cnt_ = ATOMIC_VAR_INIT(0);
+    //GVT calculation flip-flop
+    std::atomic<unsigned int> gvt_calc_flip_flop_ = ATOMIC_VAR_INIT(0);
 };
 
 } // warped namespace

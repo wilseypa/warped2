@@ -13,11 +13,14 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
     /* Create the unprocessed and processed queues and their locks.
        Also create the uprocessed queue to schedule queue map. */
 
-    is_unprocessed_queue_empty_ = make_unique<bool []>(num_of_objects); 
     unprocessed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
     processed_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
 
-    rollback_warning_.assign(num_of_objects_, gvt_calc_request_cnt_);
+    /* Initialize the rollback warning and scheduled event structures 
+       for each object. */
+    warning_[0].warning_for_obj_.assign(num_of_objects_, false);
+    warning_[1].warning_for_obj_.assign(num_of_objects_, false);
+    event_scheduled_from_obj_.assign(num_of_objects_, nullptr);
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
         unprocessed_queue_.push_back(
@@ -27,9 +30,6 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
         coast_forward_queue_.push_back(
             make_unique<std::vector<std::shared_ptr<Event>>>());
         unprocessed_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
-
-        // Initialization for the boolean array
-        is_unprocessed_queue_empty_[obj_id] = false;
     }
 
     // Create the schedule queues and their locks
@@ -49,9 +49,9 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
 void TimeWarpEventSet::insertEvent (unsigned int obj_id, 
                                     std::shared_ptr<Event> event) {
 
+    bool found_event = false;
     unprocessed_queue_lock_[obj_id].lock();
     if (event->event_type_ == EventType::NEGATIVE) {
-        bool found_event = false;
         for (auto event_iterator = unprocessed_queue_[obj_id]->begin();
                     event_iterator != unprocessed_queue_[obj_id]->end() && 
                                 (*event_iterator)->timestamp() <= event->timestamp(); 
@@ -62,17 +62,17 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
                 break;
             }
         }
-        if (!found_event) {
-            unprocessed_queue_[obj_id]->insert(event);
-        }
-    } else {
+    }
+
+    /* If positive event or if negative event not cancelled out in unprocessed queue */
+    if (!found_event) {
         if (unprocessed_queue_[obj_id]->empty() && 
-                is_unprocessed_queue_empty_[obj_id]) {
+                (event_scheduled_from_obj_[obj_id] == nullptr)) {
             unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
             schedule_queue_lock_[scheduler_id].lock();
             schedule_queue_[scheduler_id]->push(event);
             schedule_queue_lock_[scheduler_id].unlock();
-            is_unprocessed_queue_empty_[obj_id] = false;
+            event_scheduled_from_obj_[obj_id] = event;
         } else {
             unprocessed_queue_[obj_id]->insert(event);
         }
@@ -110,9 +110,10 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
         schedule_queue_lock_[scheduler_id].lock();
         schedule_queue_[scheduler_id]->push(event);
         schedule_queue_lock_[scheduler_id].unlock();
+        event_scheduled_from_obj_[obj_id] = event;
         unprocessed_queue_[obj_id]->erase(event);
     } else {
-        is_unprocessed_queue_empty_[obj_id] = true;
+        event_scheduled_from_obj_[obj_id] = nullptr;
     }
     unprocessed_queue_lock_[obj_id].unlock();
 }
