@@ -346,7 +346,7 @@ void TimeWarpEventDispatcher::initialize(
 }
 
 unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
-    unsigned int min = std::numeric_limits<unsigned int>::max();;
+    unsigned int min = std::numeric_limits<unsigned int>::max();
     for (unsigned int i = 0; i < num_worker_threads_; i++) {
         min = std::min(min, min_lvt_[i]);
         // Reset send_min back to very large number for next calculation

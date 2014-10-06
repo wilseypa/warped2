@@ -43,15 +43,6 @@ public:
     }
 };
 
-/* Rollback warning for all objects on a node */
-class RollbackWarning {
-public:
-    RollbackWarning() = default;
-
-    std::vector<bool> warning_for_obj_;
-    std::atomic<unsigned int> warning_cnt_ = ATOMIC_VAR_INIT(0);
-};
-
 class TimeWarpEventSet {
 public:
     TimeWarpEventSet() = default;
@@ -73,7 +64,11 @@ public:
 
     void fossilCollectAll (unsigned int fossil_collect_time);
 
-    void rollback (unsigned int obj_id, unsigned int rollback_time); 
+    void rollback (unsigned int obj_id, unsigned int rollback_time);
+
+    void gvtCalcRequest ();
+
+    bool isRollbackPending ();
 
 private:
     //Number of simulation objects
@@ -114,12 +109,18 @@ private:
 
     //Which event has been scheduled from an object
     std::vector<std::shared_ptr<Event>> event_scheduled_from_obj_;
-    
-    //Rollback warning for objects - one current, the other old
-    RollbackWarning warning_[2];
 
-    //GVT calculation flip-flop
-    std::atomic<unsigned int> gvt_calc_flip_flop_ = ATOMIC_VAR_INIT(0);
+    //Rollback warning for objects
+    std::vector<unsigned int> rollback_warning_;
+
+    //Old rollback warning counter
+    std::atomic<unsigned int> old_warning_cnt_ = ATOMIC_VAR_INIT(0);
+
+    //New rollback warning counter
+    std::atomic<unsigned int> new_warning_cnt_ = ATOMIC_VAR_INIT(0);
+
+    //GVT calculation request count
+    std::atomic<unsigned int> gvt_calc_req_cnt_ = ATOMIC_VAR_INIT(1);
 };
 
 } // warped namespace

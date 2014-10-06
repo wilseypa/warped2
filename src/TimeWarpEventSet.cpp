@@ -18,8 +18,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
 
     /* Initialize the rollback warning and scheduled event structures 
        for each object. */
-    warning_[0].warning_for_obj_.assign(num_of_objects_, false);
-    warning_[1].warning_for_obj_.assign(num_of_objects_, false);
+    rollback_warning_.assign(num_of_objects_, 0);
     event_scheduled_from_obj_.assign(num_of_objects_, nullptr);
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
@@ -75,6 +74,15 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
             event_scheduled_from_obj_[obj_id] = event;
         } else {
             unprocessed_queue_[obj_id]->insert(event);
+
+            /* If event has timestamp lower than the scheduled event or 
+               is the negative counterpart of the event already processed */
+            if ((event_scheduled_from_obj_[obj_id] != nullptr) && 
+                    ((*event < *event_scheduled_from_obj_[obj_id]) || 
+                     (event->event_type_ == EventType::NEGATIVE))) {
+                rollback_warning_[obj_id] = gvt_calc_req_cnt_.load();
+                (void) new_warning_cnt_.fetch_add(1);
+            }
         }
     }
     unprocessed_queue_lock_[obj_id].unlock();
@@ -154,6 +162,28 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int rollback_time
         processed_queue_len--;
     }
     processed_queue_lock_[obj_id].unlock();
+
+    /* Update the rollback warning structures */
+    unprocessed_queue_lock_[obj_id].lock();
+    if (!rollback_warning_[obj_id]) {
+        (void) new_warning_cnt_.fetch_sub(1);
+        if (rollback_warning_[obj_id] < gvt_calc_req_cnt_.load()) {
+            (void) old_warning_cnt_.fetch_sub(1);
+        }
+        rollback_warning_[obj_id] = 0;
+    }
+    unprocessed_queue_lock_[obj_id].unlock();
+}
+
+void TimeWarpEventSet::gvtCalcRequest () {
+
+    (void) gvt_calc_req_cnt_.fetch_add(1);
+    old_warning_cnt_.store(new_warning_cnt_.load());
+}
+
+bool TimeWarpEventSet::isRollbackPending () {
+
+    return (old_warning_cnt_.load() ? true : false);
 }
 
 } // namespace warped

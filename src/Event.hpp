@@ -22,13 +22,17 @@ public:
     // Operator can be used in its current form only for handling anti-messages.
     // Receiver name comparison might needed for general use elsewhere.
     bool operator== (const Event &other) {
-        return (this->sender_name_ == other.sender_name_
-                && this->timestamp() == other.timestamp()
-                && this->rollback_cnt_ == other.rollback_cnt_);
+        return ((this->sender_name_ == other.sender_name_)
+                && (this->timestamp() == other.timestamp())
+                && (this->rollback_cnt_ == other.rollback_cnt_));
     }
 
     bool operator!= (const Event &other) {
         return !(*this == other);
+    }
+
+    bool operator< (const Event &other) {
+        return (this->timestamp() < other.timestamp());
     }
 
     // The name of the SimualtionObject that should receive this event.
