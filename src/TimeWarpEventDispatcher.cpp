@@ -152,7 +152,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 }
             }
 
-            if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
+            if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) || 
+                    event_set_->isRollbackPending()) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
                 calculated_min_flag_[thread_id] = true;
                 min_lvt_flag_--;
@@ -347,6 +348,7 @@ void TimeWarpEventDispatcher::initialize(
 
 unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
     unsigned int min = std::numeric_limits<unsigned int>::max();
+    while (event_set_->isRollbackPending());
     for (unsigned int i = 0; i < num_worker_threads_; i++) {
         min = std::min(min, min_lvt_[i]);
         // Reset send_min back to very large number for next calculation
