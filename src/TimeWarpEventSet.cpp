@@ -18,7 +18,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
 
     /* Initialize the rollback warning and scheduled event structures 
        for each object. */
-    rollback_warning_.assign(num_of_objects_, 0);
+    future_rollback_warning_.assign(num_of_objects_, 0);
     event_scheduled_from_obj_.assign(num_of_objects_, nullptr);
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
@@ -80,7 +80,7 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
             if ((event_scheduled_from_obj_[obj_id] != nullptr) && 
                     ((*event < *event_scheduled_from_obj_[obj_id]) || 
                      (event->event_type_ == EventType::NEGATIVE))) {
-                rollback_warning_[obj_id] = gvt_calc_req_cnt_.load();
+                future_rollback_warning_[obj_id] = gvt_calc_req_cnt_.load();
                 (void) new_warning_cnt_.fetch_add(1);
             }
         }
@@ -165,12 +165,12 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int rollback_time
 
     /* Update the rollback warning structures */
     unprocessed_queue_lock_[obj_id].lock();
-    if (!rollback_warning_[obj_id]) {
+    if (!future_rollback_warning_[obj_id]) {
         (void) new_warning_cnt_.fetch_sub(1);
-        if (rollback_warning_[obj_id] < gvt_calc_req_cnt_.load()) {
+        if (future_rollback_warning_[obj_id] < gvt_calc_req_cnt_.load()) {
             (void) old_warning_cnt_.fetch_sub(1);
         }
-        rollback_warning_[obj_id] = 0;
+        future_rollback_warning_[obj_id] = 0;
     }
     unprocessed_queue_lock_[obj_id].unlock();
 }

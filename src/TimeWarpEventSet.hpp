@@ -16,6 +16,8 @@
 #include "STLLTSFQueue.hpp"
 #include "utility/memory.hpp"
 
+#define ROLLBACK_CNT_ACTIVE   0  // activate if rollback count becomes relevant
+
 namespace warped {
 
 /* Compares two events to see if one has a receive time less than to the other
@@ -29,10 +31,20 @@ public:
         if (first->timestamp() > second->timestamp()) {
             is_less = false;
         } else if (first->timestamp() == second->timestamp()) {
-            if (first->rollback_cnt_ > second->rollback_cnt_) {
+            if (first->sender_name_.compare(second->sender_name_) > 0) {
                 is_less = false;
-            } else if (first->rollback_cnt_ == second->rollback_cnt_) {
+            } else if (first->sender_name_.compare(second->sender_name_) == 0) {
+#if ROLLBACK_CNT_ACTIVE
+                if (first->rollback_cnt_ > second->rollback_cnt_) {
+                    is_less = false;
+                } else if (first->rollback_cnt_ == second->rollback_cnt_) {
+                    is_less = (first->event_type_ < second->event_type_) ? true : false;
+                } else {
+                    is_less = true;
+                }
+#else
                 is_less = (first->event_type_ < second->event_type_) ? true : false;
+#endif
             } else {
                 is_less = true;
             }
@@ -110,8 +122,8 @@ private:
     //Which event has been scheduled from an object
     std::vector<std::shared_ptr<Event>> event_scheduled_from_obj_;
 
-    //Rollback warning for objects
-    std::vector<unsigned int> rollback_warning_;
+    //Future rollback warning for objects
+    std::vector<unsigned int> future_rollback_warning_;
 
     //Old rollback warning counter
     std::atomic<unsigned int> old_warning_cnt_ = ATOMIC_VAR_INIT(0);
