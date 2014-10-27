@@ -126,14 +126,18 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
+void TimeWarpEventSet::coastForwardedEvent(unsigned int obj_id, std::shared_ptr<Event> event) {
+
+    processed_queue_lock_[obj_id].lock();
+    processed_queue_[obj_id]->push_back(event);
+    processed_queue_lock_[obj_id].unlock();
+}
+
 void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event) {
 
     // Move old event from unprocessed queue to processed queue. 
     // Note: Old event might not be the smallest event in unprocessed queue.
-    processed_queue_lock_[obj_id].lock();
-    processed_queue_[obj_id]->push_back(old_event);
-    processed_queue_lock_[obj_id].unlock();
-
+    coastForwardedEvent(obj_id, old_event);
     startScheduling(obj_id);
 }
 
