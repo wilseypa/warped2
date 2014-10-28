@@ -80,6 +80,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
             min_lvt_flag_.store(num_worker_threads_);
             started_min_lvt = true;
+            event_set_->gvtCalcRequest();
         }
         if (GVT_UPDATE(msg_flags)) {
             fossilCollect(gvt_manager_->getGVT());
@@ -108,10 +109,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         }
 
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
-            if (!gvt_calc_ongoing_) {
-                event_set_->gvtCalcRequest();
-                gvt_calc_ongoing_ = true;
-            }
             if (!event_set_->isRollbackPending()) {
                 unsigned int local_min_lvt = getMinimumLVT();
                 if (comm_manager_->getNumProcesses() > 1) {
@@ -125,7 +122,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                 }
                 msg_flags &= ~MessageFlags::PendingMatternToken;
                 started_min_lvt = false;
-                gvt_calc_ongoing_ = false;
+            } else {
+                std::cout << "waiting" << std::endl;
             }
         }
 
@@ -159,8 +157,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 }
             }
 
-            if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) || 
-                    event_set_->isRollbackPending()) {
+            if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) && 
+                                                            !event_set_->isRollbackPending()) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
                 calculated_min_flag_[thread_id] = true;
                 min_lvt_flag_--;
@@ -340,9 +338,6 @@ void TimeWarpEventDispatcher::initialize(
         std::bind(&TimeWarpEventDispatcher::receiveEventMessage, this,
         std::placeholders::_1);
     comm_manager_->addRecvMessageHandler(MessageType::EventMessage, handler);
-
-    // GVT calculation ongoing
-    gvt_calc_ongoing_ = false;
 
     // Prepare local min lvt computation
     min_lvt_ = make_unique<unsigned int []>(num_worker_threads_);

@@ -137,7 +137,9 @@ void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<
 
     // Move old event from unprocessed queue to processed queue. 
     // Note: Old event might not be the smallest event in unprocessed queue.
-    coastForwardedEvent(obj_id, old_event);
+    processed_queue_lock_[obj_id].lock();
+    processed_queue_[obj_id]->push_back(old_event);
+    processed_queue_lock_[obj_id].unlock();
     startScheduling(obj_id);
 }
 
@@ -145,10 +147,13 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {
         processed_queue_lock_[obj_id].lock();
-        while (processed_queue_[obj_id]->begin() != processed_queue_[obj_id]->end() ) {
-            auto event_iterator = processed_queue_[obj_id]->begin();
-            if ((*event_iterator)->timestamp() >= fossil_collect_time) break;
-            processed_queue_[obj_id]->erase(event_iterator);
+        for (auto event_iterator = processed_queue_[obj_id]->begin(); 
+                event_iterator != processed_queue_[obj_id]->end();) {
+            if ((*event_iterator)->timestamp() >= fossil_collect_time) {
+                event_iterator++;
+            } else {
+                event_iterator = processed_queue_[obj_id]->erase(event_iterator);
+            }
         }
         processed_queue_lock_[obj_id].unlock();
     }
@@ -158,11 +163,12 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int rollback_time
 
     processed_queue_lock_[obj_id].lock();
     unsigned int processed_queue_len = processed_queue_[obj_id]->size();
-    while ((processed_queue_len > 0) && 
-           ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() >= rollback_time)) {
-        coast_forward_queue_[obj_id]->insert(coast_forward_queue_[obj_id]->begin(), 
-                                                (*processed_queue_[obj_id])[processed_queue_len-1]);
-        processed_queue_[obj_id]->pop_back();
+    while (processed_queue_len > 0) {
+        if ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() >= rollback_time) {
+            coast_forward_queue_[obj_id]->insert(coast_forward_queue_[obj_id]->begin(), 
+                                    (*processed_queue_[obj_id])[processed_queue_len-1]);
+            processed_queue_[obj_id]->pop_back();
+        }
         processed_queue_len--;
     }
     processed_queue_lock_[obj_id].unlock();
