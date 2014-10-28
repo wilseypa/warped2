@@ -99,6 +99,9 @@ private:
 
     static thread_local unsigned int thread_id;
 
+    // GVT calculation status
+    bool gvt_calc_ongoing_;
+
     // flag to initiate minimum lvt calculation
     std::atomic<unsigned int> min_lvt_flag_ = ATOMIC_VAR_INIT(0);
 

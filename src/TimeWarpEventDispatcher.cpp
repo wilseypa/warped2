@@ -108,18 +108,25 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         }
 
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
-            unsigned int local_min_lvt = getMinimumLVT();
-            if (comm_manager_->getNumProcesses() > 1) {
-                dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
-                    local_min_lvt);
-            } else {
-                gvt_manager_->setGVT(local_min_lvt);
-                std::cout << "GVT: " << local_min_lvt << std::endl;
-                fossilCollect(gvt_manager_->getGVT());
-                dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
+            if (!gvt_calc_ongoing_) {
+                event_set_->gvtCalcRequest();
+                gvt_calc_ongoing_ = true;
             }
-            msg_flags &= ~MessageFlags::PendingMatternToken;
-            started_min_lvt = false;
+            if (!event_set_->isRollbackPending()) {
+                unsigned int local_min_lvt = getMinimumLVT();
+                if (comm_manager_->getNumProcesses() > 1) {
+                    dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
+                        local_min_lvt);
+                } else {
+                    gvt_manager_->setGVT(local_min_lvt);
+                    std::cout << "GVT: " << local_min_lvt << std::endl;
+                    fossilCollect(gvt_manager_->getGVT());
+                    dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
+                }
+                msg_flags &= ~MessageFlags::PendingMatternToken;
+                started_min_lvt = false;
+                gvt_calc_ongoing_ = false;
+            }
         }
 
         sendRemoteEvents();
@@ -284,6 +291,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
         twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
         object->receiveEvent(*event);
         state_manager_->saveState(event->timestamp(), current_object_id, object);
+        event_set_->coastForwardedEvent(current_object_id, event);
     }
 }
 
@@ -333,6 +341,9 @@ void TimeWarpEventDispatcher::initialize(
         std::placeholders::_1);
     comm_manager_->addRecvMessageHandler(MessageType::EventMessage, handler);
 
+    // GVT calculation ongoing
+    gvt_calc_ongoing_ = false;
+
     // Prepare local min lvt computation
     min_lvt_ = make_unique<unsigned int []>(num_worker_threads_);
     send_min_ = make_unique<unsigned int []>(num_worker_threads_);
@@ -348,7 +359,6 @@ void TimeWarpEventDispatcher::initialize(
 
 unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
     unsigned int min = std::numeric_limits<unsigned int>::max();
-    while (event_set_->isRollbackPending());
     for (unsigned int i = 0; i < num_worker_threads_; i++) {
         min = std::min(min, min_lvt_[i]);
         // Reset send_min back to very large number for next calculation
