@@ -14,7 +14,9 @@ WARPED_INSTALL_HPP_FILES = \
     src/serialization.hpp \
     src/Simulation.hpp \
     src/SimulationObject.hpp \
-    src/warped.hpp
+    src/warped.hpp \
+    src/utility/memory.hpp \
+    src/utility/warnings.hpp
 
 # All other headers are listed in this variable
 WARPED_NOINST_HPP_FILES = \
@@ -30,9 +32,7 @@ WARPED_NOINST_HPP_FILES = \
     src/SequentialEventDispatcher.hpp \
     src/STLLTSFQueue.hpp \
     src/TimeWarpEventDispatcher.hpp \
-    src/utility/memory.hpp \
     src/utility/strings.hpp \
-    src/utility/warnings.hpp \
     src/TimeWarpGVTManager.hpp \
     src/TimeWarpMatternGVTManager.hpp \
     src/TimeWarpKernelMessage.hpp \
@@ -43,7 +43,6 @@ WARPED_NOINST_HPP_FILES = \
     src/TimeWarpOutputManager.hpp \
     src/TimeWarpAggressiveOutputManager.hpp \
     src/TimeWarpFileStreamManager.hpp \
-    src/FileStream.hpp \
     src/TimeWarpFileStream.hpp \
     src/TimeWarpEventSet.hpp
 
