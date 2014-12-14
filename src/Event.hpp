@@ -2,8 +2,9 @@
 #define WARPED_EVENT_HPP
 
 #include <string>
-
 #include "serialization.hpp"
+
+#define ROLLBACK_CNT_ACTIVE   0  // activate if rollback count becomes relevant
 
 namespace warped {
 
@@ -22,9 +23,14 @@ public:
     // Operator can be used in its current form only for handling anti-messages.
     // Receiver name comparison might needed for general use elsewhere.
     bool operator== (const Event &other) {
-        return ((this->sender_name_ == other.sender_name_)
-                && (this->timestamp() == other.timestamp())
+#if ROLLBACK_CNT_ACTIVE
+        return ((this->timestamp() == other.timestamp())
+                && (this->sender_name_ == other.sender_name_)
                 && (this->rollback_cnt_ == other.rollback_cnt_));
+#else
+        return ((this->timestamp() == other.timestamp())
+                && (this->sender_name_ == other.sender_name_));
+#endif
     }
 
     bool operator!= (const Event &other) {
@@ -32,7 +38,27 @@ public:
     }
 
     bool operator< (const Event &other) {
-        return (this->timestamp() < other.timestamp());
+        if (this->timestamp() < other.timestamp()) {
+            return true;
+        } else if (this->timestamp() == other.timestamp()) {
+            if (this->sender_name_.compare(other.sender_name_) < 0) {
+                return true;
+            } else if (this->sender_name_.compare(other.sender_name_) == 0) {
+#if ROLLBACK_CNT_ACTIVE
+                if (this->rollback_cnt_ < other.rollback_cnt_) {
+                    return true;
+                } else {
+                    return false;
+                }
+#else
+                return false;
+#endif
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
     // The name of the SimualtionObject that should receive this event.

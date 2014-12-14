@@ -16,8 +16,6 @@
 #include "STLLTSFQueue.hpp"
 #include "utility/memory.hpp"
 
-#define ROLLBACK_CNT_ACTIVE   0  // activate if rollback count becomes relevant
-
 namespace warped {
 
 /* Compares two events to see if one has a receive time less than to the other
