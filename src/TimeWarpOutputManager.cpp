@@ -27,8 +27,8 @@ unsigned int TimeWarpOutputManager::fossilCollect(unsigned int gvt, unsigned int
     output_queue_lock_[local_object_id].lock();
 
     auto min = output_queue_[local_object_id].begin();
-    while ((min->get()->timestamp() < gvt) && (min != output_queue_[local_object_id].end())) {
-        output_queue_[local_object_id].erase(min);
+    while ((min != output_queue_[local_object_id].end()) && (min->get()->timestamp() < gvt)) {
+        min = output_queue_[local_object_id].erase(min);
     }
 
     if (min != output_queue_[local_object_id].end()) {
@@ -55,10 +55,11 @@ TimeWarpOutputManager::removeEventsSentAtOrAfter(unsigned int rollback_time,
     output_queue_lock_[local_object_id].lock();
 
     auto max = std::prev(output_queue_[local_object_id].end());
-    while ((max->get()->timestamp() >= rollback_time)
-           && (max != output_queue_[local_object_id].begin())) {
+    while ((max != output_queue_[local_object_id].begin()) && 
+                    (max->get()->timestamp() >= rollback_time)) {
         events_to_cancel->push_back(*max);
-        output_queue_[local_object_id].erase(max--);
+        output_queue_[local_object_id].erase(max);
+        max = std::prev(output_queue_[local_object_id].end());
     }
 
     if ((max != output_queue_[local_object_id].begin())
