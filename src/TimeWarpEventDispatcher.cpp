@@ -145,14 +145,18 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
-            // Check to see if straggler/negative event and rollback if true
-            if ((event->timestamp() < object_simulation_time_[current_object_id]) || 
-                                            (event->event_type_ == EventType::NEGATIVE)) {
+            // Check to see if straggler event and rollback if true
+            if ((prev_processed_event_[current_object_id]) && 
+                    ((*event < *prev_processed_event_[current_object_id]) || 
+                     ((*event == *prev_processed_event_[current_object_id]) && 
+                      (event->event_type_ == EventType::NEGATIVE)))) {
+
                 rollback(event, current_object_id, current_object);
                 rollback_count_++;
-
                 if (event->event_type_ == EventType::NEGATIVE) {
                     event_set_->startScheduling(current_object_id);
+                    // Update previous processed event
+                    prev_processed_event_[current_object_id] = std::move(event);
                     continue;
                 }
             }
@@ -192,7 +196,10 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Move the next event from object into the schedule queue
             // Also transfer old event to processed queue
-            event_set_->replenishScheduler(current_object_id, std::move(event));
+            event_set_->replenishScheduler(current_object_id, event);
+
+            // Update previous processed event
+            prev_processed_event_[current_object_id] = std::move(event);
 
         } else {
             // TODO, do something here
@@ -322,6 +329,10 @@ void TimeWarpEventDispatcher::initialize(
 
     object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);
     std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
+
+    prev_processed_event_ = make_unique<std::shared_ptr<Event> []>(num_local_objects);
+    std::memset(prev_processed_event_.get(), 0, 
+                    num_local_objects*sizeof(std::shared_ptr<Event>));
 
     // Creates the state queues, output queues, and filestream queues for each local object
     state_manager_->initialize(num_local_objects);

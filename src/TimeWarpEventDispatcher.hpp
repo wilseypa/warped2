@@ -93,6 +93,7 @@ private:
     const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
 
     std::unique_ptr<unsigned int []> object_simulation_time_;
+    std::unique_ptr<std::shared_ptr<Event> []> prev_processed_event_;
 
     std::deque<std::pair <std::shared_ptr<Event>, unsigned int>> remote_event_queue_;
     std::mutex remote_event_queue_lock_;
