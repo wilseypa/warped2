@@ -18,8 +18,10 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
 
     /* Initialize the rollback warning and scheduled event structures 
        for each object. */
-    future_rollback_warning_.assign(num_of_objects_, 0);
-    event_scheduled_from_obj_.assign(num_of_objects_, nullptr);
+    continuous_straggler_flags_ = make_unique<bool []>(num_of_objects);
+    memset(continuous_straggler_flags_.get(), 0, num_of_objects*sizeof(bool));
+    gvt_straggler_flags_ = make_unique<bool []>(num_of_objects);
+    memset(gvt_straggler_flags_.get(), 0, num_of_objects*sizeof(bool));
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
         unprocessed_queue_.push_back(
@@ -28,6 +30,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
             make_unique<std::vector<std::shared_ptr<Event>>>());
         coast_forward_queue_.push_back(
             make_unique<std::vector<std::shared_ptr<Event>>>());
+        event_scheduled_from_obj_.push_back(nullptr);
         unprocessed_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
     }
 
@@ -75,13 +78,15 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
         } else {
             unprocessed_queue_[obj_id]->insert(event);
 
-            /* If event has timestamp lower than the scheduled event or 
-               is the negative counterpart of the event already processed */
-            if ((event_scheduled_from_obj_[obj_id] != nullptr) && 
-                    ((*event < *event_scheduled_from_obj_[obj_id]) || 
-                     (event->event_type_ == EventType::NEGATIVE))) {
-                future_rollback_warning_[obj_id] = gvt_calc_req_cnt_.load();
-                (void) new_warning_cnt_.fetch_add(1);
+            /* If event has timestamp lower than the scheduled event */
+            if ((event_scheduled_from_obj_[obj_id] != nullptr) &&
+                    ((event->timestamp() < event_scheduled_from_obj_[obj_id]->timestamp()))) {
+                straggler_flags_lock_.lock();
+                if (continuous_straggler_flags_[obj_id] == false) {
+                    continuous_straggler_flags_[obj_id] = true;
+                    continuous_straggler_cnt_++;
+                }
+                straggler_flags_lock_.unlock();
             }
         }
     }
@@ -165,35 +170,42 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int rollback_time
     unsigned int processed_queue_len = processed_queue_[obj_id]->size();
     while (processed_queue_len > 0) {
         if ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() >= rollback_time) {
-            coast_forward_queue_[obj_id]->insert(coast_forward_queue_[obj_id]->begin(), 
-                                    (*processed_queue_[obj_id])[processed_queue_len-1]);
+            coast_forward_queue_[obj_id]->insert(coast_forward_queue_[obj_id]->begin(),
+                (*processed_queue_[obj_id])[processed_queue_len-1]);
             processed_queue_[obj_id]->pop_back();
         }
         processed_queue_len--;
     }
     processed_queue_lock_[obj_id].unlock();
 
-    /* Update the rollback warning structures */
-    unprocessed_queue_lock_[obj_id].lock();
-    if (!future_rollback_warning_[obj_id]) {
-        (void) new_warning_cnt_.fetch_sub(1);
-        if (future_rollback_warning_[obj_id] < gvt_calc_req_cnt_.load()) {
-            (void) old_warning_cnt_.fetch_sub(1);
+    straggler_flags_lock_.lock();
+
+    continuous_straggler_flags_[obj_id] = false;
+    continuous_straggler_cnt_--;
+    if (gvt_flag_ && (gvt_straggler_flags_[obj_id] == true)) {
+        gvt_straggler_flags_[obj_id] = false;
+        gvt_straggler_cnt_--;
+        if (gvt_straggler_cnt_ == 0) {
+            gvt_flag_ = false;
         }
-        future_rollback_warning_[obj_id] = 0;
     }
-    unprocessed_queue_lock_[obj_id].unlock();
+
+    straggler_flags_lock_.unlock();
 }
 
 void TimeWarpEventSet::gvtCalcRequest () {
+    straggler_flags_lock_.lock();
 
-    (void) gvt_calc_req_cnt_.fetch_add(1);
-    old_warning_cnt_.store(new_warning_cnt_.load());
+    std::memcpy(gvt_straggler_flags_.get(), continuous_straggler_flags_.get(),
+        num_of_objects_*sizeof(bool));
+    gvt_straggler_cnt_ = continuous_straggler_cnt_;
+    gvt_flag_ = true;
+
+    straggler_flags_lock_.unlock();
 }
 
 bool TimeWarpEventSet::isRollbackPending () {
-
-    return (old_warning_cnt_.load() ? true : false);
+    return gvt_flag_;
 }
 
 } // namespace warped
