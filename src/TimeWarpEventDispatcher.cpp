@@ -13,6 +13,7 @@
 #include <chrono>   // for std::chrono::steady_clock
 #include <cstring> // for std::memset
 #include <iostream>
+#include <cassert>
 
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
@@ -79,8 +80,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         msg_flags |= flags;
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
             min_lvt_flag_.store(num_worker_threads_);
-            started_min_lvt = true;
             event_set_->gvtCalcRequest();
+            started_min_lvt = true;
         }
         if (GVT_UPDATE(msg_flags)) {
             fossilCollect(gvt_manager_->getGVT());
@@ -95,6 +96,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             msg_flags |= flags;
             if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt ) {
                 min_lvt_flag_.store(num_worker_threads_);
+                event_set_->gvtCalcRequest();
                 started_min_lvt = true;
                 calculate_gvt = false;
             }
@@ -109,22 +111,18 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         }
 
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
-            if (!event_set_->isRollbackPending()) {
-                unsigned int local_min_lvt = getMinimumLVT();
-                if (comm_manager_->getNumProcesses() > 1) {
-                    dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
-                        local_min_lvt);
-                } else {
-                    gvt_manager_->setGVT(local_min_lvt);
-                    std::cout << "GVT: " << local_min_lvt << std::endl;
-                    fossilCollect(gvt_manager_->getGVT());
-                    dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
-                }
-                msg_flags &= ~MessageFlags::PendingMatternToken;
-                started_min_lvt = false;
+            unsigned int local_min_lvt = getMinimumLVT();
+            if (comm_manager_->getNumProcesses() > 1) {
+                dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
+                    local_min_lvt);
             } else {
-                std::cout << "waiting" << std::endl;
+                gvt_manager_->setGVT(local_min_lvt);
+                std::cout << "GVT: " << local_min_lvt << std::endl;
+                fossilCollect(gvt_manager_->getGVT());
+                dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
             }
+            msg_flags &= ~MessageFlags::PendingMatternToken;
+            started_min_lvt = false;
         }
 
         sendRemoteEvents();
@@ -147,7 +145,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Check to see if straggler/negative event and rollback if true
             if ((event->timestamp() < object_simulation_time_[current_object_id]) || 
-                                            (event->event_type_ == EventType::NEGATIVE)) {
+                    ((event->event_type_ == EventType::NEGATIVE))) {
                 rollback(event, current_object_id, current_object);
                 rollback_count_++;
 
@@ -158,7 +156,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) && 
-                                                            !event_set_->isRollbackPending()) {
+                    !event_set_->isRollbackPending()) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
                 calculated_min_flag_[thread_id] = true;
                 min_lvt_flag_--;
@@ -196,6 +194,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
         } else {
             // TODO, do something here
+            assert(false);
         }
     }
 }
@@ -261,6 +260,8 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
                     state_manager_->restoreState(straggler_time, local_object_id, object);
     auto events_to_cancel = output_manager_->rollback(straggler_time, local_object_id);
 
+    assert((restored_timestamp < straggler_event->timestamp()) || (restored_timestamp == 0));
+
     if (events_to_cancel != nullptr) {
         cancelEvents(std::move(events_to_cancel));
     }
@@ -285,6 +286,10 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
                 (*event == *straggler_event)) || (event->timestamp() > stop_time)) {
             continue;
         }
+
+        assert(event->timestamp() <= stop_time);
+        assert(event->timestamp() <= object_simulation_time_[current_object_id]);
+
         object_simulation_time_[current_object_id] = event->timestamp();
         twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
         object->receiveEvent(*event);
