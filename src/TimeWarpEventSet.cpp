@@ -79,8 +79,9 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
             unprocessed_queue_[obj_id]->insert(event);
 
             /* If event has timestamp lower than the scheduled event */
-            if ((event_scheduled_from_obj_[obj_id] != nullptr) &&
-                    ((event->timestamp() < event_scheduled_from_obj_[obj_id]->timestamp()))) {
+            if ((event_scheduled_from_obj_[obj_id] != nullptr) && 
+                    ((*event < *event_scheduled_from_obj_[obj_id]) || 
+                     (event->event_type_ == EventType::NEGATIVE))) {
                 straggler_flags_lock_.lock();
                 if (continuous_straggler_flags_[obj_id] == false) {
                     continuous_straggler_flags_[obj_id] = true;
