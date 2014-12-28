@@ -159,6 +159,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 }
             }
 
+            assert(event->event_type_ != EventType::NEGATIVE);
+
             if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) && 
                     !event_set_->isRollbackPending()) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
