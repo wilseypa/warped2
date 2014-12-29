@@ -21,13 +21,21 @@ TEST_CASE("Test the event set operations") {
 
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 15}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 10}));
-        twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 11}));
+        twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 9}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 10, false}));
         twes. startScheduling(0);
 
         twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9}));
         twes. startScheduling(1);
         twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9, false}));
+
+        spe = twes.getEvent(0);
+        REQUIRE(spe != nullptr);
+        CHECK(spe->receiverName() == "a");
+        CHECK(spe->timestamp() == 9);
+        CHECK(spe->event_type_ == warped::EventType::POSITIVE);
+
+        twes.replenishScheduler(0, spe);
 
         spe = twes.getEvent(0);
         REQUIRE(spe != nullptr);
@@ -52,9 +60,7 @@ TEST_CASE("Test the event set operations") {
         twes.startScheduling(1);
 
         spe = twes.getEvent(0);
-        REQUIRE(spe != nullptr);
-        CHECK(spe->receiverName() == "a");
-        CHECK(spe->timestamp() == 11);
+        REQUIRE(spe == nullptr);
 
         twes.replenishScheduler(0, spe);
 
