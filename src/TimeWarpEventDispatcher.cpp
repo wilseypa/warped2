@@ -153,16 +153,14 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 rollback_count_++;
                 if (event->event_type_ == EventType::NEGATIVE) {
                     event_set_->startScheduling(current_object_id);
-                    // Update previous processed event
-                    prev_processed_event_[current_object_id] = std::move(event);
                     continue;
                 }
             }
 
             assert(event->event_type_ != EventType::NEGATIVE);
 
-            if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) && 
-                    !event_set_->isRollbackPending()) {
+            if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id])) {
+                //    && !event_set_->isRollbackPending()) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
                 calculated_min_flag_[thread_id] = true;
                 min_lvt_flag_--;
@@ -250,12 +248,20 @@ void TimeWarpEventDispatcher::cancelEvents(
         auto neg_event = std::make_shared<NegativeEvent>(event);
 
         events_to_cancel->pop_back();
+
         unsigned int receiver_id = object_node_id_by_name_[event->receiverName()];
+        unsigned int sender_id = object_node_id_by_name_[event->sender_name_];
+        if (sender_id == receiver_id) {
+            neg_event.reset();
+            continue;
+        }
+
         if (receiver_id != comm_manager_->getID()) {
             enqueueRemoteEvent(neg_event, receiver_id);
         } else {
             sendLocalEvent(neg_event);
         }
+
     } while (!events_to_cancel->empty());
 }
 
@@ -293,6 +299,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
     for (auto& event : *events) {
         if (((straggler_event->event_type_ == EventType::NEGATIVE) && 
                 (*event == *straggler_event)) || (event->timestamp() > stop_time)) {
+            event.reset();
             continue;
         }
 

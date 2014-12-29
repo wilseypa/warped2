@@ -158,6 +158,7 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
             if ((*event_iterator)->timestamp() >= fossil_collect_time) {
                 event_iterator++;
             } else {
+                event_iterator->reset();
                 event_iterator = processed_queue_[obj_id]->erase(event_iterator);
             }
         }

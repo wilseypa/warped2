@@ -28,6 +28,7 @@ unsigned int TimeWarpOutputManager::fossilCollect(unsigned int gvt, unsigned int
 
     auto min = output_queue_[local_object_id].begin();
     while ((min != output_queue_[local_object_id].end()) && (min->get()->timestamp() < gvt)) {
+        min->reset();
         min = output_queue_[local_object_id].erase(min);
     }
 

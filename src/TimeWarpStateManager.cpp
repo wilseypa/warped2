@@ -1,4 +1,5 @@
 #include <limits> // for std::numeric_limits<unsigned int>::max();
+#include <cassert>
 
 #include "TimeWarpStateManager.hpp"
 #include "SimulationObject.hpp"
@@ -19,6 +20,8 @@ unsigned int TimeWarpStateManager::restoreState(unsigned int rollback_time,
 
     state_queue_lock_[local_object_id].lock();
 
+    assert(!state_queue_[local_object_id].empty());
+
     auto max = std::prev(state_queue_[local_object_id].end());
     while ((max != state_queue_[local_object_id].begin()) && (max->first >= rollback_time)) {
         state_queue_[local_object_id].erase(max);
@@ -38,7 +41,8 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
 
     auto min = state_queue_[local_object_id].begin();
     while (min->first < gvt && min != state_queue_[local_object_id].end()) {
-        state_queue_[local_object_id].erase(min);
+        min->second.reset();
+        min = state_queue_[local_object_id].erase(min);
     }
 
     if (min != state_queue_[local_object_id].end()) {
