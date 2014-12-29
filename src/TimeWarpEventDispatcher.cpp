@@ -249,15 +249,17 @@ void TimeWarpEventDispatcher::cancelEvents(
 
         events_to_cancel->pop_back();
 
-        unsigned int receiver_id = object_node_id_by_name_[event->receiverName()];
-        unsigned int sender_id = object_node_id_by_name_[event->sender_name_];
+        unsigned int receiver_node_id = object_node_id_by_name_[event->receiverName()];
+
+        unsigned int receiver_id = local_object_id_by_name_[event->receiverName()];
+        unsigned int sender_id = local_object_id_by_name_[event->sender_name_];
         if (sender_id == receiver_id) {
             neg_event.reset();
             continue;
         }
 
-        if (receiver_id != comm_manager_->getID()) {
-            enqueueRemoteEvent(neg_event, receiver_id);
+        if (receiver_node_id != comm_manager_->getID()) {
+            enqueueRemoteEvent(neg_event, receiver_node_id);
         } else {
             sendLocalEvent(neg_event);
         }
@@ -322,6 +324,8 @@ void TimeWarpEventDispatcher::initialize(
     event_set_->initialize(num_local_objects, num_schedulers_, num_worker_threads_);
     rollback_count_ = 0;
 
+    unsigned int receiver_id;
+
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
         unsigned int object_id = 0;
@@ -333,14 +337,18 @@ void TimeWarpEventDispatcher::initialize(
                 for (auto& e: new_events) {
                     e->sender_name_ = ob->name_;
                     e->rollback_cnt_ = rollback_count_;
-                    event_set_->insertEvent(object_id, e);
+                    receiver_id = local_object_id_by_name_[e->receiverName()];
+                    event_set_->insertEvent(receiver_id, e);
                 }
-                event_set_->startScheduling(object_id);
                 object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;
         }
         partition_id++;
+    }
+
+    for (unsigned int object_id = 0; object_id < num_local_objects; object_id++) {
+        event_set_->startScheduling(object_id);
     }
 
     object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);

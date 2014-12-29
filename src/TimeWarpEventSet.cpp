@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <cassert>
+
 #include "TimeWarpEventSet.hpp"
 #include "utility/warnings.hpp"
 
@@ -119,6 +122,11 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
     unprocessed_queue_lock_[obj_id].lock();
     if (!unprocessed_queue_[obj_id]->empty()) {
         std::shared_ptr<Event> event = *unprocessed_queue_[obj_id]->begin();
+
+        struct compareEvents cmp;
+        assert(**std::min_element(unprocessed_queue_[obj_id]->begin(),
+                unprocessed_queue_[obj_id]->end(), cmp) == *event);
+
         unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
         schedule_queue_[scheduler_id]->push(event);
