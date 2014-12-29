@@ -271,6 +271,8 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
     unsigned int straggler_time = straggler_event->timestamp();
     twfs_manager_->rollback(straggler_time, local_object_id);
 
+    assert(straggler_time >= gvt_manager_->getGVT());
+
     unsigned int restored_timestamp = 
                     state_manager_->restoreState(straggler_time, local_object_id, object);
     auto events_to_cancel = output_manager_->rollback(straggler_time, local_object_id);

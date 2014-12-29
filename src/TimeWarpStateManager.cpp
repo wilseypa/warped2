@@ -24,6 +24,7 @@ unsigned int TimeWarpStateManager::restoreState(unsigned int rollback_time,
 
     auto max = std::prev(state_queue_[local_object_id].end());
     while ((max != state_queue_[local_object_id].begin()) && (max->first >= rollback_time)) {
+        max->second.reset();
         state_queue_[local_object_id].erase(max);
         max = std::prev(state_queue_[local_object_id].end());
     }

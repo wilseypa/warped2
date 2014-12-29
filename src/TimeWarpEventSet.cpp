@@ -54,11 +54,10 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
     bool found_event = false;
     unprocessed_queue_lock_[obj_id].lock();
     if (event->event_type_ == EventType::NEGATIVE) {
-        for (auto event_iterator = unprocessed_queue_[obj_id]->begin();
-                    event_iterator != unprocessed_queue_[obj_id]->end() && 
-                                (*event_iterator)->timestamp() <= event->timestamp(); 
-                    event_iterator++) {
-            if (*event == **event_iterator) {
+        for (auto event_iterator : *unprocessed_queue_[obj_id]) {
+            if (*event == *event_iterator) {
+                event.reset();
+                event_iterator.reset();
                 unprocessed_queue_[obj_id]->erase(event_iterator);
                 found_event = true;
                 break;
