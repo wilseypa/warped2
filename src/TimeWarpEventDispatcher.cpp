@@ -304,7 +304,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
         }
 
         assert(event->timestamp() <= stop_time);
-        assert(event->timestamp() <= object_simulation_time_[current_object_id]);
+        assert(event->timestamp() >= object_simulation_time_[current_object_id]);
 
         object_simulation_time_[current_object_id] = event->timestamp();
         twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
