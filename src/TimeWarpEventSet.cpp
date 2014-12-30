@@ -60,8 +60,8 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
         for (auto event_iterator : *unprocessed_queue_[obj_id]) {
             if (*event == *event_iterator) {
                 event.reset();
-                event_iterator.reset();
                 unprocessed_queue_[obj_id]->erase(event_iterator);
+                event_iterator.reset();
                 found_event = true;
                 break;
             }
