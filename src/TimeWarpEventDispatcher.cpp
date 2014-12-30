@@ -159,8 +159,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             assert(event->event_type_ != EventType::NEGATIVE);
 
-            if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id])) {
-                //    && !event_set_->isRollbackPending()) {
+            if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id])
+                    && !event_set_->isRollbackPending()) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
                 calculated_min_flag_[thread_id] = true;
                 min_lvt_flag_--;
@@ -182,6 +182,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 e->sender_name_ = current_object->name_;
                 e->rollback_cnt_ = rollback_count_;
                 output_manager_->insertEvent(e, current_object_id);
+
+                assert(e->timestamp() >= object_simulation_time_[current_object_id]);
 
                 if (node_id == comm_manager_->getID()) {
                     // Local event
@@ -309,6 +311,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
 
         assert(event->timestamp() <= stop_time);
         assert(event->timestamp() >= object_simulation_time_[current_object_id]);
+        assert(event->event_type_ != EventType::NEGATIVE);
 
         object_simulation_time_[current_object_id] = event->timestamp();
         twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);

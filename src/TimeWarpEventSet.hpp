@@ -76,7 +76,7 @@ public:
 
     void fossilCollectAll (unsigned int fossil_collect_time);
 
-    void rollback (unsigned int obj_id, unsigned int rollback_time);
+    void rollback (unsigned int obj_id, unsigned int restored_time);
 
     void gvtCalcRequest ();
 
@@ -123,10 +123,10 @@ private:
     std::vector<std::shared_ptr<Event>> event_scheduled_from_obj_;
 
     //Continuously keeps track of stagglers
-    std::unique_ptr<bool []> continuous_straggler_flags_;
+    std::unique_ptr<unsigned int []> continuous_straggler_flags_;
 
     //Temporarily keeps track of stragglers for each gvt calculation
-    std::unique_ptr<bool []> gvt_straggler_flags_;
+    std::unique_ptr<unsigned int []> gvt_straggler_flags_;
 
     std::mutex straggler_flags_lock_;
 
@@ -137,7 +137,7 @@ private:
     unsigned int gvt_straggler_cnt_ = 0;
 
     //GVT calculation request flag
-    std::atomic_bool gvt_flag_ = ATOMIC_VAR_INIT(false);
+    bool gvt_flag_ = false;
 };
 
 } // warped namespace
