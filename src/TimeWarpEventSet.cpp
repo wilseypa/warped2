@@ -130,6 +130,7 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
         unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
         schedule_queue_[scheduler_id]->push(event);
+        assert(schedule_queue_[scheduler_id]->size() <= std::ceil(num_of_objects_/num_of_schedulers_));
         schedule_queue_lock_[scheduler_id].unlock();
         event_scheduled_from_obj_[obj_id] = event;
         unprocessed_queue_[obj_id]->erase(event);
