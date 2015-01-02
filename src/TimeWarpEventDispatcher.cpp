@@ -327,8 +327,6 @@ void TimeWarpEventDispatcher::initialize(
     event_set_->initialize(num_local_objects, num_schedulers_, num_worker_threads_);
     rollback_count_ = 0;
 
-    unsigned int receiver_id;
-
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
         unsigned int object_id = 0;
@@ -340,8 +338,7 @@ void TimeWarpEventDispatcher::initialize(
                 for (auto& e: new_events) {
                     e->sender_name_ = ob->name_;
                     e->rollback_cnt_ = rollback_count_;
-                    receiver_id = local_object_id_by_name_[e->receiverName()];
-                    event_set_->insertEvent(receiver_id, e);
+                    event_set_->insertEvent(object_id, e);
                 }
                 object_id++;
             }
