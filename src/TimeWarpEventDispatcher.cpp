@@ -350,10 +350,6 @@ void TimeWarpEventDispatcher::initialize(
         partition_id++;
     }
 
-    for (unsigned int object_id = 0; object_id < num_local_objects; object_id++) {
-        event_set_->startScheduling(object_id);
-    }
-
     object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);
     std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
 
