@@ -174,15 +174,37 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
     }
 }
 
-void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int restored_time) {
+void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int restored_time, 
+                                            std::shared_ptr<Event> straggler_event) {
 
     processed_queue_lock_[obj_id].lock();
     unsigned int processed_queue_len = processed_queue_[obj_id]->size();
     while (processed_queue_len > 0) {
         if ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() >= restored_time) {
-            coast_forward_queue_[obj_id]->insert(coast_forward_queue_[obj_id]->begin(),
-                (*processed_queue_[obj_id])[processed_queue_len-1]);
-            processed_queue_[obj_id]->pop_back();
+            if ((*((*processed_queue_[obj_id])[processed_queue_len-1]) < *straggler_event) || 
+                    (*((*processed_queue_[obj_id])[processed_queue_len-1]) == *straggler_event)) {
+                coast_forward_queue_[obj_id]->insert(coast_forward_queue_[obj_id]->begin(),
+                                            (*processed_queue_[obj_id])[processed_queue_len-1]);
+                processed_queue_[obj_id]->pop_back();
+
+            } else {
+                bool found_event = false;
+                unprocessed_queue_lock_[obj_id].lock();
+                for (auto event : *unprocessed_queue_[obj_id]) {
+                    if (*((*processed_queue_[obj_id])[processed_queue_len-1]) == *event) {
+                        unprocessed_queue_[obj_id]->erase(
+                                (*processed_queue_[obj_id])[processed_queue_len-1]);
+                        (*processed_queue_[obj_id])[processed_queue_len-1].reset();
+                        event.reset();
+                        found_event = true;
+                    }
+                }
+                if (!found_event) {
+                    unprocessed_queue_[obj_id]->insert(
+                            (*processed_queue_[obj_id])[processed_queue_len-1]);
+                }
+                unprocessed_queue_lock_[obj_id].unlock();
+            }
         }
         processed_queue_len--;
     }

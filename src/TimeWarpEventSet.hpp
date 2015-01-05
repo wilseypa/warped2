@@ -76,7 +76,8 @@ public:
 
     void fossilCollectAll (unsigned int fossil_collect_time);
 
-    void rollback (unsigned int obj_id, unsigned int restored_time);
+    void rollback (unsigned int obj_id, unsigned int restored_time, 
+                                std::shared_ptr<Event> straggler_event);
 
     void gvtCalcRequest ();
 

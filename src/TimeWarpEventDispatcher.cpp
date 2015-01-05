@@ -84,7 +84,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             started_min_lvt = true;
         }
         if (GVT_UPDATE(msg_flags)) {
-            fossilCollect(gvt_manager_->getGVT());
+            //fossilCollect(gvt_manager_->getGVT());
             msg_flags &= ~MessageFlags::GVTUpdate;
             dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
         }
@@ -118,7 +118,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             } else {
                 gvt_manager_->setGVT(local_min_lvt);
                 std::cout << "GVT: " << local_min_lvt << std::endl;
-                fossilCollect(gvt_manager_->getGVT());
+                //fossilCollect(gvt_manager_->getGVT());
                 dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
             }
             msg_flags &= ~MessageFlags::PendingMatternToken;
@@ -149,6 +149,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                      ((*event == *prev_processed_event_[current_object_id]) && 
                       (event->event_type_ == EventType::NEGATIVE)))) {
 
+                std::cout << "roll" << std::endl;
                 rollback(event, current_object_id, current_object);
                 rollback_count_++;
                 if (event->event_type_ == EventType::NEGATIVE) {
@@ -160,7 +161,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             assert(event->event_type_ != EventType::NEGATIVE);
 
             if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id])
-                    && !event_set_->isRollbackPending()) {
+                    /*&& !event_set_->isRollbackPending()*/) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
                 calculated_min_flag_[thread_id] = true;
                 min_lvt_flag_--;
@@ -253,12 +254,12 @@ void TimeWarpEventDispatcher::cancelEvents(
 
         unsigned int receiver_node_id = object_node_id_by_name_[event->receiverName()];
 
-        unsigned int receiver_id = local_object_id_by_name_[event->receiverName()];
-        unsigned int sender_id = local_object_id_by_name_[event->sender_name_];
-        if (sender_id == receiver_id) {
-            neg_event.reset();
-            continue;
-        }
+        //unsigned int receiver_id = local_object_id_by_name_[event->receiverName()];
+        //unsigned int sender_id = local_object_id_by_name_[event->sender_name_];
+        //if (sender_id == receiver_id) {
+        //    neg_event.reset();
+        //    continue;
+        //}
 
         if (receiver_node_id != comm_manager_->getID()) {
             enqueueRemoteEvent(neg_event, receiver_node_id);
@@ -287,7 +288,7 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
         cancelEvents(std::move(events_to_cancel));
     }
 
-    event_set_->rollback(local_object_id, restored_timestamp);
+    event_set_->rollback(local_object_id, restored_timestamp, straggler_event);
 
     object_simulation_time_[local_object_id] = restored_timestamp;
     twfs_manager_->setObjectCurrentTime(restored_timestamp, local_object_id);
