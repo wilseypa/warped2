@@ -149,7 +149,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                      ((*event == *prev_processed_event_[current_object_id]) && 
                       (event->event_type_ == EventType::NEGATIVE)))) {
 
-                std::cout << "roll" << std::endl;
                 rollback(event, current_object_id, current_object);
                 rollback_count_++;
                 if (event->event_type_ == EventType::NEGATIVE) {
