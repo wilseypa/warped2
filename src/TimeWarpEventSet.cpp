@@ -176,28 +176,28 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int restored_time
     processed_queue_lock_[obj_id].lock();
     unsigned int processed_queue_len = processed_queue_[obj_id]->size();
     while (processed_queue_len > 0) {
-        if ((*processed_queue_[obj_id])[processed_queue_len-1]->timestamp() >= restored_time) {
-            if ((*((*processed_queue_[obj_id])[processed_queue_len-1]) < *straggler_event) || 
-                    (*((*processed_queue_[obj_id])[processed_queue_len-1]) == *straggler_event)) {
-                coast_forward_queue_[obj_id]->insert(coast_forward_queue_[obj_id]->begin(),
-                                            (*processed_queue_[obj_id])[processed_queue_len-1]);
+        auto processed_event = (*processed_queue_[obj_id])[processed_queue_len-1];
+        assert(processed_event != nullptr);
+        if (processed_event->timestamp() >= restored_time) {
+            if ((*processed_event < *straggler_event) || (*processed_event == *straggler_event)) {
+                coast_forward_queue_[obj_id]->insert(
+                        coast_forward_queue_[obj_id]->begin(), processed_event);
                 processed_queue_[obj_id]->pop_back();
 
             } else {
                 bool found_event = false;
                 unprocessed_queue_lock_[obj_id].lock();
                 for (auto event : *unprocessed_queue_[obj_id]) {
-                    if (*((*processed_queue_[obj_id])[processed_queue_len-1]) == *event) {
-                        unprocessed_queue_[obj_id]->erase(
-                                (*processed_queue_[obj_id])[processed_queue_len-1]);
-                        (*processed_queue_[obj_id])[processed_queue_len-1].reset();
+                    assert(event != nullptr);
+                    if (*processed_event == *event) {
+                        unprocessed_queue_[obj_id]->erase(processed_event);
+                        processed_event.reset();
                         event.reset();
                         found_event = true;
                     }
                 }
                 if (!found_event) {
-                    unprocessed_queue_[obj_id]->insert(
-                            (*processed_queue_[obj_id])[processed_queue_len-1]);
+                    unprocessed_queue_[obj_id]->insert(processed_event);
                 }
                 unprocessed_queue_lock_[obj_id].unlock();
             }
