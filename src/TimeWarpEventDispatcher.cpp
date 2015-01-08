@@ -146,8 +146,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Check to see if straggler event and rollback if true
             if ((prev_processed_event_[current_object_id]) && 
                     ((*event < *prev_processed_event_[current_object_id]) || 
-                     ((*event == *prev_processed_event_[current_object_id]) && 
-                      (event->event_type_ == EventType::NEGATIVE)))) {
+                     (*event == *prev_processed_event_[current_object_id]))) {
 
                 rollback(event, current_object_id, current_object);
                 rollback_count_++;
@@ -279,7 +278,7 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
 
     unsigned int restored_timestamp = 
                     state_manager_->restoreState(straggler_time, local_object_id, object);
-    auto events_to_cancel = output_manager_->rollback(straggler_time, local_object_id);
+    auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
 
     assert((restored_timestamp < straggler_event->timestamp()) || (restored_timestamp == 0));
 

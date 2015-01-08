@@ -48,7 +48,7 @@ void TimeWarpOutputManager::fossilCollectAll(unsigned int gvt) {
 }
 
 std::unique_ptr<std::vector<std::shared_ptr<Event>>>
-TimeWarpOutputManager::removeEventsSentAtOrAfter(unsigned int rollback_time,
+TimeWarpOutputManager::removeEventsSentAfter(std::shared_ptr<Event> straggler_event,
     unsigned int local_object_id) {
 
     auto events_to_cancel = make_unique<std::vector<std::shared_ptr<Event>>>();
@@ -60,15 +60,13 @@ TimeWarpOutputManager::removeEventsSentAtOrAfter(unsigned int rollback_time,
     }
 
     auto max = std::prev(output_queue_[local_object_id].end());
-    while ((max != output_queue_[local_object_id].begin()) &&
-           (max->get()->timestamp() >= rollback_time)) {
+    while ((max != output_queue_[local_object_id].begin()) && (*straggler_event < **max)) {
         events_to_cancel->push_back(*max);
         output_queue_[local_object_id].erase(max);
         max = std::prev(output_queue_[local_object_id].end());
     }
 
-    if ((max != output_queue_[local_object_id].begin())
-        && (max->get()->timestamp() >= rollback_time)) {
+    if ((max != output_queue_[local_object_id].begin()) && (*straggler_event < **max)) {
         events_to_cancel->push_back(*max);
         output_queue_[local_object_id].erase(max);
     }

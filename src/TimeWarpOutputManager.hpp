@@ -35,12 +35,12 @@ public:
     // The rollback method will return a vector of negative events that must be sent
     // as anti-messages
     virtual std::unique_ptr<std::vector<std::shared_ptr<Event>>>
-        rollback(unsigned int rollback_time, unsigned int local_object_id) = 0;
+        rollback(std::shared_ptr<Event> straggler_event, unsigned int local_object_id) = 0;
 
 protected:
 
     std::unique_ptr<std::vector<std::shared_ptr<Event>>>
-        removeEventsSentAtOrAfter(unsigned int rollback_time, unsigned int local_object_id);
+        removeEventsSentAfter(std::shared_ptr<Event> straggler_event, unsigned int local_object_id);
 
     // Array of local output queues and locks
     std::unique_ptr<std::vector<std::shared_ptr<Event>> []> output_queue_;
