@@ -26,12 +26,10 @@ public:
 #if ROLLBACK_CNT_ACTIVE
         return ((this->timestamp() == other.timestamp())
                 && (this->sender_name_ == other.sender_name_)
-                && (this->event_type_ != other.event_type_)
                 && (this->rollback_cnt_ == other.rollback_cnt_));
 #else
         return ((this->timestamp() == other.timestamp())
-                && (this->sender_name_ == other.sender_name_)
-                && (this->event_type_ != other.event_type_));
+                && (this->sender_name_ == other.sender_name_));
 #endif
     }
 

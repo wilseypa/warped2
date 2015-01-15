@@ -79,31 +79,16 @@ public:
     void rollback (unsigned int obj_id, unsigned int restored_time, 
                                 std::shared_ptr<Event> straggler_event);
 
-    void gvtCalcRequest ();
-
-    bool isRollbackPending ();
-
 private:
     //Number of simulation objects
     unsigned int num_of_objects_ = 0;
 
     //Lock to protect the unprocessed queues
-    std::unique_ptr<std::mutex []> unprocessed_queue_lock_;
+    std::unique_ptr<std::mutex []> input_queue_lock_;
 
     //Queues to hold the unprocessed events for each simulation object
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
-                                        compareEvents>>> unprocessed_queue_;
-
-    //Lock to protect the processed and coast forward queues
-    std::unique_ptr<std::mutex []> processed_queue_lock_;
-
-    //Queues to hold the processed events for each simulation object
-    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> 
-                                                        processed_queue_;
-
-    //Queues to hold the events for coast forwarding of each simulation object
-    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> 
-                                                        coast_forward_queue_;
+                                            compareEvents>>> input_queue_;
 
     //Number of event schedulers
     unsigned int num_of_schedulers_ = 0;
@@ -115,30 +100,14 @@ private:
     std::vector<std::unique_ptr<LTSFQueue>> schedule_queue_;
 
     //Map unprocessed queue to a schedule queue
-    std::vector<unsigned int> unprocessed_queue_scheduler_map_;
+    std::vector<unsigned int> input_queue_scheduler_map_;
 
     //Map worker thread to a schedule queue
     std::vector<unsigned int> worker_thread_scheduler_map_;
 
     //Which event has been scheduled from an object
-    std::vector<std::shared_ptr<Event>> event_scheduled_from_obj_;
-
-    //Continuously keeps track of stagglers
-    std::unique_ptr<unsigned int []> continuous_straggler_flags_;
-
-    //Temporarily keeps track of stragglers for each gvt calculation
-    std::unique_ptr<unsigned int []> gvt_straggler_flags_;
-
-    std::mutex straggler_flags_lock_;
-
-    //Continuous count of total straggler events;
-    unsigned int continuous_straggler_cnt_ = 0;
-
-    //Temporarily keeps track of total number of straggers during gvt calculation period
-    unsigned int gvt_straggler_cnt_ = 0;
-
-    //GVT calculation request flag
-    bool gvt_flag_ = false;
+    std::vector<std::multiset<std::shared_ptr<Event>,
+            compareEvents>::iterator> input_queue_pointer_;
 };
 
 } // warped namespace
