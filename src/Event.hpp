@@ -26,10 +26,12 @@ public:
 #if ROLLBACK_CNT_ACTIVE
         return ((this->timestamp() == other.timestamp())
                 && (this->sender_name_ == other.sender_name_)
-                && (this->rollback_cnt_ == other.rollback_cnt_));
+                && (this->rollback_cnt_ == other.rollback_cnt_)
+                && (this->send_time_ == other.send_time_));
 #else
         return ((this->timestamp() == other.timestamp())
-                && (this->sender_name_ == other.sender_name_));
+                && (this->sender_name_ == other.sender_name_)
+                && (this->send_time_ == other.send_time_));
 #endif
     }
 
@@ -44,15 +46,21 @@ public:
             if (this->sender_name_.compare(other.sender_name_) < 0) {
                 return true;
             } else if (this->sender_name_.compare(other.sender_name_) == 0) {
-#if ROLLBACK_CNT_ACTIVE
-                if (this->rollback_cnt_ < other.rollback_cnt_) {
+                if (this->send_time_ < other.send_time_) {
                     return true;
+                } else if (this->send_time_ == other.send_time_) {
+#if ROLLBACK_CNT_ACTIVE
+                    if (this->rollback_cnt_ < other.rollback_cnt_) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+#else
+                    return false;
+#endif
                 } else {
                     return false;
                 }
-#else
-                return false;
-#endif
             } else {
                 return false;
             }
@@ -76,7 +84,10 @@ public:
     // Rollback id
     unsigned int rollback_cnt_ = 0;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_name_, event_type_, rollback_cnt_)
+    // Send time
+    unsigned int send_time_ = 0;
+
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_name_, event_type_, rollback_cnt_, send_time_)
 
 };
 

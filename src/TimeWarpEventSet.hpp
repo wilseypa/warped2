@@ -13,7 +13,6 @@
 #include <atomic>
 
 #include "Event.hpp"
-#include "STLLTSFQueue.hpp"
 #include "utility/memory.hpp"
 
 namespace warped {
@@ -32,19 +31,25 @@ public:
             if (first->sender_name_.compare(second->sender_name_) > 0) {
                 is_less = false;
             } else if (first->sender_name_.compare(second->sender_name_) == 0) {
-#if ROLLBACK_CNT_ACTIVE
-                if (first->rollback_cnt_ > second->rollback_cnt_) {
-                    is_less = false;
-                } else if (first->rollback_cnt_ == second->rollback_cnt_) {
-                    is_less = (first->event_type_ < second->event_type_) ? true : false;
-                } else {
+                if (first->send_time_ < second->send_time_) {
                     is_less = true;
-                }
+                } else if (first->send_time_ == second->send_time_) {
+#if ROLLBACK_CNT_ACTIVE
+                    if (first->rollback_cnt_ > second->rollback_cnt_) {
+                        is_less = false;
+                    } else if (first->rollback_cnt_ == second->rollback_cnt_) {
+                        is_less = (first->event_type_ < second->event_type_) ? true : false;
+                    } else {
+                        is_less = true;
+                    }
 #else
-                is_less = (first->event_type_ < second->event_type_) ? true : false;
+                    is_less = (first->event_type_ < second->event_type_) ? true : false;
 #endif
+                } else {
+                    is_less = false;
+                }
             } else {
-                is_less = true;
+                is_less = false;
             }
         } else {
             is_less = true;
@@ -80,34 +85,39 @@ public:
                                 std::shared_ptr<Event> straggler_event);
 
 private:
-    //Number of simulation objects
+    // Number of simulation objects
     unsigned int num_of_objects_ = 0;
 
-    //Lock to protect the unprocessed queues
+    // Lock to protect the unprocessed queues
     std::unique_ptr<std::mutex []> input_queue_lock_;
 
-    //Queues to hold the unprocessed events for each simulation object
+    // Queues to hold the unprocessed events for each simulation object
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
                                             compareEvents>>> input_queue_;
 
-    //Number of event schedulers
+    // Number of event schedulers
     unsigned int num_of_schedulers_ = 0;
 
-    //Lock to protect the schedule queues
+    // Lock to protect the schedule queues
     std::unique_ptr<std::mutex []> schedule_queue_lock_;
 
-    //Queues to hold the scheduled events
-    std::vector<std::unique_ptr<LTSFQueue>> schedule_queue_;
+    // Queues to hold the scheduled events
+    std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
+                                            compareEvents>>> schedule_queue_;
 
-    //Map unprocessed queue to a schedule queue
+    // Map unprocessed queue to a schedule queue
     std::vector<unsigned int> input_queue_scheduler_map_;
 
-    //Map worker thread to a schedule queue
+    // Map worker thread to a schedule queue
     std::vector<unsigned int> worker_thread_scheduler_map_;
 
-    //Which event has been scheduled from an object
+    // Position of the event scheduled from an object
     std::vector<std::multiset<std::shared_ptr<Event>,
-            compareEvents>::iterator> input_queue_pointer_;
+            compareEvents>::iterator> scheduled_event_pointer_;
+
+    // Position of the lowest event in an object
+    std::vector<std::multiset<std::shared_ptr<Event>,
+            compareEvents>::iterator> lowest_event_pointer_;
 };
 
 } // warped namespace
