@@ -180,6 +180,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 unsigned int node_id = object_node_id_by_name_[event->receiverName()];
                 e->sender_name_ = current_object->name_;
                 e->rollback_cnt_ = rollback_count_;
+                e->send_time_ = object_simulation_time_[current_object_id];
                 output_manager_->insertEvent(e, current_object_id);
 
                 assert(e->timestamp() >= object_simulation_time_[current_object_id]);
@@ -326,6 +327,9 @@ void TimeWarpEventDispatcher::initialize(
     event_set_->initialize(num_local_objects, num_schedulers_, num_worker_threads_);
     rollback_count_ = 0;
 
+    object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);
+    std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
+
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
         unsigned int object_id = 0;
@@ -337,6 +341,7 @@ void TimeWarpEventDispatcher::initialize(
                 for (auto& e: new_events) {
                     e->sender_name_ = ob->name_;
                     e->rollback_cnt_ = rollback_count_;
+                    e->send_time_ = object_simulation_time_[object_id];
                     event_set_->insertEvent(object_id, e);
                 }
                 object_id++;
@@ -345,9 +350,6 @@ void TimeWarpEventDispatcher::initialize(
         }
         partition_id++;
     }
-
-    object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);
-    std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
 
     prev_processed_event_ = make_unique<std::shared_ptr<Event> []>(num_local_objects);
     std::memset(prev_processed_event_.get(), 0, 
