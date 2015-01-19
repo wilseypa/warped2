@@ -22,6 +22,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
         scheduled_event_pointer_.push_back(input_queue_[obj_id]->end());
         lowest_event_pointer_.push_back(input_queue_[obj_id]->end());
+        straggler_event_pointer_.push_back(input_queue_[obj_id]->end());
         input_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
     }
 
@@ -190,83 +191,29 @@ void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<
 void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {
-        processed_queue_lock_[obj_id].lock();
-        for (auto event_iterator = processed_queue_[obj_id]->begin(); 
-                event_iterator != processed_queue_[obj_id]->end();) {
+        input_queue_lock_[obj_id].lock();
+        for (auto event_iterator = input_queue_[obj_id]->begin(); 
+                event_iterator != input_queue_[obj_id]->end(); event_iterator++) {
             if ((*event_iterator)->timestamp() >= fossil_collect_time) {
-                event_iterator++;
-            } else {
-                event_iterator->reset();
-                event_iterator = processed_queue_[obj_id]->erase(event_iterator);
+                break;
             }
         }
-        processed_queue_lock_[obj_id].unlock();
+        input_queue_[obj_id]->erase(input_queue_[obj_id]->begin(), 
+                                        std::prev(event_iterator, 1));
+        input_queue_lock_[obj_id].unlock();
     }
 }
 
 void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int restored_time, 
                                             std::shared_ptr<Event> straggler_event) {
 
-    processed_queue_lock_[obj_id].lock();
-    unsigned int processed_queue_len = processed_queue_[obj_id]->size();
-    while (processed_queue_len > 0) {
-        auto processed_event = (*processed_queue_[obj_id])[processed_queue_len-1];
-        assert(processed_event != nullptr);
-        if (processed_event->timestamp() >= restored_time) {
-            if ((*processed_event < *straggler_event) || (*processed_event == *straggler_event)) {
-                coast_forward_queue_[obj_id]->insert(
-                        coast_forward_queue_[obj_id]->begin(), processed_event);
-                processed_queue_[obj_id]->pop_back();
-
-            } else {
-                bool found_event = false;
-                unprocessed_queue_lock_[obj_id].lock();
-                for (auto event : *unprocessed_queue_[obj_id]) {
-                    assert(event != nullptr);
-                    if (*processed_event == *event) {
-                        unprocessed_queue_[obj_id]->erase(processed_event);
-                        processed_event.reset();
-                        event.reset();
-                        found_event = true;
-                    }
-                }
-                if (!found_event) {
-                    unprocessed_queue_[obj_id]->insert(processed_event);
-                }
-                unprocessed_queue_lock_[obj_id].unlock();
-            }
-        }
-        processed_queue_len--;
+    input_queue_lock_[obj_id].lock();
+    auto straggler_iterator = input_queue_[obj_id]->find(straggler_event);
+    if (straggler_iterator == input_queue_[obj_id]->end()) {
+        assert(0);
     }
-    processed_queue_lock_[obj_id].unlock();
-
-    straggler_flags_lock_.lock();
-    continuous_straggler_flags_[obj_id]--;
-    continuous_straggler_cnt_--;
-    if (gvt_flag_ && (gvt_straggler_flags_[obj_id] > 0)) {
-        gvt_straggler_flags_[obj_id]--;
-        gvt_straggler_cnt_--;
-        if (gvt_straggler_cnt_ == 0) {
-            gvt_flag_ = false;
-        }
-    }
-
-    straggler_flags_lock_.unlock();
-}
-
-void TimeWarpEventSet::gvtCalcRequest () {
-    straggler_flags_lock_.lock();
-
-    std::memcpy(gvt_straggler_flags_.get(), continuous_straggler_flags_.get(),
-        num_of_objects_*sizeof(unsigned int));
-    gvt_straggler_cnt_ = continuous_straggler_cnt_;
-    gvt_flag_ = true;
-
-    straggler_flags_lock_.unlock();
-}
-
-bool TimeWarpEventSet::isRollbackPending () {
-    return gvt_flag_;
+    straggler_event_pointer_[obj_id] = straggler_iterator;
+    input_queue_lock_[obj_id].unlock();
 }
 
 } // namespace warped

@@ -118,6 +118,10 @@ private:
     // Position of the lowest event in an object
     std::vector<std::multiset<std::shared_ptr<Event>,
             compareEvents>::iterator> lowest_event_pointer_;
+
+    // Position of the straggler event of an object
+    std::vector<std::multiset<std::shared_ptr<Event>,
+            compareEvents>::iterator> rollback_event_pointer_;
 };
 
 } // warped namespace
