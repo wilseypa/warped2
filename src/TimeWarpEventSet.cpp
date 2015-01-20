@@ -145,11 +145,15 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
         TimeWarpEventSet::getEventsForCoastForward (unsigned int obj_id) {
 
     auto events = make_unique<std::vector<std::shared_ptr<Event>>>();
-    processed_queue_lock_[obj_id].lock();
-    auto events_coast_forward = std::move(coast_forward_queue_[obj_id]);
-    coast_forward_queue_[obj_id] = std::move(events);
-    processed_queue_lock_[obj_id].unlock();
-    return (std::move(events_coast_forward));
+    input_queue_lock_[obj_id].lock();
+    for (auto event_iterator = input_queue_[obj_id]->begin(); ; event_iterator++) {
+        events->push_back(*event_iterator);
+        if (event_iterator == straggler_event_pointer_[obj_id]) {
+            break;
+        }
+    }
+    input_queue_lock_[obj_id].unlock();
+    return (std::move(events));
 }
 
 void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
@@ -171,20 +175,8 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
     unprocessed_queue_lock_[obj_id].unlock();
 }
 
-void TimeWarpEventSet::coastForwardedEvent(unsigned int obj_id, std::shared_ptr<Event> event) {
-
-    processed_queue_lock_[obj_id].lock();
-    processed_queue_[obj_id]->push_back(event);
-    processed_queue_lock_[obj_id].unlock();
-}
-
 void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event) {
 
-    // Move old event from unprocessed queue to processed queue. 
-    // Note: Old event might not be the smallest event in unprocessed queue.
-    processed_queue_lock_[obj_id].lock();
-    processed_queue_[obj_id]->push_back(old_event);
-    processed_queue_lock_[obj_id].unlock();
     startScheduling(obj_id);
 }
 
