@@ -117,7 +117,7 @@ private:
 
     // Position of the straggler event of an object
     std::vector<std::multiset<std::shared_ptr<Event>,
-            compareEvents>::iterator> rollback_event_pointer_;
+            compareEvents>::iterator> straggler_event_pointer_;
 };
 
 } // warped namespace

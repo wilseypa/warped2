@@ -80,7 +80,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         msg_flags |= flags;
         if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
             min_lvt_flag_.store(num_worker_threads_);
-            event_set_->gvtCalcRequest();
             started_min_lvt = true;
         }
         if (GVT_UPDATE(msg_flags)) {
@@ -96,7 +95,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             msg_flags |= flags;
             if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt ) {
                 min_lvt_flag_.store(num_worker_threads_);
-                event_set_->gvtCalcRequest();
                 started_min_lvt = true;
                 calculate_gvt = false;
             }
@@ -158,8 +156,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             assert(event->event_type_ != EventType::NEGATIVE);
 
-            if ((local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id])
-                    /*&& !event_set_->isRollbackPending()*/) {
+            if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
                 calculated_min_flag_[thread_id] = true;
                 min_lvt_flag_--;
@@ -196,7 +193,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Move the next event from object into the schedule queue
             // Also transfer old event to processed queue
-            event_set_->replenishScheduler(current_object_id, event);
+            event_set_->startScheduling(current_object_id);
 
             // Update previous processed event
             prev_processed_event_[current_object_id] = std::move(event);
@@ -317,7 +314,6 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
         twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
         object->receiveEvent(*event);
         state_manager_->saveState(event->timestamp(), current_object_id, object);
-        event_set_->coastForwardedEvent(current_object_id, event);
     }
 }
 

@@ -162,9 +162,9 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
     if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
         scheduled_event_pointer_[obj_id]++;
         if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
-            unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
+            unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
             schedule_queue_lock_[scheduler_id].lock();
-            schedule_queue_[scheduler_id]->push(*scheduled_event_pointer_[obj_id]);
+            schedule_queue_[scheduler_id]->insert(*scheduled_event_pointer_[obj_id]);
             schedule_queue_lock_[scheduler_id].unlock();
         }
     }
@@ -175,8 +175,8 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {
         input_queue_lock_[obj_id].lock();
-        for (auto event_iterator = input_queue_[obj_id]->begin(); 
-                event_iterator != input_queue_[obj_id]->end(); event_iterator++) {
+        auto event_iterator = input_queue_[obj_id]->begin();
+        for (; event_iterator != input_queue_[obj_id]->end(); event_iterator++) {
             if ((*event_iterator)->timestamp() >= fossil_collect_time) {
                 break;
             }
