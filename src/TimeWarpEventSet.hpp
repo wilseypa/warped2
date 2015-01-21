@@ -75,8 +75,6 @@ public:
 
     void startScheduling (unsigned int obj_id);
 
-    void replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event);
-
     void fossilCollectAll (unsigned int fossil_collect_time);
 
     void rollback (unsigned int obj_id, unsigned int restored_time, 

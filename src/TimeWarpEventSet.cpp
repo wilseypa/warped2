@@ -159,25 +159,16 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
 
     input_queue_lock_[obj_id].lock();
-    if (!unprocessed_queue_[obj_id]->empty()) {
-        std::shared_ptr<Event> event = *unprocessed_queue_[obj_id]->begin();
-
-        unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
-        schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->push(event);
-        assert(schedule_queue_[scheduler_id]->size() <= std::ceil(num_of_objects_/num_of_schedulers_));
-        schedule_queue_lock_[scheduler_id].unlock();
-        event_scheduled_from_obj_[obj_id] = event;
-        unprocessed_queue_[obj_id]->erase(event);
-    } else {
-        event_scheduled_from_obj_[obj_id] = nullptr;
+    if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
+        scheduled_event_pointer_[obj_id]++;
+        if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
+            unsigned int scheduler_id = unprocessed_queue_scheduler_map_[obj_id];
+            schedule_queue_lock_[scheduler_id].lock();
+            schedule_queue_[scheduler_id]->push(*scheduled_event_pointer_[obj_id]);
+            schedule_queue_lock_[scheduler_id].unlock();
+        }
     }
-    unprocessed_queue_lock_[obj_id].unlock();
-}
-
-void TimeWarpEventSet::replenishScheduler (unsigned int obj_id, std::shared_ptr<Event> old_event) {
-
-    startScheduling(obj_id);
+    input_queue_lock_[obj_id].unlock();
 }
 
 void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
