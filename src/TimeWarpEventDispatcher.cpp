@@ -284,7 +284,7 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
         cancelEvents(std::move(events_to_cancel));
     }
 
-    event_set_->rollback(local_object_id, restored_timestamp, straggler_event);
+    event_set_->rollback(local_object_id, straggler_event);
 
     object_simulation_time_[local_object_id] = restored_timestamp;
     twfs_manager_->setObjectCurrentTime(restored_timestamp, local_object_id);

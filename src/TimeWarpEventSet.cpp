@@ -91,8 +91,8 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
                 }
             } else { // It is ok to delete the negative event
                 lowest_event_pointer_[obj_id] = scheduled_event_pointer_[obj_id];
-                (*event_iterator).reset();
-                (*next_iterator).reset();
+                //(*event_iterator).reset();
+                //(*next_iterator).reset();
                 input_queue_[obj_id]->erase(event_iterator);
                 input_queue_[obj_id]->erase(next_iterator);
             }
@@ -187,8 +187,7 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
     }
 }
 
-void TimeWarpEventSet::rollback (unsigned int obj_id, unsigned int restored_time, 
-                                            std::shared_ptr<Event> straggler_event) {
+void TimeWarpEventSet::rollback (unsigned int obj_id, std::shared_ptr<Event> straggler_event) {
 
     input_queue_lock_[obj_id].lock();
     auto straggler_iterator = input_queue_[obj_id]->find(straggler_event);
