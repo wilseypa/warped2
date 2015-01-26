@@ -66,7 +66,7 @@ public:
                      unsigned int num_of_schedulers,
                      unsigned int num_of_worker_threads);
 
-    void insertEvent (unsigned int obj_id, std::shared_ptr<Event> event);
+    bool insertEvent (unsigned int obj_id, std::shared_ptr<Event> event);
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
@@ -109,10 +109,6 @@ private:
     // Position of the event scheduled from an object
     std::vector<std::multiset<std::shared_ptr<Event>,
             compareEvents>::iterator> scheduled_event_pointer_;
-
-    // Position of the lowest event in an object
-    std::vector<std::multiset<std::shared_ptr<Event>,
-            compareEvents>::iterator> lowest_event_pointer_;
 
     // Position of the straggler event of an object
     std::vector<std::multiset<std::shared_ptr<Event>,

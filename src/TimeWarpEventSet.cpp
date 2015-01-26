@@ -21,7 +21,6 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
         input_queue_.push_back(
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
         scheduled_event_pointer_.push_back(input_queue_[obj_id]->end());
-        lowest_event_pointer_.push_back(input_queue_[obj_id]->end());
         straggler_event_pointer_.push_back(input_queue_[obj_id]->end());
         input_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
     }
@@ -41,12 +40,13 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
     }
 }
 
-void TimeWarpEventSet::insertEvent (unsigned int obj_id, 
+bool TimeWarpEventSet::insertEvent (unsigned int obj_id, 
                                     std::shared_ptr<Event> event) {
+
+    bool causal_order_ok = true;
 
     input_queue_lock_[obj_id].lock();
     auto event_iterator = input_queue_[obj_id]->insert(event);
-    unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
 
     // Update the scheduled event pointers (if needed)
     if (scheduled_event_pointer_[obj_id] == input_queue_[obj_id]->end()) {
@@ -65,34 +65,13 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
 
             // If positive counterpart is currently scheduled
             if (scheduled_event_pointer_[obj_id] == next_iterator) {
-                // Try to delete the event from schedule queue
-                schedule_queue_lock_[scheduler_id].lock();
-                // If event deletion not successful
-                if (!schedule_queue_[scheduler_id]->erase(*next_iterator)) {
-                    if ((lowest_event_pointer_[obj_id] == input_queue_[obj_id]->end()) || 
-                            (**event_iterator < **lowest_event_pointer_[obj_id])) {
-                        lowest_event_pointer_[obj_id] = event_iterator;
-                    }
-                } else { // Event deleted
-                    scheduled_event_pointer_[obj_id] = std::next(next_iterator, 1);
-                    if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
-                        schedule_queue_[scheduler_id]->insert(*scheduled_event_pointer_[obj_id]);
-                    }
-                    input_queue_[obj_id]->erase(event_iterator);
-                    input_queue_[obj_id]->erase(next_iterator);
-                }
-                schedule_queue_lock_[scheduler_id].unlock();
+                causal_order_ok = false;
 
             } else if (**next_iterator < **scheduled_event_pointer_[obj_id]) { 
                 // If negative event is supposed to cause a rollback
-                if ((lowest_event_pointer_[obj_id] == input_queue_[obj_id]->end()) || 
-                            (**next_iterator < **lowest_event_pointer_[obj_id])) {
-                    lowest_event_pointer_[obj_id] = event_iterator;
-                }
+                causal_order_ok = false;
+
             } else { // It is ok to delete the negative event
-                lowest_event_pointer_[obj_id] = scheduled_event_pointer_[obj_id];
-                //(*event_iterator).reset();
-                //(*next_iterator).reset();
                 input_queue_[obj_id]->erase(event_iterator);
                 input_queue_[obj_id]->erase(next_iterator);
             }
@@ -102,31 +81,12 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id,
     } else { // Positive event
         // If event is smaller than the one scheduled
         if (**event_iterator < **scheduled_event_pointer_[obj_id]) {
-            // If event lies just before the scheduled event
-            if (scheduled_event_pointer_[obj_id] == std::next(event_iterator, 1)) {
-                // Try to delete the event from schedule queue
-                schedule_queue_lock_[scheduler_id].lock();
-                // If deletion from schedule queue fails
-                if (!schedule_queue_[scheduler_id]->erase(*scheduled_event_pointer_[obj_id])) {
-                    if ((lowest_event_pointer_[obj_id] == input_queue_[obj_id]->end()) || 
-                            (**event_iterator < **lowest_event_pointer_[obj_id])) {
-                        lowest_event_pointer_[obj_id] = event_iterator;
-                    }
-                } else { // Event deleted
-                    scheduled_event_pointer_[obj_id] = event_iterator;
-                    schedule_queue_[scheduler_id]->insert(event);
-                }
-                schedule_queue_lock_[scheduler_id].unlock();
-
-            } else { // When event needs to be rolled back
-                if ((lowest_event_pointer_[obj_id] == input_queue_[obj_id]->end()) || 
-                            (**event_iterator < **lowest_event_pointer_[obj_id])) {
-                    lowest_event_pointer_[obj_id] = event_iterator;
-                }
-            }
+            causal_order_ok = false;
         }
     }
     input_queue_lock_[obj_id].unlock();
+
+    return causal_order_ok;
 }
 
 std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) { 
@@ -167,6 +127,8 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
             schedule_queue_[scheduler_id]->insert(*scheduled_event_pointer_[obj_id]);
             schedule_queue_lock_[scheduler_id].unlock();
         }
+    } else {
+        assert(0);
     }
     input_queue_lock_[obj_id].unlock();
 }
