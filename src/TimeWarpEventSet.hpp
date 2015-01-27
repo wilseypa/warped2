@@ -71,13 +71,12 @@ public:
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
     std::unique_ptr<std::vector<std::shared_ptr<Event>>> 
-                            getEventsForCoastForward (unsigned int obj_id);
+        getEventsForCoastForward (
+                unsigned int obj_id, std::shared_ptr<Event> straggler_event);
 
-    void startScheduling (unsigned int obj_id);
+    void startScheduling (unsigned int obj_id, std::shared_ptr<Event> processed_event);
 
     void fossilCollectAll (unsigned int fossil_collect_time);
-
-    void rollback (unsigned int obj_id, std::shared_ptr<Event> straggler_event);
 
 private:
     // Number of simulation objects
@@ -109,10 +108,6 @@ private:
     // Position of the event scheduled from an object
     std::vector<std::multiset<std::shared_ptr<Event>,
             compareEvents>::iterator> scheduled_event_pointer_;
-
-    // Position of the straggler event of an object
-    std::vector<std::multiset<std::shared_ptr<Event>,
-            compareEvents>::iterator> straggler_event_pointer_;
 };
 
 } // warped namespace
