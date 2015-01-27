@@ -120,10 +120,10 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
         assert(0);
     }
     for (auto event_iterator = input_queue_[obj_id]->begin(); ; event_iterator++) {
-        events->push_back(*event_iterator);
         if (event_iterator == straggler_iterator) {
             break;
         }
+        events->push_back(*event_iterator);
     }
     input_queue_lock_[obj_id].unlock();
     return (std::move(events));
@@ -138,7 +138,6 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id,
             scheduled_event_pointer_[obj_id]++;
         } else { // straggler event
             scheduled_event_pointer_[obj_id] = input_queue_[obj_id]->find(processed_event);
-            scheduled_event_pointer_[obj_id]++;
         }
         if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
             unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];

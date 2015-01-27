@@ -141,18 +141,18 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
-            // Check to see if straggler event and rollback if true
-            if ((prev_processed_event_[current_object_id]) && 
-                    ((*event < *prev_processed_event_[current_object_id]) || 
-                     (*event == *prev_processed_event_[current_object_id]))) {
-
-                rollback(event, current_object_id, current_object);
+            // Check to see if object needs a rollback
+            bool was_rolled_back = false;
+            straggler_event_list_lock_[current_object_id].lock();
+            if (straggler_event_list_[current_object_id]) {
+                rollback(straggler_event_list_[current_object_id], 
+                                    current_object_id, current_object);
                 rollback_count_++;
-                if (event->event_type_ == EventType::NEGATIVE) {
-                    event_set_->startScheduling(current_object_id, event);
-                    continue;
-                }
+                event_set_->startScheduling(current_object_id, 
+                                                straggler_event_list_[current_object_id]);
             }
+            straggler_event_list_lock_[current_object_id].unlock();
+            if (was_rolled_back) continue;
 
             assert(event->event_type_ != EventType::NEGATIVE);
 
@@ -348,6 +348,12 @@ void TimeWarpEventDispatcher::initialize(
     object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);
     std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
 
+    // Create a structure to track which objects need to be rolled back
+    straggler_event_list_ = make_unique<std::shared_ptr<Event> []>(num_local_objects);
+    std::memset(straggler_event_list_.get(), 0, 
+                    num_local_objects*sizeof(std::shared_ptr<Event>));
+    straggler_event_list_lock_ = make_unique<std::mutex []>(num_local_objects);
+
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
         unsigned int object_id = 0;
@@ -381,12 +387,6 @@ void TimeWarpEventDispatcher::initialize(
         }
         partition_id++;
     }
-
-    // Create a structure to track which objects need to be rolled back
-    straggler_event_list_ = make_unique<std::shared_ptr<Event> []>(num_local_objects);
-    std::memset(straggler_event_list_.get(), 0, 
-                    num_local_objects*sizeof(std::shared_ptr<Event>));
-    straggler_event_list_lock_ = make_unique<std::mutex []>(num_local_objects);
 
     // Creates the state queues, output queues, and filestream queues for each local object
     state_manager_->initialize(num_local_objects);
