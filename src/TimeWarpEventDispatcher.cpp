@@ -195,9 +195,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Also transfer old event to processed queue
             event_set_->startScheduling(current_object_id, event);
 
-            // Update previous processed event
-            prev_processed_event_[current_object_id] = std::move(event);
-
         } else {
             // TODO, do something here
             assert(false);
@@ -207,19 +204,46 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
 MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
         std::unique_ptr<TimeWarpKernelMessage> kmsg) {
+
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
     dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->receiveEventUpdate(
         msg->gvt_mattern_color);
 
     unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
-    event_set_->insertEvent(receiver_object_id, msg->event);
-
+    if (!event_set_->insertEvent(receiver_object_id, msg->event)) {
+        straggler_event_list_lock_[receiver_object_id].lock();
+        if (straggler_event_list_[receiver_object_id]) {
+            if ((*msg->event < *straggler_event_list_[receiver_object_id]) || 
+                ((*msg->event < *straggler_event_list_[receiver_object_id]) && 
+                    (msg->event->event_type_ < 
+                        straggler_event_list_[receiver_object_id]->event_type_))) {
+                straggler_event_list_[receiver_object_id] = msg->event;
+            }
+        } else {
+            straggler_event_list_[receiver_object_id] = msg->event;
+        }
+        straggler_event_list_lock_[receiver_object_id].unlock();
+    }
     return MessageFlags::None;
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
+
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
-    event_set_->insertEvent(receiver_object_id, event);
+    if (!event_set_->insertEvent(receiver_object_id, event)) {
+        straggler_event_list_lock_[receiver_object_id].lock();
+        if (straggler_event_list_[receiver_object_id]) {
+            if ((*event < *straggler_event_list_[receiver_object_id]) || 
+                ((*event < *straggler_event_list_[receiver_object_id]) && 
+                    (event->event_type_ < 
+                        straggler_event_list_[receiver_object_id]->event_type_))) {
+                straggler_event_list_[receiver_object_id] = event;
+            }
+        } else {
+            straggler_event_list_[receiver_object_id] = event;
+        }
+        straggler_event_list_lock_[receiver_object_id].unlock();
+    }
 
     if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
         unsigned int send_min = send_min_[thread_id];
@@ -336,7 +360,20 @@ void TimeWarpEventDispatcher::initialize(
                     e->sender_name_ = ob->name_;
                     e->rollback_cnt_ = rollback_count_;
                     e->send_time_ = object_simulation_time_[object_id];
-                    event_set_->insertEvent(object_id, e);
+                    if (!event_set_->insertEvent(object_id, e)) {
+                        straggler_event_list_lock_[object_id].lock();
+                        if (straggler_event_list_[object_id]) {
+                            if ((*e < *straggler_event_list_[object_id]) || 
+                                ((*e < *straggler_event_list_[object_id]) && 
+                                    (e->event_type_ < 
+                                        straggler_event_list_[object_id]->event_type_))) {
+                                straggler_event_list_[object_id] = e;
+                            }
+                        } else {
+                            straggler_event_list_[object_id] = e;
+                        }
+                        straggler_event_list_lock_[object_id].unlock();
+                    }
                 }
                 object_id++;
             }
@@ -345,9 +382,11 @@ void TimeWarpEventDispatcher::initialize(
         partition_id++;
     }
 
-    prev_processed_event_ = make_unique<std::shared_ptr<Event> []>(num_local_objects);
-    std::memset(prev_processed_event_.get(), 0, 
+    // Create a structure to track which objects need to be rolled back
+    straggler_event_list_ = make_unique<std::shared_ptr<Event> []>(num_local_objects);
+    std::memset(straggler_event_list_.get(), 0, 
                     num_local_objects*sizeof(std::shared_ptr<Event>));
+    straggler_event_list_lock_ = make_unique<std::mutex []>(num_local_objects);
 
     // Creates the state queues, output queues, and filestream queues for each local object
     state_manager_->initialize(num_local_objects);
