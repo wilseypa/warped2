@@ -150,6 +150,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 rollback_count_++;
                 event_set_->startScheduling(current_object_id, 
                                                 straggler_event_list_[current_object_id]);
+                straggler_event_list_[current_object_id] = 0;
             }
             straggler_event_list_lock_[current_object_id].unlock();
             if (was_rolled_back) continue;
