@@ -28,12 +28,12 @@ public:
         if (first->timestamp() > second->timestamp()) {
             is_less = false;
         } else if (first->timestamp() == second->timestamp()) {
-            if (first->sender_name_.compare(second->sender_name_) > 0) {
-                is_less = false;
-            } else if (first->sender_name_.compare(second->sender_name_) == 0) {
-                if (first->send_time_ < second->send_time_) {
-                    is_less = true;
-                } else if (first->send_time_ == second->send_time_) {
+            if (first->send_time_ < second->send_time_) {
+                is_less = true;
+            } else if (first->send_time_ == second->send_time_) {
+                if (first->sender_name_.compare(second->sender_name_) > 0) {
+                    is_less = false;
+                } else if (first->sender_name_.compare(second->sender_name_) == 0) {
 #if ROLLBACK_CNT_ACTIVE
                     if (first->rollback_cnt_ > second->rollback_cnt_) {
                         is_less = false;

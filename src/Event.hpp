@@ -43,12 +43,12 @@ public:
         if (this->timestamp() < other.timestamp()) {
             return true;
         } else if (this->timestamp() == other.timestamp()) {
-            if (this->sender_name_.compare(other.sender_name_) < 0) {
+            if (this->send_time_ < other.send_time_) {
                 return true;
-            } else if (this->sender_name_.compare(other.sender_name_) == 0) {
-                if (this->send_time_ < other.send_time_) {
+            } else if (this->send_time_ == other.send_time_) {
+                if (this->sender_name_.compare(other.sender_name_) < 0) {
                     return true;
-                } else if (this->send_time_ == other.send_time_) {
+                } else if (this->sender_name_.compare(other.sender_name_) == 0) {
 #if ROLLBACK_CNT_ACTIVE
                     if (this->rollback_cnt_ < other.rollback_cnt_) {
                         return true;
