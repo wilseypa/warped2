@@ -141,10 +141,14 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
+            //std::cout << "e = " << event << std::endl;
+
             // Check to see if object needs a rollback
             bool was_rolled_back = false;
             straggler_event_list_lock_[current_object_id].lock();
             if (straggler_event_list_[current_object_id]) {
+                /*std::cout << "roll - " << event << " , " << current_object_id << " , " 
+                          << straggler_event_list_[current_object_id] << std::endl;*/
                 rollback(straggler_event_list_[current_object_id], 
                                     current_object_id, current_object);
                 rollback_count_++;
@@ -203,6 +207,28 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     }
 }
 
+void TimeWarpEventDispatcher::insertIntoEventSet(
+        unsigned int object_id, std::shared_ptr<Event> event) {
+
+    if (event_set_->insertEvent(object_id, event)) return;
+
+    straggler_event_list_lock_[object_id].lock();
+    if (straggler_event_list_[object_id]) {
+        if ((*event < *straggler_event_list_[object_id]) || 
+            ((*event < *straggler_event_list_[object_id]) && 
+             (event->event_type_ < straggler_event_list_[object_id]->event_type_))) {
+            straggler_event_list_[object_id] = event;
+            /*std::cout << "straggler - " << straggler_event_list_[object_id] 
+                                            << " , " << object_id << std::endl;*/
+        }
+    } else {
+        straggler_event_list_[object_id] = event;
+        /*std::cout << "straggler - " << straggler_event_list_[object_id] 
+                                            << " , " << object_id << std::endl;*/
+    }
+    straggler_event_list_lock_[object_id].unlock();
+}
+
 MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
         std::unique_ptr<TimeWarpKernelMessage> kmsg) {
 
@@ -211,40 +237,14 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
         msg->gvt_mattern_color);
 
     unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
-    if (!event_set_->insertEvent(receiver_object_id, msg->event)) {
-        straggler_event_list_lock_[receiver_object_id].lock();
-        if (straggler_event_list_[receiver_object_id]) {
-            if ((*msg->event < *straggler_event_list_[receiver_object_id]) || 
-                ((*msg->event < *straggler_event_list_[receiver_object_id]) && 
-                    (msg->event->event_type_ < 
-                        straggler_event_list_[receiver_object_id]->event_type_))) {
-                straggler_event_list_[receiver_object_id] = msg->event;
-            }
-        } else {
-            straggler_event_list_[receiver_object_id] = msg->event;
-        }
-        straggler_event_list_lock_[receiver_object_id].unlock();
-    }
+    insertIntoEventSet(receiver_object_id, msg->event);
     return MessageFlags::None;
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
-    if (!event_set_->insertEvent(receiver_object_id, event)) {
-        straggler_event_list_lock_[receiver_object_id].lock();
-        if (straggler_event_list_[receiver_object_id]) {
-            if ((*event < *straggler_event_list_[receiver_object_id]) || 
-                ((*event < *straggler_event_list_[receiver_object_id]) && 
-                    (event->event_type_ < 
-                        straggler_event_list_[receiver_object_id]->event_type_))) {
-                straggler_event_list_[receiver_object_id] = event;
-            }
-        } else {
-            straggler_event_list_[receiver_object_id] = event;
-        }
-        straggler_event_list_lock_[receiver_object_id].unlock();
-    }
+    insertIntoEventSet(receiver_object_id, event);
 
     if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
         unsigned int send_min = send_min_[thread_id];
@@ -312,16 +312,17 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
     object_simulation_time_[local_object_id] = restored_timestamp;
     twfs_manager_->setObjectCurrentTime(restored_timestamp, local_object_id);
 
-    coastForward(object, straggler_event);
+    coastForward(object, straggler_event, restored_timestamp);
 }
 
 void TimeWarpEventDispatcher::coastForward(SimulationObject* object, 
-                                            std::shared_ptr<Event> straggler_event) {
+                std::shared_ptr<Event> straggler_event, unsigned int restored_timestamp) {
 
     unsigned int stop_time = straggler_event->timestamp();
     unsigned int current_object_id = local_object_id_by_name_[object->name_];
 
-    auto events = event_set_->getEventsForCoastForward(current_object_id, straggler_event);
+    auto events = event_set_->getEventsForCoastForward(current_object_id, straggler_event, 
+                                                                        restored_timestamp);
     for (auto& event : *events) {
         if (((straggler_event->event_type_ == EventType::NEGATIVE) && 
                 (*event == *straggler_event)) || (event->timestamp() > stop_time)) {
@@ -367,20 +368,7 @@ void TimeWarpEventDispatcher::initialize(
                     e->sender_name_ = ob->name_;
                     e->rollback_cnt_ = rollback_count_;
                     e->send_time_ = object_simulation_time_[object_id];
-                    if (!event_set_->insertEvent(object_id, e)) {
-                        straggler_event_list_lock_[object_id].lock();
-                        if (straggler_event_list_[object_id]) {
-                            if ((*e < *straggler_event_list_[object_id]) || 
-                                ((*e < *straggler_event_list_[object_id]) && 
-                                    (e->event_type_ < 
-                                        straggler_event_list_[object_id]->event_type_))) {
-                                straggler_event_list_[object_id] = e;
-                            }
-                        } else {
-                            straggler_event_list_[object_id] = e;
-                        }
-                        straggler_event_list_lock_[object_id].unlock();
-                    }
+                    insertIntoEventSet(object_id, e);
                 }
                 object_id++;
             }

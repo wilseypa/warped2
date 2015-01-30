@@ -49,6 +49,8 @@ public:
 
     void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
 
+    void insertIntoEventSet(unsigned int object_id, std::shared_ptr<Event> event);
+
     MessageFlags receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
     void sendLocalEvent(std::shared_ptr<Event> event);
@@ -57,9 +59,11 @@ public:
 
     void cancelEvents(std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel);
 
-    void rollback(std::shared_ptr<Event> straggler_event, unsigned int local_object_id, SimulationObject* ob);
+    void rollback(std::shared_ptr<Event> straggler_event, unsigned int local_object_id, 
+                                                                    SimulationObject* ob);
 
-    void coastForward(SimulationObject *object, std::shared_ptr<Event> stop_event);
+    void coastForward(SimulationObject *object, std::shared_ptr<Event> stop_event, 
+                                                    unsigned int restored_timestamp);
 
     unsigned int getMinimumLVT();
 

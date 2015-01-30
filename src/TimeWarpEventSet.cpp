@@ -44,6 +44,12 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
 
     bool causal_order_ok = true;
 
+    /*std::cout << "ins - " << event << " , r = " << event->timestamp() 
+              << " , send = " << event->sender_name_ << " , recv = " 
+              << event->receiverName() << " , type = " 
+              << ((event->event_type_ == EventType::NEGATIVE) ? 0 : 1) 
+              << " , s = " << event->send_time_ << std::endl;*/
+
     input_queue_lock_[obj_id].lock();
     auto event_iterator = input_queue_[obj_id]->insert(event);
 
@@ -111,7 +117,8 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 std::unique_ptr<std::vector<std::shared_ptr<Event>>> 
         TimeWarpEventSet::getEventsForCoastForward (
                 unsigned int obj_id, 
-                std::shared_ptr<Event> straggler_event) {
+                std::shared_ptr<Event> straggler_event,
+                unsigned int restored_timestamp) {
 
     auto events = make_unique<std::vector<std::shared_ptr<Event>>>();
     input_queue_lock_[obj_id].lock();
@@ -119,11 +126,15 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
     if (straggler_iterator == input_queue_[obj_id]->end()) {
         assert(0);
     }
-    for (auto event_iterator = input_queue_[obj_id]->begin(); ; event_iterator++) {
-        if (event_iterator == straggler_iterator) {
+    for (auto event_iterator = std::prev(straggler_iterator, 1); ; event_iterator--) {
+        assert(*event_iterator);
+        if ((*event_iterator)->timestamp() <= restored_timestamp) {
             break;
         }
         events->push_back(*event_iterator);
+        if (event_iterator == input_queue_[obj_id]->begin()) {
+            break;
+        }
     }
     input_queue_lock_[obj_id].unlock();
     return (std::move(events));
