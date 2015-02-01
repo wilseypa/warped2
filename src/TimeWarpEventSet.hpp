@@ -77,6 +77,8 @@ public:
 
     void startScheduling (unsigned int obj_id, std::shared_ptr<Event> processed_event);
 
+    void cancelEvent (unsigned int obj_id);
+
     void fossilCollectAll (unsigned int fossil_collect_time);
 
 private:

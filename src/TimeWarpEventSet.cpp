@@ -162,6 +162,26 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id,
     input_queue_lock_[obj_id].unlock();
 }
 
+void TimeWarpEventSet::cancelEvent (unsigned int obj_id) {
+
+    input_queue_lock_[obj_id].lock();
+    auto neg_iterator = scheduled_event_pointer_[obj_id];
+    auto pos_iterator = std::next(neg_iterator, 1);
+    assert(**pos_iterator == **neg_iterator);
+    assert((*pos_iterator)->event_type_ == EventType::POSITIVE);
+
+    scheduled_event_pointer_[obj_id] = std::next(neg_iterator, 2);
+    if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
+        unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
+        schedule_queue_lock_[scheduler_id].lock();
+        schedule_queue_[scheduler_id]->insert(*scheduled_event_pointer_[obj_id]);
+        schedule_queue_lock_[scheduler_id].unlock();
+    }
+    input_queue_[obj_id]->erase(neg_iterator);
+    input_queue_[obj_id]->erase(pos_iterator);
+    input_queue_lock_[obj_id].unlock();
+}
+
 void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {

@@ -163,7 +163,11 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             straggler_event_list_lock_[current_object_id].unlock();
             if (was_rolled_back) continue;
 
-            assert(event->event_type_ != EventType::NEGATIVE);
+            // Handle negative event
+            if (event->event_type_ == EventType::NEGATIVE) {
+                event_set_->cancelEvent(current_object_id);
+                continue;
+            }
 
             if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
@@ -303,7 +307,7 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
     unsigned int straggler_time = straggler_event->timestamp();
     twfs_manager_->rollback(straggler_time, local_object_id);
 
-    assert(straggler_time >= gvt_manager_->getGVT());
+    //assert(straggler_time >= gvt_manager_->getGVT());
 
     unsigned int restored_timestamp = 
                     state_manager_->restoreState(straggler_time, local_object_id, object);
