@@ -225,7 +225,7 @@ void TimeWarpEventDispatcher::insertIntoEventSet(
     straggler_event_list_lock_[object_id].lock();
     if (straggler_event_list_[object_id]) {
         if ((*event < *straggler_event_list_[object_id]) || 
-            ((*event < *straggler_event_list_[object_id]) && 
+            ((*event == *straggler_event_list_[object_id]) && 
              (event->event_type_ < straggler_event_list_[object_id]->event_type_))) {
             straggler_event_list_[object_id] = event;
             /*std::cout << "straggler - " << straggler_event_list_[object_id] 
