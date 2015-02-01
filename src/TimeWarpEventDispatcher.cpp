@@ -183,14 +183,16 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Send new events
             for (auto& e: new_events) {
-                unsigned int node_id = object_node_id_by_name_[event->receiverName()];
-                e->sender_name_ = current_object->name_;
-                e->rollback_cnt_ = rollback_count_;
-                e->send_time_ = object_simulation_time_[current_object_id];
+                if (e->event_type_ == EventType::POSITIVE) {
+                    e->sender_name_ = current_object->name_;
+                    e->rollback_cnt_ = rollback_count_;
+                    e->send_time_ = object_simulation_time_[current_object_id];
+                }
                 output_manager_->insertEvent(e, current_object_id);
 
                 assert(e->timestamp() >= object_simulation_time_[current_object_id]);
 
+                unsigned int node_id = object_node_id_by_name_[event->receiverName()];
                 if (node_id == comm_manager_->getID()) {
                     // Local event
                     sendLocalEvent(e);
@@ -365,9 +367,11 @@ void TimeWarpEventDispatcher::initialize(
                 local_object_id_by_name_[ob->name_] = object_id;
                 auto new_events = ob->createInitialEvents();
                 for (auto& e: new_events) {
-                    e->sender_name_ = ob->name_;
-                    e->rollback_cnt_ = rollback_count_;
-                    e->send_time_ = object_simulation_time_[object_id];
+                    if (e->event_type_ == EventType::POSITIVE) {
+                        e->sender_name_ = ob->name_;
+                        e->rollback_cnt_ = rollback_count_;
+                        e->send_time_ = object_simulation_time_[object_id];
+                    }
                     insertIntoEventSet(object_id, e);
                 }
                 object_id++;

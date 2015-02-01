@@ -147,6 +147,7 @@ public:
         receiver_name_ = e->receiverName();
         receive_time_ = e->timestamp();
         sender_name_ = e->sender_name_;
+        send_time_ = e->send_time_;
         event_type_ = EventType::NEGATIVE;
         rollback_cnt_ = e->rollback_cnt_;
     }
