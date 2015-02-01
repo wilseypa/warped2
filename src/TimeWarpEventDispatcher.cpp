@@ -141,7 +141,10 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
-            //std::cout << "e = " << event << std::endl;
+            /*std::cout << "e = " << event << " , time = " << event->timestamp() 
+                << " , receiver = " << event->receiverName() << " , sender = " 
+                << event->sender_name_ << " , object time = " 
+                << object_simulation_time_[current_object_id] << std::endl;*/
 
             // Check to see if object needs a rollback
             bool was_rolled_back = false;
@@ -153,8 +156,9 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                                     current_object_id, current_object);
                 rollback_count_++;
                 event_set_->startScheduling(current_object_id, 
-                                                straggler_event_list_[current_object_id]);
+                                            straggler_event_list_[current_object_id]);
                 straggler_event_list_[current_object_id] = 0;
+                was_rolled_back = true;
             }
             straggler_event_list_lock_[current_object_id].unlock();
             if (was_rolled_back) continue;
@@ -321,23 +325,19 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
     unsigned int stop_time = straggler_event->timestamp();
     unsigned int current_object_id = local_object_id_by_name_[object->name_];
 
-    auto events = event_set_->getEventsForCoastForward(current_object_id, straggler_event, 
-                                                                        restored_timestamp);
-    for (auto& event : *events) {
-        if (((straggler_event->event_type_ == EventType::NEGATIVE) && 
-                (*event == *straggler_event)) || (event->timestamp() > stop_time)) {
-            event.reset();
-            continue;
-        }
+    auto events = event_set_->getEventsForCoastForward(
+            current_object_id, straggler_event, restored_timestamp);
+    for (auto event_riterator = events->rbegin(); event_riterator != events->rend(); event_riterator++) {
+        assert((*event_riterator)->timestamp() <= stop_time);
+        assert((*event_riterator)->timestamp() >= object_simulation_time_[current_object_id]);
+        assert((*event_riterator)->event_type_ != EventType::NEGATIVE);
 
-        assert(event->timestamp() <= stop_time);
-        assert(event->timestamp() >= object_simulation_time_[current_object_id]);
-        assert(event->event_type_ != EventType::NEGATIVE);
+        /*std::cout << "coast = " << *event_riterator << std::endl;*/
 
-        object_simulation_time_[current_object_id] = event->timestamp();
-        twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
-        object->receiveEvent(*event);
-        state_manager_->saveState(event->timestamp(), current_object_id, object);
+        object_simulation_time_[current_object_id] = (*event_riterator)->timestamp();
+        twfs_manager_->setObjectCurrentTime((*event_riterator)->timestamp(), current_object_id);
+        object->receiveEvent(**event_riterator);
+        state_manager_->saveState((*event_riterator)->timestamp(), current_object_id, object);
     }
 }
 
