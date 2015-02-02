@@ -103,7 +103,7 @@ private:
     std::unique_ptr<unsigned int []> object_simulation_time_;
 
     std::unique_ptr<std::shared_ptr<Event> []> straggler_event_list_;
-    std::unique_ptr<std::mutex []> straggler_event_list_lock_;
+    std::unique_ptr<std::atomic<unsigned int> []> straggler_event_list_lock_;
 
     std::deque<std::pair <std::shared_ptr<Event>, unsigned int>> remote_event_queue_;
     std::mutex remote_event_queue_lock_;

@@ -26,6 +26,8 @@
 #include "utility/memory.hpp"
 #include "utility/warnings.hpp"
 
+#define NULL_THREAD 0
+
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::EventMessage)
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::Event)
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::NegativeEvent)
@@ -160,7 +162,13 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Check to see if object needs a rollback
             bool was_rolled_back = false;
-            straggler_event_list_lock_[current_object_id].lock();
+            std::thread::id tid = std::this_thread::get_id();
+            unsigned int thread_index = local_thread_id_map_[tid];
+            unsigned int null_thread = NULL_THREAD;
+            while (!straggler_event_list_lock_[current_object_id].compare_exchange_strong(
+                                                                    null_thread, thread_index)) {
+                null_thread = NULL_THREAD;
+            }
             if (straggler_event_list_[current_object_id]) {
                 /*std::cout << "roll - " << event << " , " << current_object_id << " , " 
                           << straggler_event_list_[current_object_id] << std::endl;*/
@@ -172,7 +180,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 straggler_event_list_[current_object_id] = 0;
                 was_rolled_back = true;
             }
-            straggler_event_list_lock_[current_object_id].unlock();
+            straggler_event_list_lock_[current_object_id].store(NULL_THREAD);
             if (was_rolled_back) continue;
 
             // Handle negative event
@@ -234,7 +242,20 @@ void TimeWarpEventDispatcher::insertIntoEventSet(
 
     if (event_set_->insertEvent(object_id, event)) return;
 
-    straggler_event_list_lock_[object_id].lock();
+    std::thread::id tid = std::this_thread::get_id();
+    unsigned int thread_index = local_thread_id_map_[tid];
+
+    // If the calling thread already has lock (during rollback), don't release
+    bool calling_thread_has_lock = false;
+    if (straggler_event_list_lock_[object_id].load() == thread_index) {
+        calling_thread_has_lock = true;
+    } else {
+        unsigned int null_thread = NULL_THREAD;
+        while (!straggler_event_list_lock_[object_id].compare_exchange_strong(
+                                                            null_thread, thread_index)) {
+            null_thread = NULL_THREAD;
+        }
+    }
     if (straggler_event_list_[object_id]) {
         if ((*event < *straggler_event_list_[object_id]) || 
             ((*event == *straggler_event_list_[object_id]) && 
@@ -248,7 +269,9 @@ void TimeWarpEventDispatcher::insertIntoEventSet(
         /*std::cout << "straggler - " << straggler_event_list_[object_id] 
                                             << " , " << object_id << std::endl;*/
     }
-    straggler_event_list_lock_[object_id].unlock();
+    if (!calling_thread_has_lock) {
+        straggler_event_list_lock_[object_id].store(NULL_THREAD);
+    }
 }
 
 MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
@@ -372,7 +395,8 @@ void TimeWarpEventDispatcher::initialize(
     straggler_event_list_ = make_unique<std::shared_ptr<Event> []>(num_local_objects);
     std::memset(straggler_event_list_.get(), 0, 
                     num_local_objects*sizeof(std::shared_ptr<Event>));
-    straggler_event_list_lock_ = make_unique<std::mutex []>(num_local_objects);
+    straggler_event_list_lock_ = 
+        make_unique<std::atomic<unsigned int> []>(num_local_objects);
 
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
@@ -381,6 +405,7 @@ void TimeWarpEventDispatcher::initialize(
             if (partition_id == comm_manager_->getID()) {
                 objects_by_name_[ob->name_] = ob;
                 local_object_id_by_name_[ob->name_] = object_id;
+                straggler_event_list_lock_[object_id].store(NULL_THREAD);
                 auto new_events = ob->createInitialEvents();
                 for (auto& e: new_events) {
                     if (e->event_type_ == EventType::POSITIVE) {
