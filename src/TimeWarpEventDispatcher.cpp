@@ -3,8 +3,6 @@
 #include <atomic>
 #include <memory>
 #include <string>
-#include <thread>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 #include <cmath>
@@ -51,9 +49,22 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
         state_manager_(std::move(state_manager)), 
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)) {}
 
+void TimeWarpEventDispatcher::populateThreadMap() {
+
+    // Manager thread index = 1, worker thread index = 2, 3,...
+    static std::size_t index = 0;
+    static std::mutex map_mutex;
+    std::thread::id id = std::this_thread::get_id();
+    std::lock_guard<std::mutex> lock(map_mutex);
+    if(local_thread_id_map_.find(id) == local_thread_id_map_.end()) {
+        local_thread_id_map_[id] = ++index;
+    }
+}
+
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
     initialize(objects);
+    populateThreadMap();
     comm_manager_->waitForAllProcesses();
 
     // Create worker threads
@@ -131,6 +142,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     thread_id = id;
+    populateThreadMap();
 
     while (gvt_manager_->getGVT() < max_sim_time_) {
         local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();

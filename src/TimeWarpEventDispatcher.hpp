@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 #include <deque>
+#include <thread>
 
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
@@ -47,6 +48,7 @@ public:
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
+private:
     void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
 
     void insertIntoEventSet(unsigned int object_id, std::shared_ptr<Event> event);
@@ -76,7 +78,8 @@ public:
 
     void sendRemoteEvents();
 
-private:
+    void populateThreadMap();
+
     void processEvents(unsigned int id);
 
     unsigned int rollback_count_;
@@ -88,6 +91,7 @@ private:
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
     std::unordered_map<std::string, unsigned int> local_object_id_by_name_;
     std::unordered_map<std::string, unsigned int> object_node_id_by_name_;
+    std::unordered_map<std::thread::id, std::size_t> local_thread_id_map_;
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<TimeWarpEventSet> event_set_;
