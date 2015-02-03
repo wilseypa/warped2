@@ -48,7 +48,8 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
               << " , send = " << event->sender_name_ << " , recv = " 
               << event->receiverName() << " , type = " 
               << ((event->event_type_ == EventType::NEGATIVE) ? 0 : 1) 
-              << " , s = " << event->send_time_ << std::endl;*/
+              << " , s = " << event->send_time_ << " , c = " 
+              << event->counter_ << std::endl;*/
 
     input_queue_lock_[obj_id].lock();
     auto event_iterator = input_queue_[obj_id]->insert(event);
@@ -157,7 +158,7 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id,
             schedule_queue_lock_[scheduler_id].unlock();
         }
     } else {
-        assert(0);
+        //assert(0);
     }
     input_queue_lock_[obj_id].unlock();
 }

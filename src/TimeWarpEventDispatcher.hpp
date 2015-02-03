@@ -82,8 +82,6 @@ private:
 
     void processEvents(unsigned int id);
 
-    unsigned int rollback_count_;
-
     unsigned int num_worker_threads_;
 
     unsigned int num_schedulers_;
@@ -101,6 +99,8 @@ private:
     const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
 
     std::unique_ptr<unsigned int []> object_simulation_time_;
+
+    std::unique_ptr<std::atomic<unsigned long> []> event_counter_by_obj_;
 
     std::unique_ptr<std::shared_ptr<Event> []> straggler_event_list_;
     std::unique_ptr<std::atomic<unsigned int> []> straggler_event_list_lock_;
@@ -153,7 +153,7 @@ public:
         sender_name_ = e->sender_name_;
         send_time_ = e->send_time_;
         event_type_ = EventType::NEGATIVE;
-        rollback_cnt_ = e->rollback_cnt_;
+        counter_ = e->counter_;
     }
 
     const std::string& receiverName() const {return receiver_name_;}

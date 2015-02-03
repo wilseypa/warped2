@@ -4,8 +4,6 @@
 #include <string>
 #include "serialization.hpp"
 
-#define ROLLBACK_CNT_ACTIVE   0  // activate if rollback count becomes relevant
-
 namespace warped {
 
 enum class EventType : bool {
@@ -23,16 +21,10 @@ public:
     // Operator can be used in its current form only for handling anti-messages.
     // Receiver name comparison might needed for general use elsewhere.
     bool operator== (const Event &other) {
-#if ROLLBACK_CNT_ACTIVE
         return ((this->timestamp() == other.timestamp())
                 && (this->sender_name_ == other.sender_name_)
-                && (this->rollback_cnt_ == other.rollback_cnt_)
+                && (this->counter_ == other.counter_)
                 && (this->send_time_ == other.send_time_));
-#else
-        return ((this->timestamp() == other.timestamp())
-                && (this->sender_name_ == other.sender_name_)
-                && (this->send_time_ == other.send_time_));
-#endif
     }
 
     bool operator!= (const Event &other) {
@@ -49,15 +41,11 @@ public:
                 if (this->sender_name_.compare(other.sender_name_) < 0) {
                     return true;
                 } else if (this->sender_name_.compare(other.sender_name_) == 0) {
-#if ROLLBACK_CNT_ACTIVE
-                    if (this->rollback_cnt_ < other.rollback_cnt_) {
+                    if (this->counter_ < other.counter_) {
                         return true;
                     } else {
                         return false;
                     }
-#else
-                    return false;
-#endif
                 } else {
                     return false;
                 }
@@ -81,13 +69,13 @@ public:
     // Event type - positive or negative
     EventType event_type_ = EventType::POSITIVE;
 
-    // Rollback id
-    unsigned int rollback_cnt_ = 0;
-
     // Send time
     unsigned int send_time_ = 0;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_name_, event_type_, rollback_cnt_, send_time_)
+    // Event counter
+    unsigned long counter_ = 0;
+
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_name_, event_type_, counter_, send_time_)
 
 };
 

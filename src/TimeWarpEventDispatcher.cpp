@@ -174,7 +174,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                           << straggler_event_list_[current_object_id] << std::endl;*/
                 rollback(straggler_event_list_[current_object_id], 
                                     current_object_id, current_object);
-                rollback_count_++;
                 event_set_->startScheduling(current_object_id, 
                                             straggler_event_list_[current_object_id]);
                 straggler_event_list_[current_object_id] = 0;
@@ -209,7 +208,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             for (auto& e: new_events) {
                 if (e->event_type_ == EventType::POSITIVE) {
                     e->sender_name_ = current_object->name_;
-                    e->rollback_cnt_ = rollback_count_;
+                    e->counter_ = event_counter_by_obj_[current_object_id]++;
                     e->send_time_ = object_simulation_time_[current_object_id];
                 }
                 output_manager_->insertEvent(e, current_object_id);
@@ -261,12 +260,12 @@ void TimeWarpEventDispatcher::insertIntoEventSet(
             ((*event == *straggler_event_list_[object_id]) && 
              (event->event_type_ < straggler_event_list_[object_id]->event_type_))) {
             straggler_event_list_[object_id] = event;
-            /*std::cout << "straggler - " << straggler_event_list_[object_id] 
+            /*std::cout << "straggler1 - " << straggler_event_list_[object_id] 
                                             << " , " << object_id << std::endl;*/
         }
     } else {
         straggler_event_list_[object_id] = event;
-        /*std::cout << "straggler - " << straggler_event_list_[object_id] 
+        /*std::cout << "straggler2 - " << straggler_event_list_[object_id] 
                                             << " , " << object_id << std::endl;*/
     }
     if (!calling_thread_has_lock) {
@@ -386,10 +385,11 @@ void TimeWarpEventDispatcher::initialize(
         const std::vector<std::vector<SimulationObject*>>& objects) {
     unsigned int num_local_objects = objects[comm_manager_->getID()].size();
     event_set_->initialize(num_local_objects, num_schedulers_, num_worker_threads_);
-    rollback_count_ = 0;
 
     object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);
     std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
+
+    event_counter_by_obj_ = make_unique<std::atomic<unsigned long> []>(num_local_objects);
 
     // Create a structure to track which objects need to be rolled back
     straggler_event_list_ = make_unique<std::shared_ptr<Event> []>(num_local_objects);
@@ -405,12 +405,13 @@ void TimeWarpEventDispatcher::initialize(
             if (partition_id == comm_manager_->getID()) {
                 objects_by_name_[ob->name_] = ob;
                 local_object_id_by_name_[ob->name_] = object_id;
+                event_counter_by_obj_[object_id].store(0);
                 straggler_event_list_lock_[object_id].store(NULL_THREAD);
                 auto new_events = ob->createInitialEvents();
                 for (auto& e: new_events) {
                     if (e->event_type_ == EventType::POSITIVE) {
                         e->sender_name_ = ob->name_;
-                        e->rollback_cnt_ = rollback_count_;
+                        e->counter_ = event_counter_by_obj_[object_id]++;
                         e->send_time_ = object_simulation_time_[object_id];
                     }
                     insertIntoEventSet(object_id, e);

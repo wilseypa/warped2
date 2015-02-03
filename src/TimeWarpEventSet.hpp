@@ -25,26 +25,22 @@ public:
                         const std::shared_ptr<Event>& second) const {
 
         bool is_less = false;
-        if (first->timestamp() > second->timestamp()) {
-            is_less = false;
+        if (first->timestamp() < second->timestamp()) {
+            is_less = true;
         } else if (first->timestamp() == second->timestamp()) {
             if (first->send_time_ < second->send_time_) {
                 is_less = true;
             } else if (first->send_time_ == second->send_time_) {
-                if (first->sender_name_.compare(second->sender_name_) > 0) {
-                    is_less = false;
+                if (first->sender_name_.compare(second->sender_name_) < 0) {
+                    is_less = true;
                 } else if (first->sender_name_.compare(second->sender_name_) == 0) {
-#if ROLLBACK_CNT_ACTIVE
-                    if (first->rollback_cnt_ > second->rollback_cnt_) {
-                        is_less = false;
-                    } else if (first->rollback_cnt_ == second->rollback_cnt_) {
+                    if (first->counter_ < second->counter_) {
+                        is_less = true;
+                    } else if (first->counter_ == second->counter_) {
                         is_less = (first->event_type_ < second->event_type_) ? true : false;
                     } else {
-                        is_less = true;
+                        is_less = false;
                     }
-#else
-                    is_less = (first->event_type_ < second->event_type_) ? true : false;
-#endif
                 } else {
                     is_less = false;
                 }
@@ -52,7 +48,7 @@ public:
                 is_less = false;
             }
         } else {
-            is_less = true;
+            is_less = false;
         }
         return is_less;
     }
