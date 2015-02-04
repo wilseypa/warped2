@@ -62,7 +62,7 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
     // If event is negative
     // Assumption: Positive event arrives earlier than its negative counterpart
     if (event->event_type_ == EventType::NEGATIVE) {
-        auto next_iterator = std::next(event_iterator, 1);
+        auto next_iterator = std::next(event_iterator);
 
         // If next event is the positive counterpart
         if ((next_iterator != input_queue_[obj_id]->end()) &&
@@ -167,7 +167,7 @@ void TimeWarpEventSet::cancelEvent (unsigned int obj_id) {
 
     input_queue_lock_[obj_id].lock();
     auto neg_iterator = scheduled_event_pointer_[obj_id];
-    auto pos_iterator = std::next(neg_iterator, 1);
+    auto pos_iterator = std::next(neg_iterator);
     assert(**pos_iterator == **neg_iterator);
     assert((*pos_iterator)->event_type_ == EventType::POSITIVE);
 
