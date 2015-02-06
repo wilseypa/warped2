@@ -119,17 +119,17 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
         TimeWarpEventSet::getEventsForCoastForward (
                 unsigned int obj_id, 
                 std::shared_ptr<Event> straggler_event,
-                unsigned int restored_timestamp) {
+                std::shared_ptr<Event> restored_state_event) {
 
     auto events = make_unique<std::vector<std::shared_ptr<Event>>>();
+
     input_queue_lock_[obj_id].lock();
     auto straggler_iterator = input_queue_[obj_id]->find(straggler_event);
-    if (straggler_iterator == input_queue_[obj_id]->end()) {
-        assert(0);
-    }
+    assert(straggler_iterator == input_queue_[obj_id]->end());
+
     for (auto event_iterator = std::prev(straggler_iterator, 1); ; event_iterator--) {
         assert(*event_iterator);
-        if ((*event_iterator)->timestamp() <= restored_timestamp) {
+        if (*event_iterator <= restored_state_event) {
             break;
         }
         events->push_back(*event_iterator);
@@ -137,7 +137,9 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
             break;
         }
     }
+
     input_queue_lock_[obj_id].unlock();
+
     return (std::move(events));
 }
 

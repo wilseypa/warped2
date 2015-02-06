@@ -25,25 +25,25 @@ public:
     virtual void initialize(unsigned int num_local_objects);
 
     // Removes states from state queues before or equal to the gvt for the specified object
-    unsigned int fossilCollect(unsigned int gvt, unsigned int local_object_id);
+    void fossilCollect(unsigned int gvt, unsigned int local_object_id);
 
     // Removes all states before or equal to the gvt for all objects
     void fossilCollectAll(unsigned int gvt);
 
     // Restores a state based on rollback time for the given object.
-    unsigned int restoreState(unsigned int rollback_time, unsigned int local_object_id,
+    std::shared_ptr<Event> restoreState(std::shared_ptr<Event> rollback_event, unsigned int local_object_id,
         SimulationObject *object);
 
     // Number of states in the state queue for the specified object
     std::size_t size(unsigned int local_object_id);
 
-    virtual void saveState(unsigned int current_time, unsigned int local_object_id,
+    virtual void saveState(std::shared_ptr<Event> current_event, unsigned int local_object_id,
         SimulationObject *object) = 0;
 
 protected:
 
     // Array of vectors (Array of states queues), one for each object
-    std::unique_ptr<std::vector<std::pair<unsigned int, std::unique_ptr<ObjectState>>> []>
+    std::unique_ptr<std::vector<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>> []>
         state_queue_;
 
     // Array of state queue locks, this is needed so that the manager thread can do
