@@ -326,7 +326,7 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
     std::shared_ptr<Event> restored_state_event =
         state_manager_->restoreState(straggler_event, local_object_id, object);
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
-
+    assert(restored_state_event);
     assert((restored_state_event->timestamp() < straggler_event->timestamp())
            || (restored_state_event->timestamp() == 0));
 
