@@ -69,7 +69,7 @@ public:
     std::unique_ptr<std::vector<std::shared_ptr<Event>>> getEventsForCoastForward (
                         unsigned int obj_id, 
                         std::shared_ptr<Event> straggler_event, 
-                        unsigned int restored_timestamp);
+                        std::shared_ptr<Event> restored_state_event);
 
     void startScheduling (unsigned int obj_id, std::shared_ptr<Event> processed_event);
 

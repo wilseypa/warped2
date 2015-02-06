@@ -22,7 +22,7 @@ public:
     void initialize(unsigned int num_local_objects) override;
 
     // Saves the state of the specified object if the count is equal to 0.
-    virtual void saveState(unsigned int current_time, unsigned int local_object_id,
+    virtual void saveState(std::shared_ptr<Event> current_event, unsigned int local_object_id,
         SimulationObject *object);
 
 private:

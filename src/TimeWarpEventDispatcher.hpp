@@ -64,8 +64,8 @@ private:
     void rollback(std::shared_ptr<Event> straggler_event, unsigned int local_object_id, 
                                                                     SimulationObject* ob);
 
-    void coastForward(SimulationObject *object, std::shared_ptr<Event> stop_event, 
-                                                    unsigned int restored_timestamp);
+    void coastForward(SimulationObject *object, std::shared_ptr<Event> stop_event,
+        std::shared_ptr<Event> restored_state_event);
 
     unsigned int getMinimumLVT();
 

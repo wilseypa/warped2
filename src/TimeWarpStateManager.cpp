@@ -8,14 +8,14 @@
 namespace warped {
 
 void TimeWarpStateManager::initialize(unsigned int num_local_objects) {
-    state_queue_ = make_unique<std::vector<std::pair<unsigned int, std::unique_ptr<ObjectState>>>[]>
+   state_queue_ = make_unique<std::vector<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>>[]>
         (num_local_objects);
 
     state_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
 
 }
 
-unsigned int TimeWarpStateManager::restoreState(unsigned int rollback_time,
+std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event> rollback_event,
     unsigned int local_object_id, SimulationObject *object) {
 
     state_queue_lock_[local_object_id].lock();
@@ -23,8 +23,7 @@ unsigned int TimeWarpStateManager::restoreState(unsigned int rollback_time,
     assert(!state_queue_[local_object_id].empty());
 
     auto max = std::prev(state_queue_[local_object_id].end());
-    while ((max != state_queue_[local_object_id].begin()) && (max->first >= rollback_time)) {
-        max->second.reset();
+    while ((max != state_queue_[local_object_id].begin()) && (rollback_event <= max->first)) {
         state_queue_[local_object_id].erase(max);
         max = std::prev(state_queue_[local_object_id].end());
     }
@@ -36,23 +35,15 @@ unsigned int TimeWarpStateManager::restoreState(unsigned int rollback_time,
     return max->first;
 }
 
-unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
-    unsigned int retval = std::numeric_limits<unsigned int>::max();
+void TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
     state_queue_lock_[local_object_id].lock();
 
     auto min = state_queue_[local_object_id].begin();
-    while (min->first < gvt && min != state_queue_[local_object_id].end()) {
-        min->second.reset();
+    while (min->first->timestamp() < gvt && min != state_queue_[local_object_id].end()) {
         min = state_queue_[local_object_id].erase(min);
     }
 
-    if (min != state_queue_[local_object_id].end()) {
-        retval = min->first;
-    }
-
     state_queue_lock_[local_object_id].unlock();
-
-    return retval;
 }
 
 void TimeWarpStateManager::fossilCollectAll(unsigned int gvt) {

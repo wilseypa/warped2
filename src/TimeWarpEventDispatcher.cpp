@@ -202,7 +202,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             auto new_events = current_object->receiveEvent(*event);
 
             // Save state
-            state_manager_->saveState(event->timestamp(), current_object_id, current_object);
+            state_manager_->saveState(event, current_object_id, current_object);
 
             // Send new events
             for (auto& e: new_events) {
@@ -343,30 +343,31 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
 
     //assert(straggler_time >= gvt_manager_->getGVT());
 
-    unsigned int restored_timestamp = 
-                    state_manager_->restoreState(straggler_time, local_object_id, object);
+    std::shared_ptr<Event> restored_state_event =
+        state_manager_->restoreState(straggler_event, local_object_id, object);
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
 
-    assert((restored_timestamp < straggler_event->timestamp()) || (restored_timestamp == 0));
+    assert((restored_state_event->timestamp() < straggler_event->timestamp())
+           || (restored_state_event->timestamp() == 0));
 
     if (events_to_cancel != nullptr) {
         cancelEvents(std::move(events_to_cancel));
     }
 
-    object_simulation_time_[local_object_id] = restored_timestamp;
-    twfs_manager_->setObjectCurrentTime(restored_timestamp, local_object_id);
+    object_simulation_time_[local_object_id] = restored_state_event->timestamp();
+    twfs_manager_->setObjectCurrentTime(restored_state_event->timestamp(), local_object_id);
 
-    coastForward(object, straggler_event, restored_timestamp);
+    coastForward(object, straggler_event, restored_state_event);
 }
 
 void TimeWarpEventDispatcher::coastForward(SimulationObject* object, 
-                std::shared_ptr<Event> straggler_event, unsigned int restored_timestamp) {
+                std::shared_ptr<Event> straggler_event, std::shared_ptr<Event> restored_state_event) {
 
     unsigned int stop_time = straggler_event->timestamp();
     unsigned int current_object_id = local_object_id_by_name_[object->name_];
 
     auto events = event_set_->getEventsForCoastForward(
-            current_object_id, straggler_event, restored_timestamp);
+            current_object_id, straggler_event, restored_state_event);
     for (auto event_riterator = events->rbegin(); event_riterator != events->rend(); event_riterator++) {
         assert((*event_riterator)->timestamp() <= stop_time);
         assert((*event_riterator)->timestamp() >= object_simulation_time_[current_object_id]);
@@ -377,7 +378,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
         object_simulation_time_[current_object_id] = (*event_riterator)->timestamp();
         twfs_manager_->setObjectCurrentTime((*event_riterator)->timestamp(), current_object_id);
         object->receiveEvent(**event_riterator);
-        state_manager_->saveState((*event_riterator)->timestamp(), current_object_id, object);
+        state_manager_->saveState(*event_riterator, current_object_id, object);
     }
 }
 
