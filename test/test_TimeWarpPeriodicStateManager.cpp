@@ -12,6 +12,7 @@ TEST_CASE("States saved and restored correctly", "[state][queue]") {
     warped::TimeWarpPeriodicStateManager sm(period);
     sm.initialize(num_objects);
     warped::SimulationObject *object;
+    std::shared_ptr<warped::Event> e = std::make_shared<test_Event>();
 
     SECTION("Periodic state manager constructed correctly", "[]") {
         for (unsigned int i = 0; i < num_objects; i++) {
@@ -24,52 +25,59 @@ TEST_CASE("States saved and restored correctly", "[state][queue]") {
     // All of the following tests are for object_id = 3
     SECTION("States are saved for first call to saveState", "[state][save]") {
         static_cast<test_ObjectState&>(object->getState()).x++; // 51
-        sm.saveState(15, 3, object); // timestamp 15
+        dynamic_cast<test_Event*>(e.get())->receive_time_ = 15;
+        sm.saveState(e, 3, object); // timestamp 15
         REQUIRE(sm.size(3) == 1);   // Saved
 
         SECTION("States are saved in correct periods", "[state][save]") {
             static_cast<test_ObjectState&>(object->getState()).x++; // 52
-            sm.saveState(20, 3, object); // timestamp 20
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 20;
+            sm.saveState(e, 3, object); // timestamp 20
             REQUIRE(sm.size(3) == 1); // Not saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 53
-            sm.saveState(25, 3, object); // timestamp 25
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 25;
+            sm.saveState(e, 3, object); // timestamp 25
             REQUIRE(sm.size(3) == 2); // Saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 54
-            sm.saveState(25, 3, object); // timestamp 25
+            sm.saveState(e, 3, object); // timestamp 25
             REQUIRE(sm.size(3) == 2); // Not saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 55
-            sm.saveState(25, 3, object); // timestamp 25
+            sm.saveState(e, 3, object); // timestamp 25
             REQUIRE(sm.size(3) == 3); // Saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 56
-            sm.saveState(30, 3, object); // timestamp 30
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 30;
+            sm.saveState(e, 3, object); // timestamp 30
             REQUIRE(sm.size(3) == 3); // Not saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 57
-            sm.saveState(33, 3, object); // timestamp 33
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 33;
+            sm.saveState(e, 3, object); // timestamp 33
             REQUIRE(sm.size(3) == 4); // Saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 58
-            sm.saveState(35, 3, object); // timestamp 35
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 35;
+            sm.saveState(e, 3, object); // timestamp 35
             REQUIRE(sm.size(3) == 4); // Not saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 59
-            sm.saveState(37, 3, object); // timestamp 37
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 37;
+            sm.saveState(e, 3, object); // timestamp 37
             REQUIRE(sm.size(3) == 5); // Saved
 
             SECTION("Fossil collection removes correct states", "[state][fossilCollection]") {
-                unsigned int lts = sm.fossilCollect(28, 3);
+                sm.fossilCollect(28, 3);
                 REQUIRE(sm.size(3) == 2);
-                REQUIRE(lts == 33);
             }
 
             SECTION("State can be restored on rollback", "[state][rollback][restore]") {
-                unsigned int saved_timestamp = sm.restoreState(26, 3, object);
+                dynamic_cast<test_Event*>(e.get())->receive_time_ = 26;
+                std::shared_ptr<warped::Event> restored_state_event = sm.restoreState(e, 3, object);
                 REQUIRE(sm.size(3) == 3);
-                REQUIRE(saved_timestamp == 25);
+                REQUIRE(restored_state_event->timestamp() == 25);
                 REQUIRE(static_cast<test_ObjectState&>(object->getState()).x == 55);
             }
         }

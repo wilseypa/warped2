@@ -9,6 +9,7 @@ TEST_CASE("Aggressive output manager is aggressive", "[output][queues]") {
     unsigned int num_objects = 4;
     warped::TimeWarpAggressiveOutputManager om;
     om.initialize(num_objects);
+    std::shared_ptr<warped::Event> e = std::make_shared<test_Event>();
 
     SECTION("Output queues are constructed correctly", "[output][queues]") {
         for (unsigned int i = 0; i < num_objects; i++) {
@@ -38,8 +39,8 @@ TEST_CASE("Aggressive output manager is aggressive", "[output][queues]") {
         }
 
         SECTION("Correct events are removed on rollback", "[output][queue][rollback]") {
-            unsigned int straggler_time = 39;
-            auto events_to_cancel = om.rollback(straggler_time, 2);
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 39;
+            auto events_to_cancel = om.rollback(e, 2);
             CHECK(om.size(2) == 5);
             REQUIRE(events_to_cancel->size() == 2);
 
