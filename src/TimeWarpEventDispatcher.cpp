@@ -26,8 +26,6 @@
 #include "utility/memory.hpp"
 #include "utility/warnings.hpp"
 
-#define NULL_THREAD 0
-
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::EventMessage)
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::Event)
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::NegativeEvent)
@@ -51,22 +49,9 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
         state_manager_(std::move(state_manager)), 
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)) {}
 
-void TimeWarpEventDispatcher::populateThreadMap() {
-
-    // Manager thread index = 1, worker thread index = 2, 3,...
-    static std::size_t index = 0;
-    static std::mutex map_mutex;
-    std::thread::id id = std::this_thread::get_id();
-    std::lock_guard<std::mutex> lock(map_mutex);
-    if(local_thread_id_map_.find(id) == local_thread_id_map_.end()) {
-        local_thread_id_map_[id] = ++index;
-    }
-}
-
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
     initialize(objects);
-    populateThreadMap();
     comm_manager_->waitForAllProcesses();
 
     // Create worker threads
@@ -144,7 +129,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     thread_id = id;
-    populateThreadMap();
 
     while (gvt_manager_->getGVT() < max_sim_time_) {
         local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();
@@ -162,12 +146,10 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Check to see if object needs a rollback
             bool was_rolled_back = false;
-            std::thread::id tid = std::this_thread::get_id();
-            unsigned int thread_index = local_thread_id_map_[tid];
-            unsigned int null_thread = NULL_THREAD;
+            unsigned int null_thread = num_worker_threads_+1;
             while (!straggler_event_list_lock_[current_object_id].compare_exchange_strong(
-                                                                    null_thread, thread_index)) {
-                null_thread = NULL_THREAD;
+                                                                            null_thread, id)) {
+                null_thread = num_worker_threads_+1;
             }
             if (straggler_event_list_[current_object_id]) {
                 /*std::cout << "roll - " << event << " , " << current_object_id << " , " 
@@ -179,7 +161,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 straggler_event_list_[current_object_id] = 0;
                 was_rolled_back = true;
             }
-            straggler_event_list_lock_[current_object_id].store(NULL_THREAD);
+            straggler_event_list_lock_[current_object_id].store(num_worker_threads_+1);
             if (was_rolled_back) continue;
 
             // Handle negative event
@@ -237,22 +219,19 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 }
 
 void TimeWarpEventDispatcher::insertIntoEventSet(
-        unsigned int object_id, std::shared_ptr<Event> event) {
+        unsigned int thread_index, unsigned int object_id, std::shared_ptr<Event> event) {
 
     if (event_set_->insertEvent(object_id, event)) return;
-
-    std::thread::id tid = std::this_thread::get_id();
-    unsigned int thread_index = local_thread_id_map_[tid];
 
     // If the calling thread already has lock (during rollback), don't release
     bool calling_thread_has_lock = false;
     if (straggler_event_list_lock_[object_id].load() == thread_index) {
         calling_thread_has_lock = true;
     } else {
-        unsigned int null_thread = NULL_THREAD;
+        unsigned int null_thread = num_worker_threads_+1;
         while (!straggler_event_list_lock_[object_id].compare_exchange_strong(
                                                             null_thread, thread_index)) {
-            null_thread = NULL_THREAD;
+            null_thread = num_worker_threads_+1;
         }
     }
     if (straggler_event_list_[object_id]) {
@@ -269,7 +248,7 @@ void TimeWarpEventDispatcher::insertIntoEventSet(
                                             << " , " << object_id << std::endl;*/
     }
     if (!calling_thread_has_lock) {
-        straggler_event_list_lock_[object_id].store(NULL_THREAD);
+        straggler_event_list_lock_[object_id].store(num_worker_threads_+1);
     }
 }
 
@@ -281,14 +260,15 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
         msg->gvt_mattern_color);
 
     unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
-    insertIntoEventSet(receiver_object_id, msg->event);
+    // Manager thread id equals worker thread count
+    insertIntoEventSet(num_worker_threads_, receiver_object_id, msg->event);
     return MessageFlags::None;
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
-    insertIntoEventSet(receiver_object_id, event);
+    insertIntoEventSet(thread_id, receiver_object_id, event);
 
     if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
         unsigned int send_min = send_min_[thread_id];
@@ -407,7 +387,7 @@ void TimeWarpEventDispatcher::initialize(
                 objects_by_name_[ob->name_] = ob;
                 local_object_id_by_name_[ob->name_] = object_id;
                 event_counter_by_obj_[object_id].store(0);
-                straggler_event_list_lock_[object_id].store(NULL_THREAD);
+                straggler_event_list_lock_[object_id].store(num_worker_threads_+1);
                 auto new_events = ob->createInitialEvents();
                 for (auto& e: new_events) {
                     if (e->event_type_ == EventType::POSITIVE) {
@@ -415,7 +395,8 @@ void TimeWarpEventDispatcher::initialize(
                         e->counter_ = event_counter_by_obj_[object_id]++;
                         e->send_time_ = object_simulation_time_[object_id];
                     }
-                    insertIntoEventSet(object_id, e);
+                    // Manager thread id equals worker thread count
+                    insertIntoEventSet(num_worker_threads_, object_id, e);
                 }
                 object_id++;
             }

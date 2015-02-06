@@ -51,7 +51,8 @@ public:
 private:
     void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
 
-    void insertIntoEventSet(unsigned int object_id, std::shared_ptr<Event> event);
+    void insertIntoEventSet(unsigned int thread_index, 
+            unsigned int object_id, std::shared_ptr<Event> event);
 
     MessageFlags receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
@@ -89,7 +90,6 @@ private:
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
     std::unordered_map<std::string, unsigned int> local_object_id_by_name_;
     std::unordered_map<std::string, unsigned int> object_node_id_by_name_;
-    std::unordered_map<std::thread::id, std::size_t> local_thread_id_map_;
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<TimeWarpEventSet> event_set_;
