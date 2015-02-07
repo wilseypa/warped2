@@ -132,8 +132,6 @@ private:
     // minimum timestamp of sent events used for minimum lvt calculation
     std::unique_ptr<unsigned int []> send_min_;
 
-    std::unique_ptr<unsigned int []> local_min_lvt_flag_;
-
     // flag to determine if worker thread has already calculated min lvt
     std::unique_ptr<bool []> calculated_min_flag_;
 };

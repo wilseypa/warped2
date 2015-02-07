@@ -101,8 +101,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     thread_id = id;
 
     while (gvt_manager_->getGVT() < max_sim_time_) {
-        local_min_lvt_flag_[thread_id] = min_lvt_flag_.load();
-
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
 
@@ -140,10 +138,10 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 continue;
             }
 
-            if (local_min_lvt_flag_[thread_id] > 0 && !calculated_min_flag_[thread_id]) {
+            if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
                 calculated_min_flag_[thread_id] = true;
-                min_lvt_flag_--;
+                min_lvt_flag_.fetch_sub(1);
             }
 
             // Update simulation time
@@ -392,12 +390,10 @@ void TimeWarpEventDispatcher::initialize(
     min_lvt_ = make_unique<unsigned int []>(num_worker_threads_);
     send_min_ = make_unique<unsigned int []>(num_worker_threads_);
     calculated_min_flag_ = make_unique<bool []>(num_worker_threads_);
-    local_min_lvt_flag_ = make_unique<unsigned int []>(num_worker_threads_);
     for (unsigned int i = 0; i < num_worker_threads_; i++) {
         min_lvt_[i] = std::numeric_limits<unsigned int>::max();
         send_min_[i] = std::numeric_limits<unsigned int>::max();
         calculated_min_flag_[i] = false;
-        local_min_lvt_flag_[i] = 0;
     }
 }
 
