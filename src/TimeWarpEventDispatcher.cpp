@@ -413,11 +413,6 @@ unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
     return min;
 }
 
-unsigned int TimeWarpEventDispatcher::getSimulationTime(SimulationObject* object) {
-    unsigned int object_id = local_object_id_by_name_[object->name_];
-    return object_simulation_time_[object_id];
-}
-
 FileStream& TimeWarpEventDispatcher::getFileStream(
     SimulationObject *object, const std::string& filename, std::ios_base::openmode mode) {
 

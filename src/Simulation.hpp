@@ -46,8 +46,6 @@ public:
     // void simulate(const std::vector<SimulationObject*>& objects,
     //               std::unique_ptr<Partitioner> partitioner); // TODO
 
-    static unsigned int getSimulationTime(SimulationObject* object);
-
     static FileStream& getFileStream(SimulationObject* object, const std::string& filename,
         std::ios_base::openmode mode);
 

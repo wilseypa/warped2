@@ -66,8 +66,6 @@ private:
     void coastForward(SimulationObject *object, std::shared_ptr<Event> stop_event,
         std::shared_ptr<Event> restored_state_event);
 
-    unsigned int getSimulationTime(SimulationObject* object);
-
     FileStream& getFileStream(SimulationObject *object, const std::string& filename,
         std::ios_base::openmode mode);
 

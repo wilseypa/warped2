@@ -26,8 +26,6 @@ public:
     // The objects argument is a partitioned set of SimulationObjects
     virtual void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects) = 0;
 
-    virtual unsigned int getSimulationTime(SimulationObject* object) = 0;
-
     virtual FileStream& getFileStream(SimulationObject* object, const std::string& filename,
         std::ios_base::openmode mode) = 0;
 

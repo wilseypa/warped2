@@ -50,11 +50,6 @@ void SequentialEventDispatcher::startSimulation(
     stats_->writeToFile();
 }
 
-unsigned int SequentialEventDispatcher::getSimulationTime(SimulationObject* object) {
-    unused<SimulationObject*>(std::move(object));
-    return current_sim_time_;
-}
-
 FileStream& SequentialEventDispatcher::getFileStream(SimulationObject* object,
     const std::string& filename, std::ios_base::openmode mode) {
 

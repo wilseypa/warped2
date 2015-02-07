@@ -33,10 +33,6 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
 
 }
 
-unsigned int Simulation::getSimulationTime(SimulationObject* object) {
-    return event_dispatcher_->getSimulationTime(object);
-}
-
 FileStream& Simulation::getFileStream(SimulationObject* object, const std::string& filename,
     std::ios_base::openmode mode) {
     return event_dispatcher_->getFileStream(object, filename, mode);

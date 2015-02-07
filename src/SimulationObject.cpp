@@ -22,8 +22,4 @@ FileStream& SimulationObject::getOutputFileStream(const std::string& filename) {
     return Simulation::getFileStream(this, filename, std::ios_base::out);
 }
 
-unsigned int SimulationObject::getSimulationTime() {
-    return Simulation::getSimulationTime(this);
-}
-
 } // namespace warped

@@ -18,8 +18,6 @@ public:
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
-    unsigned int getSimulationTime(SimulationObject* object);
-
     FileStream& getFileStream(SimulationObject* object, const std::string& filename,
         std::ios_base::openmode mode);
 

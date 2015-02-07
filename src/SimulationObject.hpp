@@ -44,8 +44,6 @@ public:
     // This is an optional method that is called before the simulation begins.
     virtual std::vector<std::shared_ptr<Event>> createInitialEvents();
 
-    unsigned int getSimulationTime();
-
     FileStream& getInputFileStream(const std::string& filename);
 
     FileStream& getOutputFileStream(const std::string& filename);
