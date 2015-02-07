@@ -72,55 +72,25 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
     // Master thread main loop
     while (gvt_manager_->getGVT() < max_sim_time_) {
+        // Get all received messages, handle messages, and get flags.
+        msg_flags |= handleReceivedMessages();
 
-        MessageFlags flags = comm_manager_->dispatchReceivedMessages();
-        // We may already have a pending token to send
-        msg_flags |= flags;
-        if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
-            min_lvt_flag_.store(num_worker_threads_);
-            started_min_lvt = true;
-        }
-        if (GVT_UPDATE(msg_flags)) {
-            //fossilCollect(gvt_manager_->getGVT());
-            msg_flags &= ~MessageFlags::GVTUpdate;
-            dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
-        }
+        // Check if we have received new mattern token and we are not already in the middle
+        //  of a local gvt calculation.
+        checkLocalGVTStart(msg_flags, started_min_lvt);
 
-        if (calculate_gvt && comm_manager_->getID() == 0) {
-            // This will only return true if a token is not in circulation and we need to
-            // start another one.
-            MessageFlags flags = gvt_manager_->calculateGVT();
-            msg_flags |= flags;
-            if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt ) {
-                min_lvt_flag_.store(num_worker_threads_);
-                started_min_lvt = true;
-                calculate_gvt = false;
-            }
-        } else if (comm_manager_->getID() == 0) {
-            auto now = std::chrono::steady_clock::now();
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>
-                (now - gvt_start).count();
-            if (elapsed >= gvt_manager_->getGVTPeriod()) {
-                calculate_gvt = true;
-                gvt_start = now;
-            }
-        }
+        // Check if we have received a GVT update message
+        checkGVTUpdate(msg_flags);
 
-        if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
-            unsigned int local_min_lvt = getMinimumLVT();
-            if (comm_manager_->getNumProcesses() > 1) {
-                dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
-                    local_min_lvt);
-            } else {
-                gvt_manager_->setGVT(local_min_lvt);
-                std::cout << "GVT: " << local_min_lvt << std::endl;
-                //fossilCollect(gvt_manager_->getGVT());
-                dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
-            }
-            msg_flags &= ~MessageFlags::PendingMatternToken;
-            started_min_lvt = false;
-        }
+        // Check if calculate_gvt flag is set.
+        // If not set, then check timer and set if timer period reached and a global gvt calculation
+        //  is not already active.
+        checkGlobalGVTStart(calculate_gvt, msg_flags, started_min_lvt, gvt_start);
 
+        // Check if local gvt calculation complete.
+        checkLocalGVTComplete(msg_flags, started_min_lvt);
+
+        // Send all events in the remote event queue.
         sendRemoteEvents();
     }
 
@@ -481,6 +451,65 @@ void TimeWarpEventDispatcher::sendRemoteEvents() {
         comm_manager_->sendMessage(std::move(event_msg));
     }
     remote_event_queue_lock_.unlock();
+}
+
+MessageFlags TimeWarpEventDispatcher::handleReceivedMessages() {
+    return comm_manager_->dispatchReceivedMessages();
+}
+
+void TimeWarpEventDispatcher::checkLocalGVTStart(MessageFlags &msg_flags, bool &started_min_lvt) {
+    if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
+        min_lvt_flag_.store(num_worker_threads_);
+        started_min_lvt = true;
+    }
+}
+
+void TimeWarpEventDispatcher::checkGVTUpdate(MessageFlags &msg_flags) {
+    if (GVT_UPDATE(msg_flags)) {
+        //fossilCollect(gvt_manager_->getGVT());
+        msg_flags &= ~MessageFlags::GVTUpdate;
+        dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
+    }
+}
+
+void TimeWarpEventDispatcher::checkGlobalGVTStart(bool &calculate_gvt, MessageFlags &msg_flags,
+    bool &started_min_lvt, std::chrono::time_point<std::chrono::steady_clock> gvt_start) {
+
+    if (calculate_gvt && comm_manager_->getID() == 0) {
+        // This will only return true if a token is not in circulation and we need to
+        // start another one.
+        MessageFlags flags = gvt_manager_->calculateGVT();
+        msg_flags |= flags;
+        checkLocalGVTStart(msg_flags, started_min_lvt);
+        if (started_min_lvt) {
+            calculate_gvt = false;
+        }
+    } else if (comm_manager_->getID() == 0) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>
+            (now - gvt_start).count();
+        if (elapsed >= gvt_manager_->getGVTPeriod()) {
+            calculate_gvt = true;
+            gvt_start = now;
+        }
+    }
+}
+
+void TimeWarpEventDispatcher::checkLocalGVTComplete(MessageFlags &msg_flags, bool &started_min_lvt) {
+    if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
+        unsigned int local_min_lvt = getMinimumLVT();
+        if (comm_manager_->getNumProcesses() > 1) {
+            dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
+                local_min_lvt);
+        } else {
+            gvt_manager_->setGVT(local_min_lvt);
+            std::cout << "GVT: " << local_min_lvt << std::endl;
+            //fossilCollect(gvt_manager_->getGVT());
+            dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
+        }
+        msg_flags &= ~MessageFlags::PendingMatternToken;
+        started_min_lvt = false;
+    }
 }
 
 } // namespace warped

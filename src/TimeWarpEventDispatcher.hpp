@@ -54,8 +54,6 @@ private:
     void insertIntoEventSet(unsigned int thread_index, 
             unsigned int object_id, std::shared_ptr<Event> event);
 
-    MessageFlags receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
-
     void sendLocalEvent(std::shared_ptr<Event> event);
 
     void fossilCollect(unsigned int gvt);
@@ -68,8 +66,6 @@ private:
     void coastForward(SimulationObject *object, std::shared_ptr<Event> stop_event,
         std::shared_ptr<Event> restored_state_event);
 
-    unsigned int getMinimumLVT();
-
     unsigned int getSimulationTime(SimulationObject* object);
 
     FileStream& getFileStream(SimulationObject *object, const std::string& filename,
@@ -77,11 +73,30 @@ private:
 
     void enqueueRemoteEvent(std::shared_ptr<Event> event, unsigned int receiver_id);
 
-    void sendRemoteEvents();
+    void processEvents(unsigned int id);
 
     void populateThreadMap();
 
-    void processEvents(unsigned int id);
+/* ====================== Used by only manager thread ========================= */
+
+    MessageFlags receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
+
+    unsigned int getMinimumLVT();
+
+    void sendRemoteEvents();
+
+    MessageFlags handleReceivedMessages();
+
+    void checkLocalGVTStart(MessageFlags &msg_flags, bool &started_min_lvt);
+
+    void checkGVTUpdate(MessageFlags &msg_flags);
+
+    void checkGlobalGVTStart(bool &calculate_gvt, MessageFlags &msg_flags,
+        bool &started_min_lvt, std::chrono::time_point<std::chrono::steady_clock> gvt_start);
+
+    void checkLocalGVTComplete(MessageFlags &msg_flags, bool &started_min_lvt);
+
+/* ============================================================================ */
 
     unsigned int num_worker_threads_;
 
