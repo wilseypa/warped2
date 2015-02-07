@@ -53,7 +53,6 @@ WARPED_CPP_FILES = \
     src/Configuration.cpp \
     src/EventStatistics.cpp \
     src/IndividualEventStatistics.cpp \
-    src/Partitioner.cpp \
     src/ProfileGuidedPartitioner.cpp \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
