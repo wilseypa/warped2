@@ -15,19 +15,29 @@ TEST_CASE("Test the event set operations") {
     warped::TimeWarpEventSet twes;
     twes.initialize(num_objects, num_schedulers, num_threads);
     std::shared_ptr<warped::Event> spe;
-    REQUIRE(twes.getEvent(0) == nullptr);
+    //REQUIRE(twes.getEvent(0) == nullptr);
 
     SECTION("Insert event (+ve, -ve), get event and start scheduling events") {
 
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 15}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 10}));
-        twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 9}));
+        twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 15}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 10, false}));
-        twes. startScheduling(0);
+        spe = twes.getEvent(0);
+        CHECK(spe != nullptr);
+        CHECK(spe->timestamp() == 15);
+        CHECK(spe->event_type_ == warped::EventType::POSITIVE);
+        twes. startScheduling(0, spe);
 
+
+#if 0
         twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9}));
-        twes. startScheduling(1);
-        twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9, false}));
+        spe = std::shared_ptr<warped::Event>(new test_Event {"b", 9, false});
+        twes.insertEvent(1, spe);
+        spe = twes.getEvent(1);
+        twes. startScheduling(1, spe);
+        spe = twes.getEvent(1);
+        CHECK(spe == nullptr);
 
         spe = twes.getEvent(0);
         REQUIRE(spe != nullptr);
@@ -79,5 +89,6 @@ TEST_CASE("Test the event set operations") {
         CHECK(list_obj0->size() == 2);
         CHECK((*list_obj0)[0]->timestamp() == 11);
         CHECK((*list_obj0)[1]->timestamp() == 15);
+#endif
     }
 }
