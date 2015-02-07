@@ -407,9 +407,6 @@ void TimeWarpEventDispatcher::initialize(
 
     // Creates the state queues, output queues, and filestream queues for each local object
     state_manager_->initialize(num_local_objects);
-    for (auto ob: objects_by_name_) {
-        state_manager_->saveState(0, local_object_id_by_name_[ob.first], ob.second);
-    }
     output_manager_->initialize(num_local_objects);
     twfs_manager_->initialize(num_local_objects);
 

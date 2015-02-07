@@ -125,7 +125,7 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 
     input_queue_lock_[obj_id].lock();
     auto straggler_iterator = input_queue_[obj_id]->find(straggler_event);
-    assert(straggler_iterator == input_queue_[obj_id]->end());
+    assert(straggler_iterator != input_queue_[obj_id]->end());
 
     for (auto event_iterator = std::prev(straggler_iterator, 1); ; event_iterator--) {
         assert(*event_iterator);
