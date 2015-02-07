@@ -12,7 +12,7 @@ TEST_CASE("States saved and restored correctly", "[state][queue]") {
     warped::TimeWarpPeriodicStateManager sm(period);
     sm.initialize(num_objects);
     warped::SimulationObject *object;
-    std::shared_ptr<warped::Event> e = std::make_shared<test_Event>();
+    std::shared_ptr<warped::Event> e;
 
     SECTION("Periodic state manager constructed correctly", "[]") {
         for (unsigned int i = 0; i < num_objects; i++) {
@@ -25,45 +25,56 @@ TEST_CASE("States saved and restored correctly", "[state][queue]") {
     // All of the following tests are for object_id = 3
     SECTION("States are saved for first call to saveState", "[state][save]") {
         static_cast<test_ObjectState&>(object->getState()).x++; // 51
+        e = std::make_shared<test_Event>();
         dynamic_cast<test_Event*>(e.get())->receive_time_ = 15;
         sm.saveState(e, 3, object); // timestamp 15
         REQUIRE(sm.size(3) == 1);   // Saved
 
         SECTION("States are saved in correct periods", "[state][save]") {
             static_cast<test_ObjectState&>(object->getState()).x++; // 52
+            e = std::make_shared<test_Event>();
             dynamic_cast<test_Event*>(e.get())->receive_time_ = 20;
             sm.saveState(e, 3, object); // timestamp 20
             REQUIRE(sm.size(3) == 1); // Not saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 53
+            e = std::make_shared<test_Event>();
             dynamic_cast<test_Event*>(e.get())->receive_time_ = 25;
             sm.saveState(e, 3, object); // timestamp 25
             REQUIRE(sm.size(3) == 2); // Saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 54
+            e = std::make_shared<test_Event>();
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 25;
             sm.saveState(e, 3, object); // timestamp 25
             REQUIRE(sm.size(3) == 2); // Not saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 55
+            e = std::make_shared<test_Event>();
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 25;
             sm.saveState(e, 3, object); // timestamp 25
             REQUIRE(sm.size(3) == 3); // Saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 56
+            e = std::make_shared<test_Event>();
             dynamic_cast<test_Event*>(e.get())->receive_time_ = 30;
             sm.saveState(e, 3, object); // timestamp 30
             REQUIRE(sm.size(3) == 3); // Not saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 57
+            e = std::make_shared<test_Event>();
             dynamic_cast<test_Event*>(e.get())->receive_time_ = 33;
             sm.saveState(e, 3, object); // timestamp 33
             REQUIRE(sm.size(3) == 4); // Saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 58
+            e = std::make_shared<test_Event>();
             dynamic_cast<test_Event*>(e.get())->receive_time_ = 35;
             sm.saveState(e, 3, object); // timestamp 35
             REQUIRE(sm.size(3) == 4); // Not saved
 
             static_cast<test_ObjectState&>(object->getState()).x++; // 59
+            e = std::make_shared<test_Event>();
             dynamic_cast<test_Event*>(e.get())->receive_time_ = 37;
             sm.saveState(e, 3, object); // timestamp 37
             REQUIRE(sm.size(3) == 5); // Saved
@@ -74,6 +85,8 @@ TEST_CASE("States saved and restored correctly", "[state][queue]") {
             }
 
             SECTION("State can be restored on rollback", "[state][rollback][restore]") {
+                REQUIRE(sm.size(3) == 5);
+                e = std::make_shared<test_Event>();
                 dynamic_cast<test_Event*>(e.get())->receive_time_ = 26;
                 std::shared_ptr<warped::Event> restored_state_event = sm.restoreState(e, 3, object);
                 REQUIRE(sm.size(3) == 3);

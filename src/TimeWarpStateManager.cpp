@@ -23,7 +23,7 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
     assert(!state_queue_[local_object_id].empty());
 
     auto max = std::prev(state_queue_[local_object_id].end());
-    while ((max != state_queue_[local_object_id].begin()) && (rollback_event <= max->first)) {
+    while ((max != state_queue_[local_object_id].begin()) && (*rollback_event <= *max->first)) {
         state_queue_[local_object_id].erase(max);
         max = std::prev(state_queue_[local_object_id].end());
     }
