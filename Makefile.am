@@ -87,12 +87,12 @@ libwarped_la_LIBADD = \
 # When MPI support is added, uncomment these next blocks
 if HAVE_MPICH
     libwarped_la_LIBADD += -lmpich -lmpl
-    AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpiheader=/usr/include/mpich2 --with-mpi=/usr/lib/mpich2
+	AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpi=MPICH
 else
 if HAVE_MPI
     libwarped_la_LDFLAGS = -export-dynamic
     libwarped_la_LIBADD += -lmpi -lmpi_cxx
-    AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpiheader=/usr/include/openmpi --with-mpi=/usr/lib/openmpi
+	AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpi=OPENMPI
 endif
 endif
 
