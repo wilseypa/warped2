@@ -90,7 +90,7 @@ private:
     void checkGVTUpdate(MessageFlags &msg_flags);
 
     void checkGlobalGVTStart(bool &calculate_gvt, MessageFlags &msg_flags,
-        bool &started_min_lvt, std::chrono::time_point<std::chrono::steady_clock> gvt_start);
+        bool &started_min_lvt, std::chrono::time_point<std::chrono::steady_clock> &gvt_start);
 
     void checkLocalGVTComplete(MessageFlags &msg_flags, bool &started_min_lvt);
 

@@ -464,7 +464,7 @@ void TimeWarpEventDispatcher::checkGVTUpdate(MessageFlags &msg_flags) {
 }
 
 void TimeWarpEventDispatcher::checkGlobalGVTStart(bool &calculate_gvt, MessageFlags &msg_flags,
-    bool &started_min_lvt, std::chrono::time_point<std::chrono::steady_clock> gvt_start) {
+    bool &started_min_lvt, std::chrono::time_point<std::chrono::steady_clock> &gvt_start) {
 
     if (calculate_gvt && comm_manager_->getID() == 0) {
         // This will only return true if a token is not in circulation and we need to
