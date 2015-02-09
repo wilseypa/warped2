@@ -20,7 +20,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
     for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
         input_queue_.push_back(
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
-        scheduled_event_pointer_.push_back(input_queue_[obj_id]->end());
+        scheduled_event_pointer_.push_back(0);
         input_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
     }
 
@@ -44,6 +44,7 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
 
     bool causal_order_ok = true;
 
+    input_queue_lock_[obj_id].lock();
     /*std::cout << "ins - " << event << " , r = " << event->timestamp() 
               << " , send = " << event->sender_name_ << " , recv = " 
               << event->receiverName() << " , type = " 
@@ -51,13 +52,7 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
               << " , s = " << event->send_time_ << " , c = " 
               << event->counter_ << std::endl;*/
 
-    input_queue_lock_[obj_id].lock();
     auto event_iterator = input_queue_[obj_id]->insert(event);
-
-    // Update the scheduled event pointers (if needed)
-    if (scheduled_event_pointer_[obj_id] == input_queue_[obj_id]->end()) {
-        scheduled_event_pointer_[obj_id] = event_iterator;
-    }
 
     // If event is negative
     // Assumption: Positive event arrives earlier than its negative counterpart
@@ -69,33 +64,50 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
                 (**next_iterator == **event_iterator) && 
                 ((*next_iterator)->event_type_ == EventType::POSITIVE)) {
 
-            // If positive counterpart is currently scheduled
-            if (scheduled_event_pointer_[obj_id] == next_iterator) {
+            // If no event is currently scheduled (all current events processed)
+            if (!scheduled_event_pointer_[obj_id]) {
+                scheduled_event_pointer_[obj_id] = event;
                 causal_order_ok = false;
 
-            } else if (**next_iterator < **scheduled_event_pointer_[obj_id]) { 
-                // If negative event is supposed to cause a rollback
-                causal_order_ok = false;
+            } else { // Scheduled event present
+                // If positive counterpart is currently scheduled
+                if (scheduled_event_pointer_[obj_id] == *next_iterator) {
+                    causal_order_ok = false;
 
-            } else { // It is ok to delete the negative event
-                input_queue_[obj_id]->erase(event_iterator);
-                input_queue_[obj_id]->erase(next_iterator);
+                } else if (**next_iterator < *scheduled_event_pointer_[obj_id]) { 
+                    // If negative event is supposed to cause a rollback
+                    causal_order_ok = false;
+
+                } else { // It is ok to delete the negative event
+                    input_queue_[obj_id]->erase(event_iterator);
+                    input_queue_[obj_id]->erase(next_iterator);
+                }
             }
         } else { // If no positive counterpart found
             assert(0);
         }
     } else { // Positive event
-        // If event is smaller than the one scheduled
-        if (**event_iterator < **scheduled_event_pointer_[obj_id]) {
-            causal_order_ok = false;
+        // If no event is currently scheduled (all current events processed)
+        if (!scheduled_event_pointer_[obj_id]) {
+            scheduled_event_pointer_[obj_id] = event;
+            // Initial event should not be classified as a straggler
+            if ((input_queue_[obj_id]->size() > 1) && 
+                (*event < **input_queue_[obj_id]->rbegin())) {
+                causal_order_ok = false;
+            }
+        } else { // Scheduled event present
+            // If event is smaller than the one scheduled
+            if (**event_iterator < *scheduled_event_pointer_[obj_id]) {
+                causal_order_ok = false;
+            }
         }
     }
 
-    // If this event is the only available event, schedule it
-    if (scheduled_event_pointer_[obj_id] == event_iterator) {
+    // If inserted event is the one scheduled, insert into schedule queue
+    if (scheduled_event_pointer_[obj_id] == event) {
         unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->insert(*scheduled_event_pointer_[obj_id]);
+        schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[obj_id]);
         schedule_queue_lock_[scheduler_id].unlock();
     }
 
@@ -129,7 +141,7 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 
     for (auto event_iterator = std::prev(straggler_iterator, 1); ; event_iterator--) {
         assert(*event_iterator);
-        if (*event_iterator <= restored_state_event) {
+        if (**event_iterator <= *restored_state_event) {
             break;
         }
         events->push_back(*event_iterator);
@@ -147,16 +159,22 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id,
                                         std::shared_ptr<Event> processed_event) {
 
     input_queue_lock_[obj_id].lock();
-    if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
-        if (*scheduled_event_pointer_[obj_id] == processed_event) {
-            scheduled_event_pointer_[obj_id]++;
-        } else { // straggler event
-            scheduled_event_pointer_[obj_id] = input_queue_[obj_id]->find(processed_event);
+    if (scheduled_event_pointer_[obj_id]) {
+        auto event_iterator = input_queue_[obj_id]->find(processed_event);
+        if (event_iterator == input_queue_[obj_id]->end()) {
+            assert(0);
         }
-        if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
+        if (scheduled_event_pointer_[obj_id] == processed_event) {
+            event_iterator++;
+            scheduled_event_pointer_[obj_id] = 
+                (event_iterator != input_queue_[obj_id]->end()) ? *event_iterator : 0;
+        } else { // straggler event
+            scheduled_event_pointer_[obj_id] = processed_event;
+        }
+        if (scheduled_event_pointer_[obj_id]) {
             unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
             schedule_queue_lock_[scheduler_id].lock();
-            schedule_queue_[scheduler_id]->insert(*scheduled_event_pointer_[obj_id]);
+            schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[obj_id]);
             schedule_queue_lock_[scheduler_id].unlock();
         }
     } else {
@@ -165,19 +183,22 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id,
     input_queue_lock_[obj_id].unlock();
 }
 
-void TimeWarpEventSet::cancelEvent (unsigned int obj_id) {
+void TimeWarpEventSet::cancelEvent (unsigned int obj_id, std::shared_ptr<Event> cancel_event) {
 
     input_queue_lock_[obj_id].lock();
-    auto neg_iterator = scheduled_event_pointer_[obj_id];
+    auto neg_iterator = input_queue_[obj_id]->find(cancel_event);
+    assert(neg_iterator != input_queue_[obj_id]->end());
     auto pos_iterator = std::next(neg_iterator);
     assert(**pos_iterator == **neg_iterator);
     assert((*pos_iterator)->event_type_ == EventType::POSITIVE);
 
-    scheduled_event_pointer_[obj_id] = std::next(neg_iterator, 2);
-    if (scheduled_event_pointer_[obj_id] != input_queue_[obj_id]->end()) {
+    auto next_valid_iterator = std::next(neg_iterator, 2);
+    scheduled_event_pointer_[obj_id] = 
+        (next_valid_iterator != input_queue_[obj_id]->end()) ? *next_valid_iterator : 0;
+    if (scheduled_event_pointer_[obj_id]) {
         unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->insert(*scheduled_event_pointer_[obj_id]);
+        schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[obj_id]);
         schedule_queue_lock_[scheduler_id].unlock();
     }
     input_queue_[obj_id]->erase(neg_iterator);

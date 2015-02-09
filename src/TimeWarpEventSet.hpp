@@ -73,7 +73,7 @@ public:
 
     void startScheduling (unsigned int obj_id, std::shared_ptr<Event> processed_event);
 
-    void cancelEvent (unsigned int obj_id);
+    void cancelEvent (unsigned int obj_id, std::shared_ptr<Event> cancel_event);
 
     void fossilCollectAll (unsigned int fossil_collect_time);
 
@@ -105,8 +105,7 @@ private:
     std::vector<unsigned int> worker_thread_scheduler_map_;
 
     // Position of the event scheduled from an object
-    std::vector<std::multiset<std::shared_ptr<Event>,
-            compareEvents>::iterator> scheduled_event_pointer_;
+    std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
 };
 
 } // warped namespace
