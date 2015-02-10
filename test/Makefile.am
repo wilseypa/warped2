@@ -2,7 +2,7 @@ CPPFLAGS += -I$(top_srcdir)/deps -I$(top_srcdir)/src
 
 LDFLAGS=
 if HAVE_MPICH
-    LDFLAGS += -static -lmpl
+    LDFLAGS += -static -lmpich -lmpl
 else
 if HAVE_MPI
     LDFLAGS += -export-dynamic -lmpi -lmpi_cxx

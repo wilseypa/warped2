@@ -54,11 +54,11 @@ AC_DEFUN([CHECK_LIB_MPI],
 
     dnl Check library paths
     if test "$default_libdir" = "yes" ; then
-        if test -e $DEFAULT_LIBDIR_MPICH2/mpich.a || test -e $DEFAULT_LIBDIR_MPICH2/mpich.so ; then
+        if test -e $DEFAULT_LIBDIR_MPICH2/lib/mpich.so ; then
             MPI_LIBDIR="$DEFAULT_LIBDIR_MPICH2"
-        elif test -e $DEFAULT_LIBDIR_MPICH/mpich.a || test -e $DEFAULT_LIBDIR_MPICH/mpich.so ; then
+        elif test -e $DEFAULT_LIBDIR_MPICH/lib/mpich.so ; then
             MPI_LIBDIR="$DEFAULT_LIBDIR_MPICH"
-        elif test -e $DEFAULT_LIBDIR_OPENMPI/mpi.a || test -e $DEFAULT_LIBDIR_OPENMPI/mpi.so && "$MPI_IMPLEMENTATION" != "MPICH" ; then
+        elif test -e $DEFAULT_LIBDIR_OPENMPI/lib/mpi.so && "$MPI_IMPLEMENTATION" != "MPICH" ; then
             MPI_LIBDIR="$DEFAULT_LIBDIR_OPENMPI"
         fi
     fi
@@ -74,7 +74,12 @@ AC_DEFUN([CHECK_LIB_MPI],
         AC_CHECK_LIB([mpich],
                      [MPI_Init],
                      [],
-                     [Could not find libmpich.a or libmpich.so. Use --with-mpi-libdir to specify library path],
+                     [Could not find libmpich.so. Use --with-mpi-libdir to specify library path],
+                     -lmpl)
+        AC_CHECK_LIB([mpl],
+                     [MPL_trinit],
+                     [],
+                     [Could not find libmpl.so],
                      -lmpl)
     elif test "$MPI_IMPLEMENTATION" = "OPENMPI" ; then
         AC_CHECK_LIB([mpi],
