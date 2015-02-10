@@ -36,64 +36,56 @@ AC_DEFUN([CHECK_LIB_MPI],
                 [default_libdir=yes])
 
     dnl Check include paths
-    if test "$default_includedir" = "yes" ; then
-        if test -e $DEFAULT_INCLUDEDIR_MPICH2/mpi.h && test "$MPI_IMPLEMENTATION" != "OPENMPI" ; then
-            MPI_INCLUDEDIR="$DEFAULT_INCLUDEDIR_MPICH2"
-            MPI_IMPLEMENTATION="MPICH"
-        elif test -e $DEFAULT_INCLUDEDIR_MPICH/mpi.h && test "$MPI_IMPLEMENTATION" != "OPENMPI" ; then
-            MPI_INCLUDEDIR="$DEFAULT_INCLUDEDIR_MPICH"
-            MPI_IMPLEMENTATION="MPICH"
-        elif test -e $DEFAULT_INCLUDEDIR_OPENMPI/mpi.h ; then
-            MPI_INCLUDEDIR="$DEFAULT_INCLUDEDIR_OPENMPI"
-            MPI_IMPLEMENTATION="OPENMPI"
-        fi
-    fi
+    AS_IF([test "$default_includedir" = "yes"],
+          [AS_IF([test -e $DEFAULT_INCLUDEDIR_MPICH2/mpi.h && test "$MPI_IMPLEMENTATION" != "OPENMPI"],
+                 [MPI_INCLUDEDIR="$DEFAULT_INCLUDEDIR_MPICH2"; MPI_IMPLEMENTATION="MPICH"],
+          [AS_IF([test -e $DEFAULT_INCLUDEDIR_MPICH/mpi.h && test "$MPI_IMPLEMENTATION" != "OPENMPI"],
+                 [MPI_INCLUDEDIR="$DEFAULT_INCLUDEDIR_MPICH"; MPI_IMPLEMENTATION="MPICH"],
+          [AS_IF([test -e $DEFAULT_INCLUDEDIR_OPENMPI/mpi.h],
+                 [MPI_INCLUDEDIR="$DEFAULT_INCLUDEDIR_OPENMPI"; MPI_IMPLEMENTATION="OPENMPI"]
+    )])])])
 
     AC_MSG_RESULT([MPI include path: $MPI_INCLUDEDIR])
     CPPFLAGS="$CPPFLAGS -isystem$MPI_INCLUDEDIR"
 
     dnl Check library paths
-    if test "$default_libdir" = "yes" ; then
-        if test -e $DEFAULT_LIBDIR_MPICH2/lib/mpich.so ; then
-            MPI_LIBDIR="$DEFAULT_LIBDIR_MPICH2"
-        elif test -e $DEFAULT_LIBDIR_MPICH/lib/mpich.so ; then
-            MPI_LIBDIR="$DEFAULT_LIBDIR_MPICH"
-        elif test -e $DEFAULT_LIBDIR_OPENMPI/lib/mpi.so && "$MPI_IMPLEMENTATION" != "MPICH" ; then
-            MPI_LIBDIR="$DEFAULT_LIBDIR_OPENMPI"
-        fi
-    fi
+    AS_IF([test "$default_libdir" = "yes"],
+          [AS_IF([test -e $DEFAULT_LIBDIR_MPICH2/lib/mpich.so],
+                 [MPI_LIBDIR="$DEFAULT_LIBDIR_MPICH2"],
+          [AS_IF([test -e $DEFAULT_LIBDIR_MPICH/lib/mpich.so],
+                 [MPI_LIBDIR="$DEFAULT_LIBDIR_MPICH"],
+          [AS_IF([test -e $DEFAULT_LIBDIR_OPENMPI/lib/mpi.so && "$MPI_IMPLEMENTATION" != "MPICH"],
+                 [MPI_LIBDIR="$DEFAULT_LIBDIR_OPENMPI"]
+    )])])])
 
     AC_MSG_RESULT([MPI library path: $MPI_LIBDIR])
-    LDDFLAGS="$LDDFLAGS -L$MPI_LIBDIR"
+    LDFLAGS="$LDFLAGS -L$MPI_LIBDIR"
 
     AC_CHECK_HEADER([mpi.h],
                     [AC_MSG_RESULT([Successfully found mpi.h. Using $MPI_IMPLEMENTATION])],
                     [AC_MSG_ERROR([Could not find mpi.h. Install mpi or use --with-mpi-includedir to specify include path])])
 
-    if test "$MPI_IMPLEMENTATION" = "MPICH" ; then
-        AC_CHECK_LIB([mpich],
-                     [MPI_Init],
-                     [],
-                     [Could not find libmpich.so. Use --with-mpi-libdir to specify library path],
-                     -lmpl)
-        AC_CHECK_LIB([mpl],
-                     [MPL_trinit],
-                     [],
-                     [Could not find libmpl.so],
-                     -lmpl)
-    elif test "$MPI_IMPLEMENTATION" = "OPENMPI" ; then
-        AC_CHECK_LIB([mpi],
-                     [MPI_Init],
-                     [],
-                     [Could not find libmpi.a or libmpi.so. Use --with-mpi-libdir to specify library path],
-                     -lmpi_cxx)
-    else
-        AC_MSG_ERROR([Invalid MPI configuration. Use ./configure --help for more details])
-    fi
+    AS_IF([test "$MPI_IMPLEMENTATION" = "MPICH"],
+          [AC_CHECK_LIB([mpich],
+                        [MPI_Init],
+                        [],
+                        [AC_MSG_ERROR([Could not find libmpich.so. Use --with-mpi-libdir to specify library path])],
+                        [-lmpl])
+          AC_CHECK_LIB([mpl],
+                       [MPL_trinit],
+                       [],
+                       [AC_MSG_ERROR([Could not find libmpl.so])],
+                       [-lmpl])],
+    [AS_IF([test "$MPI_IMPLEMENTATION" = "OPENMPI"],
+           [AC_CHECK_LIB([mpi],
+                         [MPI_Init],
+                         [],
+                         [AC_MSG_ERROR([Could not find libmpi.so. Use --with-mpi-libdir to specify library path])],
+                         [])],
+    [AC_MSG_ERROR([Invalid MPI configuration. Use ./configure --help for more details])])])
 
     AM_CONDITIONAL([HAVE_MPICH], [test "$MPI_IMPLEMENTATION" = "MPICH"])
     AM_CONDITIONAL([HAVE_MPI], [test "$MPI_IMPLEMENTATION" = "OPENMPI"])
 
 ]) dnl end CHECK_MPI
-
 
