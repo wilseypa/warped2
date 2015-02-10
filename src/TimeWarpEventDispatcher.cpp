@@ -124,8 +124,14 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                           << straggler_event_list_[current_object_id] << std::endl;*/
                 rollback(straggler_event_list_[current_object_id], 
                                     current_object_id, current_object);
-                event_set_->startScheduling(current_object_id, 
+                if (straggler_event_list_[current_object_id]->event_type_ == 
+                                                            EventType::NEGATIVE) {
+                    event_set_->cancelEvent(current_object_id, 
                                             straggler_event_list_[current_object_id]);
+                } else {
+                    event_set_->startScheduling(current_object_id, 
+                                            straggler_event_list_[current_object_id]);
+                }
                 straggler_event_list_[current_object_id] = 0;
                 was_rolled_back = true;
             }
@@ -134,7 +140,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Handle negative event
             if (event->event_type_ == EventType::NEGATIVE) {
-                event_set_->cancelEvent(current_object_id);
+                event_set_->cancelEvent(current_object_id, event);
                 continue;
             }
 
@@ -260,26 +266,15 @@ void TimeWarpEventDispatcher::cancelEvents(
 
     do {
         auto event = events_to_cancel->back();
-
         auto neg_event = std::make_shared<NegativeEvent>(event);
-
         events_to_cancel->pop_back();
 
         unsigned int receiver_node_id = object_node_id_by_name_[event->receiverName()];
-
-        //unsigned int receiver_id = local_object_id_by_name_[event->receiverName()];
-        //unsigned int sender_id = local_object_id_by_name_[event->sender_name_];
-        //if (sender_id == receiver_id) {
-        //    neg_event.reset();
-        //    continue;
-        //}
-
         if (receiver_node_id != comm_manager_->getID()) {
             enqueueRemoteEvent(neg_event, receiver_node_id);
         } else {
             sendLocalEvent(neg_event);
         }
-
     } while (!events_to_cancel->empty());
 }
 
