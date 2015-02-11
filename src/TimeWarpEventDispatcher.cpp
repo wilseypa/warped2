@@ -353,11 +353,11 @@ void TimeWarpEventDispatcher::initialize(
                 straggler_event_list_lock_[object_id].store(num_worker_threads_+1);
                 auto new_events = ob->createInitialEvents();
                 for (auto& e: new_events) {
-                    if (e->event_type_ == EventType::POSITIVE) {
-                        e->sender_name_ = ob->name_;
-                        e->counter_ = event_counter_by_obj_[object_id]++;
-                        e->send_time_ = object_simulation_time_[object_id];
-                    }
+                    assert(e->event_type_ == EventType::POSITIVE);
+                    e->sender_name_ = ob->name_;
+                    e->counter_ = event_counter_by_obj_[object_id]++;
+                    e->send_time_ = object_simulation_time_[object_id];
+
                     // Manager thread id equals worker thread count
                     insertIntoEventSet(num_worker_threads_, object_id, e);
                 }
