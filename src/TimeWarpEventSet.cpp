@@ -122,7 +122,9 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     auto event_iterator = schedule_queue_[scheduler_id]->begin();
     auto event = (event_iterator != schedule_queue_[scheduler_id]->end()) ? 
                                                     *event_iterator : nullptr;
-    schedule_queue_[scheduler_id]->erase(event_iterator);
+    if (event) {
+        schedule_queue_[scheduler_id]->erase(event_iterator);
+    }
     schedule_queue_lock_[scheduler_id].unlock();
     return event;
 }

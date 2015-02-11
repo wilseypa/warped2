@@ -187,7 +187,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
         } else {
             // TODO, do something here
-            assert(false);
+            //assert(false);
         }
     }
 }
