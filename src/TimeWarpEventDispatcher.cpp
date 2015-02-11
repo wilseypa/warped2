@@ -162,11 +162,11 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Send new events
             for (auto& e: new_events) {
-                if (e->event_type_ == EventType::POSITIVE) {
-                    e->sender_name_ = current_object->name_;
-                    e->counter_ = event_counter_by_obj_[current_object_id]++;
-                    e->send_time_ = object_simulation_time_[current_object_id];
-                }
+                assert(e->event_type_ == EventType::POSITIVE);
+                e->sender_name_ = current_object->name_;
+                e->counter_ = event_counter_by_obj_[current_object_id]++;
+                e->send_time_ = object_simulation_time_[current_object_id];
+
                 output_manager_->insertEvent(e, current_object_id);
 
                 assert(e->timestamp() >= object_simulation_time_[current_object_id]);
