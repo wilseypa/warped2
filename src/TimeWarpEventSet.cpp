@@ -61,7 +61,7 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
 
         // If next event is the positive counterpart
         if ((next_iterator != input_queue_[obj_id]->end()) &&
-                (**next_iterator == **event_iterator) && 
+                (**next_iterator == *event) && 
                 ((*next_iterator)->event_type_ == EventType::POSITIVE)) {
 
             // If no event is currently scheduled (all current events processed)
@@ -92,12 +92,12 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
             scheduled_event_pointer_[obj_id] = event;
             // Initial event should not be classified as a straggler
             if ((input_queue_[obj_id]->size() > 1) && 
-                (*event < **input_queue_[obj_id]->rbegin())) {
+                        (event != *input_queue_[obj_id]->rbegin())) {
                 causal_order_ok = false;
             }
         } else { // Scheduled event present
             // If event is smaller than the one scheduled
-            if (**event_iterator < *scheduled_event_pointer_[obj_id]) {
+            if (*event < *scheduled_event_pointer_[obj_id]) {
                 causal_order_ok = false;
             }
         }
@@ -107,7 +107,7 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
     if (scheduled_event_pointer_[obj_id] == event) {
         unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[obj_id]);
+        schedule_queue_[scheduler_id]->insert(event);
         schedule_queue_lock_[scheduler_id].unlock();
     }
 
@@ -139,21 +139,20 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 
     input_queue_lock_[obj_id].lock();
     auto straggler_iterator = input_queue_[obj_id]->find(straggler_event);
+    auto restored_event_iterator = input_queue_[obj_id]->find(restored_state_event);
     assert(straggler_iterator != input_queue_[obj_id]->end());
+    assert(restored_event_iterator != input_queue_[obj_id]->end());
 
-    for (auto event_iterator = std::prev(straggler_iterator, 1); ; event_iterator--) {
-        assert(*event_iterator);
-        if (**event_iterator <= *restored_state_event) {
+    do {
+        straggler_iterator--;
+        assert(*straggler_iterator);
+        if (straggler_iterator == restored_event_iterator) {
             break;
         }
-        events->push_back(*event_iterator);
-        if (event_iterator == input_queue_[obj_id]->begin()) {
-            break;
-        }
-    }
+        events->push_back(*straggler_iterator);
+    } while (straggler_iterator != input_queue_[obj_id]->begin());
 
     input_queue_lock_[obj_id].unlock();
-
     return (std::move(events));
 }
 
@@ -166,6 +165,8 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id,
         if (event_iterator == input_queue_[obj_id]->end()) {
             assert(0);
         }
+
+        // If event is not a straggler
         if (scheduled_event_pointer_[obj_id] == processed_event) {
             event_iterator++;
             scheduled_event_pointer_[obj_id] = 
@@ -180,7 +181,7 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id,
             schedule_queue_lock_[scheduler_id].unlock();
         }
     } else {
-        //assert(0);
+        assert(0);
     }
     input_queue_lock_[obj_id].unlock();
 }
@@ -218,8 +219,10 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
                 break;
             }
         }
-        input_queue_[obj_id]->erase(input_queue_[obj_id]->begin(), 
-                                        std::prev(event_iterator, 1));
+        if (event_iterator != input_queue_[obj_id]->begin()) {
+            input_queue_[obj_id]->erase(input_queue_[obj_id]->begin(), 
+                                            std::prev(event_iterator));
+        }
         input_queue_lock_[obj_id].unlock();
     }
 }
