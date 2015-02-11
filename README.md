@@ -10,17 +10,17 @@ WARPED is built with Autotools and a C++11 compiler (see [here](http://lektionde
 
 To build from the git repository, first clone a local copy.
 
-	git clone https://github.com/wilseypa/warped2.git $HOME/warped
+	git clone https://github.com/wilseypa/warped2.git 
 
 You can run the Autotools build without any options, although specifying a prefix (install location) is recommended.
 
-	autoreconf -i && ./configure --prefix=$HOME/lib/warped && make && make install
+	autoreconf -i && ./configure --prefix=$HOME/lib/warped2 && make && make install
 
 #### Building from a tarball
 
 To build from a source tarball, first download and extract [the latest release from GitHub](https://github.com/wilseypa/warped/releases). `cd` into the directory you extracted the tarball to, and run the following command:
 
-	./configure --prefix=$HOME/lib/warped && make && make install
+	./configure --prefix=$HOME/lib/warped2 && make && make install
 
 This will build and install the warped library to the path specified by the `--prefix` configuration option. If you omit the prefix, the library will be installed to `/usr`.
 
@@ -36,7 +36,7 @@ Replace the paths in the above example with the locations of the MPI libraries a
 
 Because the normal output of `make` is very verbose, WARPED is configured to use silent build rules by default. To disable silent rules, pass the `--disable-silent-rules` flag to `configure` or the `V=1` flag to `make`.
 
-    ./configure --prefix=$HOME/lib/warped --disable-silent-rules
+    ./configure --prefix=$HOME/lib/warped2 --disable-silent-rules
 
 or
 
