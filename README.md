@@ -10,7 +10,7 @@ WARPED is built with Autotools and a C++11 compiler.
 
 To build from the git repository, first clone a local copy.
 
-	git clone https://github.com/wilseypa/warped2.git $HOME/warped
+	git clone https://github.com/wilseypa/warped2.git 
 
 You can run the Autotools build without any options, although specifying a prefix (install
 location) is recommended.
