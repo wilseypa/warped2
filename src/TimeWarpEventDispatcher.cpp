@@ -115,7 +115,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Check to see if object needs a rollback
             bool was_rolled_back = false;
             unsigned int null_thread = num_worker_threads_+1;
-            while (!straggler_event_list_lock_[current_object_id].compare_exchange_strong(
+            while (!straggler_event_list_lock_[current_object_id].compare_exchange_weak(
                                                                             null_thread, id)) {
                 null_thread = num_worker_threads_+1;
             }
@@ -203,7 +203,7 @@ void TimeWarpEventDispatcher::insertIntoEventSet(
         calling_thread_has_lock = true;
     } else {
         unsigned int null_thread = num_worker_threads_+1;
-        while (!straggler_event_list_lock_[object_id].compare_exchange_strong(
+        while (!straggler_event_list_lock_[object_id].compare_exchange_weak(
                                                             null_thread, thread_index)) {
             null_thread = num_worker_threads_+1;
         }
