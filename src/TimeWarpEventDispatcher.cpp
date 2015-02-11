@@ -283,20 +283,17 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
 
     unsigned int straggler_time = straggler_event->timestamp();
     twfs_manager_->rollback(straggler_time, local_object_id);
-
     //assert(straggler_time >= gvt_manager_->getGVT());
 
-    std::shared_ptr<Event> restored_state_event =
-        state_manager_->restoreState(straggler_event, local_object_id, object);
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
-    assert(restored_state_event);
-    assert((restored_state_event->timestamp() < straggler_event->timestamp())
-           || (restored_state_event->timestamp() == 0));
-
     if (events_to_cancel != nullptr) {
         cancelEvents(std::move(events_to_cancel));
     }
 
+    auto restored_state_event = state_manager_->restoreState(straggler_event, 
+                                                                local_object_id, object);
+    assert(restored_state_event);
+    assert(*restored_state_event < *straggler_event);
     object_simulation_time_[local_object_id] = restored_state_event->timestamp();
     twfs_manager_->setObjectCurrentTime(restored_state_event->timestamp(), local_object_id);
 
