@@ -7,11 +7,12 @@
 
 namespace warped {
 
-void TimeWarpFileStreamManager::rollback(unsigned int rollback_time, unsigned int local_object_id) {
+void TimeWarpFileStreamManager::rollback(std::shared_ptr<Event> rollback_event, unsigned int local_object_id) {
     file_streams_lock_[local_object_id].lock();
     auto& this_objects_streams = file_streams_[local_object_id];
     for (auto& stream: this_objects_streams) {
-        stream->removeOutputRequestsAfter(rollback_time);
+        stream->removeOutputRequestsAfter(rollback_event);
+        stream->setCurrentEvent(rollback_event);
     }
     file_streams_lock_[local_object_id].unlock();
 }
@@ -20,7 +21,7 @@ void TimeWarpFileStreamManager::fossilCollect(unsigned int gvt, unsigned int loc
     file_streams_lock_[local_object_id].lock();
     auto& this_objects_streams = file_streams_[local_object_id];
     for (auto& stream: this_objects_streams) {
-        stream->commitOutputRequestsBeforeOrAt(gvt);
+        stream->commitOutputRequestsBefore(gvt);
     }
     file_streams_lock_[local_object_id].unlock();
 }
@@ -31,16 +32,6 @@ void TimeWarpFileStreamManager::fossilCollectAll(unsigned int gvt) {
     }
 }
 
-void TimeWarpFileStreamManager::setObjectCurrentTime(unsigned int current_time,
-    unsigned int local_object_id) {
-    file_streams_lock_[local_object_id].lock();
-    auto& this_objects_streams = file_streams_[local_object_id];
-    for (auto& stream: this_objects_streams) {
-        stream->setCurrentTime(current_time);
-    }
-    file_streams_lock_[local_object_id].unlock();
-}
-
 void TimeWarpFileStreamManager::initialize(unsigned int num_local_objects) {
     file_streams_ = make_unique<std::vector<std::unique_ptr<TimeWarpFileStream,
         FileStreamDeleter>> []>(num_local_objects);
@@ -48,7 +39,7 @@ void TimeWarpFileStreamManager::initialize(unsigned int num_local_objects) {
 }
 
 TimeWarpFileStream* TimeWarpFileStreamManager::getFileStream(const std::string& filename,
-    std::ios_base::openmode mode, unsigned int local_object_id) {
+    std::ios_base::openmode mode, unsigned int local_object_id, std::shared_ptr<Event> this_event) {
 
     TimeWarpFileStream* retval;
 
@@ -76,6 +67,8 @@ TimeWarpFileStream* TimeWarpFileStreamManager::getFileStream(const std::string& 
                 "A filestream can only be used by a single object"));
         }
     }
+
+    retval->setCurrentEvent(this_event);
 
     file_streams_lock_[local_object_id].unlock();
     return retval;

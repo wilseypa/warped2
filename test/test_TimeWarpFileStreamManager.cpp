@@ -6,6 +6,7 @@
 #include <fstream>
 
 #include "TimeWarpFileStream.hpp"
+#include "mocks.hpp"
 
 TEST_CASE("Get filestreams, fossil collection, rollback operate correctly for output",
     "[filestream][output]") {
@@ -13,6 +14,7 @@ TEST_CASE("Get filestreams, fossil collection, rollback operate correctly for ou
     unsigned int num_objects = 4;
     warped::TimeWarpFileStreamManager twfsm;
     twfsm.initialize(num_objects);
+    std::shared_ptr<warped::Event> e;
 
     SECTION("Create and get filestreams correctly", "[get][filestream]") {
         CHECK(twfsm.size(0) == 0);
@@ -20,30 +22,32 @@ TEST_CASE("Get filestreams, fossil collection, rollback operate correctly for ou
         CHECK(twfsm.size(2) == 0);
         CHECK(twfsm.size(3) == 0);
 
-        auto t1 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1);
+        e = std::make_shared<test_Event>();
+
+        auto t1 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1, e);
         REQUIRE(t1 != nullptr);
         CHECK(twfsm.size(0) == 0);
         CHECK(twfsm.size(1) == 1);
         CHECK(twfsm.size(2) == 0);
         CHECK(twfsm.size(3) == 0);
 
-        auto t2 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1);
+        auto t2 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1, e);
         REQUIRE(t2 != nullptr);
         CHECK(twfsm.size(0) == 0);
         CHECK(twfsm.size(1) == 1);
         CHECK(twfsm.size(2) == 0);
         CHECK(twfsm.size(3) == 0);
 
-        CHECK_THROWS(twfsm.getFileStream("test_out1.txt", std::ios_base::out, 2));
+        CHECK_THROWS(twfsm.getFileStream("test_out1.txt", std::ios_base::out, 2, e));
 
-        auto t3 = twfsm.getFileStream("test_out2.txt", std::ios_base::out, 1);
+        auto t3 = twfsm.getFileStream("test_out2.txt", std::ios_base::out, 1, e);
         REQUIRE(t3 != nullptr);
         CHECK(twfsm.size(0) == 0);
         CHECK(twfsm.size(1) == 2);
         CHECK(twfsm.size(2) == 0);
         CHECK(twfsm.size(3) == 0);
 
-        auto t4 = twfsm.getFileStream("test_out3.txt", std::ios_base::out, 3);
+        auto t4 = twfsm.getFileStream("test_out3.txt", std::ios_base::out, 3, e);
         REQUIRE(t4 != nullptr);
         CHECK(twfsm.size(0) == 0);
         CHECK(twfsm.size(1) == 2);
@@ -51,59 +55,75 @@ TEST_CASE("Get filestreams, fossil collection, rollback operate correctly for ou
         CHECK(twfsm.size(3) == 1);
 
         // This should not work, it has already been created as output
-        auto t5 = twfsm.getFileStream("test_out3.txt", std::ios_base::in, 3);
+        auto t5 = twfsm.getFileStream("test_out3.txt", std::ios_base::in, 3, e);
 
         SECTION("Output when used as intended, works with rollback and fossil collection",
             "[output]") {
 
+            e = std::make_shared<test_Event>();
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 5;
+            auto t1 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1, e);
             CHECK(t1->size() == 0);
-            twfsm.setObjectCurrentTime(5, 1);
             *t1 << "Object " << 1 << " with timestamp " << 5 << "\n";
             CHECK(t1->size() == 5);
 
-            twfsm.setObjectCurrentTime(10, 1);
+            e = std::make_shared<test_Event>();
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 10;
+            auto t2 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1, e);
             *t2 << "Object " << 1 << " with timestamp " << 10 << "\n";
             CHECK(t2->size() == 10);
 
-            twfsm.setObjectCurrentTime(15, 1);
-            auto t6 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1);
+            e = std::make_shared<test_Event>();
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 15;
+            auto t6 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1, e);
             *t6 << "Object " << 1 << " with timestamp " << 15 << "\n";
             CHECK(t2->size() == 15);
 
-            twfsm.setObjectCurrentTime(20, 1);
-            auto t7 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1);
+            e = std::make_shared<test_Event>();
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 20;
+            auto t7 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1, e);
             *t7 << "Object " << 1 << " with timestamp " << 20 << "\n";
             CHECK(t2->size() == 20);
 
-            twfsm.setObjectCurrentTime(25, 1);
-            auto t8 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1);
+            e = std::make_shared<test_Event>();
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 25;
+            auto t8 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1, e);
             *t8 << "Object " << 1 << " with timestamp " << 25 << "\n";
             CHECK(t2->size() == 25);
 
-            twfsm.setObjectCurrentTime(30, 1);
-            auto t9 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1);
+            e = std::make_shared<test_Event>();
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 30;
+            auto t9 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1, e);
             *t9 << "Object " << 1 << " with timestamp " << 30 << "\n";
             CHECK(t2->size() == 30);
 
-            twfsm.setObjectCurrentTime(35, 1);
-            auto t10 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1);
+            e = std::make_shared<test_Event>();
+            dynamic_cast<test_Event*>(e.get())->receive_time_ = 35;
+            auto t10 = twfsm.getFileStream("test_out1.txt", std::ios_base::out, 1, e);
             *t10 << "Object " << 1 << " with timestamp " << 35 << "\n";
             CHECK(t2->size() == 35);
 
             SECTION("Rollback", "[rollback][output]") {
-                twfsm.rollback(38, 1);
+                e = std::make_shared<test_Event>();
+
+                dynamic_cast<test_Event*>(e.get())->receive_time_ = 38;
+                twfsm.rollback(e, 1);
                 CHECK(t6->size() == 35);
 
-                twfsm.rollback(28, 1);
+                dynamic_cast<test_Event*>(e.get())->receive_time_ = 28;
+                twfsm.rollback(e, 1);
                 CHECK(t9->size() == 25);
 
-                twfsm.rollback(22, 1);
+                dynamic_cast<test_Event*>(e.get())->receive_time_ = 22;
+                twfsm.rollback(e, 1);
                 CHECK(t10->size() == 20);
 
-                twfsm.rollback(8, 1);
+                dynamic_cast<test_Event*>(e.get())->receive_time_ = 8;
+                twfsm.rollback(e, 1);
                 CHECK(t2->size() == 5);
 
-                twfsm.rollback(2, 1);
+                dynamic_cast<test_Event*>(e.get())->receive_time_ = 2;
+                twfsm.rollback(e, 1);
                 CHECK(t2->size() == 0);
             }
 
@@ -124,6 +144,7 @@ TEST_CASE("Get filestreams, fossil collection, rollback operate correctly for ou
     }
 }
 
+
 TEST_CASE("Can get input streams and use them.", "[filestream][input]") {
     std::fstream file("test_in.txt", std::fstream::out | std::fstream::trunc);
     const char *string = "line 1\n10\n56.78\nline 4\nline 5";
@@ -134,17 +155,17 @@ TEST_CASE("Can get input streams and use them.", "[filestream][input]") {
     warped::TimeWarpFileStreamManager twfsm;
     twfsm.initialize(num_objects);
 
-    auto t1 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1);
+    auto t1 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1, nullptr);
     REQUIRE(t1 != nullptr);
     CHECK(twfsm.size(0) == 0);
     CHECK(twfsm.size(1) == 1);
 
-    auto t2 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1);
+    auto t2 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1, nullptr);
     REQUIRE(t2 != nullptr);
     CHECK(twfsm.size(0) == 0);
     CHECK(twfsm.size(1) == 1);
 
-    REQUIRE_THROWS(twfsm.getFileStream("test_in.txt", std::ios_base::in, 0));
+    REQUIRE_THROWS(twfsm.getFileStream("test_in.txt", std::ios_base::in, 0, nullptr));
 
     char *test1 = new char[16];
     int test2;
@@ -159,17 +180,17 @@ TEST_CASE("Can get input streams and use them.", "[filestream][input]") {
     CHECK(test2 == 10);
     t2->ignore(1);
 
-    auto t3 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1);
+    auto t3 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1, nullptr);
     *t3 >> test3;
     CHECK(test3 == 56.78);
     t3->ignore(1);
 
-    auto t4 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1);
+    auto t4 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1, nullptr);
     t4->getline(test4, 16);
     CHECK(strcmp(test4, "line 4") == 0);
     CHECK(t4->gcount() == 7);
 
-    auto t5 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1);
+    auto t5 = twfsm.getFileStream("test_in.txt", std::ios_base::in, 1, nullptr);
     t5->read(test5, 16);
     CHECK(t5->eof() == true);
 }

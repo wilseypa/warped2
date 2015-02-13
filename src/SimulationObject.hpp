@@ -46,7 +46,7 @@ public:
 
     FileStream& getInputFileStream(const std::string& filename);
 
-    FileStream& getOutputFileStream(const std::string& filename);
+    FileStream& getOutputFileStream(const std::string& filename, std::shared_ptr<Event> this_event);
 
     const std::string name_;
 

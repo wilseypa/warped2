@@ -15,11 +15,13 @@ SimulationObject::SimulationObject(const std::string& name) : name_(name) {}
 std::vector<std::shared_ptr<Event>> SimulationObject::createInitialEvents()  { return {}; }
 
 FileStream& SimulationObject::getInputFileStream(const std::string& filename) {
-    return Simulation::getFileStream(this, filename, std::ios_base::in);
+    return Simulation::getFileStream(this, filename, std::ios_base::in, nullptr);
 }
 
-FileStream& SimulationObject::getOutputFileStream(const std::string& filename) {
-    return Simulation::getFileStream(this, filename, std::ios_base::out);
+FileStream& SimulationObject::getOutputFileStream(const std::string& filename,
+    std::shared_ptr<Event> this_event) {
+
+    return Simulation::getFileStream(this, filename, std::ios_base::out, this_event);
 }
 
 } // namespace warped

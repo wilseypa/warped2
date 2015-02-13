@@ -17,43 +17,6 @@
 
 namespace warped {
 
-/* Compares two events to see if one has a receive time less than to the other
- */
-struct compareEvents {
-public:
-    bool operator() (const std::shared_ptr<Event>& first, 
-                        const std::shared_ptr<Event>& second) const {
-
-        bool is_less = false;
-        if (first->timestamp() < second->timestamp()) {
-            is_less = true;
-        } else if (first->timestamp() == second->timestamp()) {
-            if (first->send_time_ < second->send_time_) {
-                is_less = true;
-            } else if (first->send_time_ == second->send_time_) {
-                if (first->sender_name_.compare(second->sender_name_) < 0) {
-                    is_less = true;
-                } else if (first->sender_name_.compare(second->sender_name_) == 0) {
-                    if (first->counter_ < second->counter_) {
-                        is_less = true;
-                    } else if (first->counter_ == second->counter_) {
-                        is_less = (first->event_type_ < second->event_type_) ? true : false;
-                    } else {
-                        is_less = false;
-                    }
-                } else {
-                    is_less = false;
-                }
-            } else {
-                is_less = false;
-            }
-        } else {
-            is_less = false;
-        }
-        return is_less;
-    }
-};
-
 class TimeWarpEventSet {
 public:
     TimeWarpEventSet() = default;

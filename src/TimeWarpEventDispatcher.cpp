@@ -65,6 +65,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     MessageFlags msg_flags = MessageFlags::None;
 
     auto gvt_start = std::chrono::steady_clock::now();
+    auto sim_start = gvt_start;
+
     bool calculate_gvt = false;
 
     // Flag that says we have started calculating minimum lvt of the objects on this node
@@ -93,6 +95,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         // Send all events in the remote event queue.
         sendRemoteEvents();
     }
+
+    auto sim_stop = std::chrono::steady_clock::now();
+    std::cout << "Simulation completed in " << (sim_stop - sim_start).count() << " seconds" << std::endl;
 
     comm_manager_->finalize();
 }
@@ -152,7 +157,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Update simulation time
             object_simulation_time_[current_object_id] = event->timestamp();
-            twfs_manager_->setObjectCurrentTime(event->timestamp(), current_object_id);
 
             // process event and get new events
             auto new_events = current_object->receiveEvent(*event);
@@ -281,8 +285,7 @@ void TimeWarpEventDispatcher::cancelEvents(
 void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event, 
                             unsigned int local_object_id, SimulationObject* object) {
 
-    unsigned int straggler_time = straggler_event->timestamp();
-    twfs_manager_->rollback(straggler_time, local_object_id);
+    twfs_manager_->rollback(straggler_event, local_object_id);
     //assert(straggler_time >= gvt_manager_->getGVT());
 
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
@@ -295,7 +298,6 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
     assert(restored_state_event);
     assert(*restored_state_event < *straggler_event);
     object_simulation_time_[local_object_id] = restored_state_event->timestamp();
-    twfs_manager_->setObjectCurrentTime(restored_state_event->timestamp(), local_object_id);
 
     coastForward(object, straggler_event, restored_state_event);
 }
@@ -316,7 +318,6 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
         /*std::cout << "coast = " << *event_riterator << std::endl;*/
 
         object_simulation_time_[current_object_id] = (*event_riterator)->timestamp();
-        twfs_manager_->setObjectCurrentTime((*event_riterator)->timestamp(), current_object_id);
         object->receiveEvent(**event_riterator);
         state_manager_->saveState(*event_riterator, current_object_id, object);
     }
@@ -401,11 +402,12 @@ unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
     return min;
 }
 
-FileStream& TimeWarpEventDispatcher::getFileStream(
-    SimulationObject *object, const std::string& filename, std::ios_base::openmode mode) {
+FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,
+    const std::string& filename, std::ios_base::openmode mode, std::shared_ptr<Event> this_event) {
 
     unsigned int local_object_id = local_object_id_by_name_[object->name_];
-    TimeWarpFileStream* twfs = twfs_manager_->getFileStream(filename, mode, local_object_id);
+    TimeWarpFileStream* twfs = twfs_manager_->getFileStream(filename, mode, local_object_id,
+        this_event);
 
     return *twfs;
 }

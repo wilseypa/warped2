@@ -67,7 +67,7 @@ private:
         std::shared_ptr<Event> restored_state_event);
 
     FileStream& getFileStream(SimulationObject *object, const std::string& filename,
-        std::ios_base::openmode mode);
+        std::ios_base::openmode mode, std::shared_ptr<Event> this_event);
 
     void enqueueRemoteEvent(std::shared_ptr<Event> event, unsigned int receiver_id);
 
@@ -153,27 +153,6 @@ struct EventMessage : public TimeWarpKernelMessage {
 
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<TimeWarpKernelMessage>(this), event,
         gvt_mattern_color)
-};
-
-class NegativeEvent : public Event {
-public:
-    NegativeEvent() = default;
-    NegativeEvent(std::shared_ptr<Event> e) {
-        receiver_name_ = e->receiverName();
-        receive_time_ = e->timestamp();
-        sender_name_ = e->sender_name_;
-        send_time_ = e->send_time_;
-        event_type_ = EventType::NEGATIVE;
-        counter_ = e->counter_;
-    }
-
-    const std::string& receiverName() const {return receiver_name_;}
-    unsigned int timestamp() const {return receive_time_;}
-
-    std::string receiver_name_;
-    unsigned int receive_time_;
-
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<Event>(this), receiver_name_, receive_time_)
 };
 
 } // namespace warped

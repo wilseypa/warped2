@@ -51,7 +51,9 @@ void SequentialEventDispatcher::startSimulation(
 }
 
 FileStream& SequentialEventDispatcher::getFileStream(SimulationObject* object,
-    const std::string& filename, std::ios_base::openmode mode) {
+    const std::string& filename, std::ios_base::openmode mode, std::shared_ptr<Event> this_event) {
+
+    unused(this_event);
 
     if (object_by_filename_.count(filename) == 0) {
         // Create filestream and insert into filename to stream map

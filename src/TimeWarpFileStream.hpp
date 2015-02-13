@@ -35,13 +35,13 @@ public:
     TimeWarpFileStream& operator= (const TimeWarpFileStream&) = delete;
     TimeWarpFileStream& operator= (TimeWarpFileStream&& rhs);
 
-    void setCurrentTime(unsigned int current_time);
+    void setCurrentEvent(std::shared_ptr<Event> current_event);
 
     // rollback
-    void removeOutputRequestsAfter(unsigned int rollback_time);
+    void removeOutputRequestsAfter(std::shared_ptr<Event> rollback_event);
 
     // fossil collection
-    void commitOutputRequestsBeforeOrAt(unsigned int gvt);
+    void commitOutputRequestsBefore(unsigned int gvt);
 
     std::size_t size();
 
@@ -69,12 +69,12 @@ public:
 
 private:
 
-    std::multimap<unsigned int, std::string> output_requests_;
+    std::vector<std::pair<std::shared_ptr<Event>, std::string>> output_requests_;
 
     // Needed because queues are modified by both worker threads and manager threads
     std::mutex output_requests_lock_;
 
-    std::atomic<unsigned int> current_time_;
+    std::shared_ptr<Event> current_event_;
 
 };
 

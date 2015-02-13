@@ -9,6 +9,7 @@
 namespace warped {
 
 class SimulationObject;
+class Event;
 
 // An EventDispatcher is responsible for sending events between objects.
 class EventDispatcher {
@@ -27,7 +28,7 @@ public:
     virtual void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects) = 0;
 
     virtual FileStream& getFileStream(SimulationObject* object, const std::string& filename,
-        std::ios_base::openmode mode) = 0;
+        std::ios_base::openmode mode, std::shared_ptr<Event> this_event) = 0;
 
 protected:
     const unsigned int max_sim_time_;

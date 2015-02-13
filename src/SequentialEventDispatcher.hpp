@@ -19,7 +19,7 @@ public:
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
     FileStream& getFileStream(SimulationObject* object, const std::string& filename,
-        std::ios_base::openmode mode);
+        std::ios_base::openmode mode, std::shared_ptr<Event> this_event);
 
 private:
     unsigned int current_sim_time_ = 0;

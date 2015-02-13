@@ -34,8 +34,9 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
 }
 
 FileStream& Simulation::getFileStream(SimulationObject* object, const std::string& filename,
-    std::ios_base::openmode mode) {
-    return event_dispatcher_->getFileStream(object, filename, mode);
+    std::ios_base::openmode mode, std::shared_ptr<Event> this_event) {
+
+    return event_dispatcher_->getFileStream(object, filename, mode, this_event);
 }
 
 } // namepsace warped

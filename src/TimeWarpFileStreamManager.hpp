@@ -25,7 +25,7 @@ public:
     void initialize(unsigned int num_local_objects);
 
     // Removes any output request after rollback time for the specified object
-    void rollback(unsigned int rollback_time, unsigned int local_object_id);
+    void rollback(std::shared_ptr<Event> rollback_event, unsigned int local_object_id);
 
     // Commits any output request before or equal to the gvt for the specified object
     void fossilCollect(unsigned int gvt, unsigned int local_object_id);
@@ -33,13 +33,10 @@ public:
     // Commits all output requests before or equal to the gvt.
     void fossilCollectAll(unsigned int gvt);
 
-    // Set the current time of the object so output requests can be timestamped.
-    void setObjectCurrentTime(unsigned int current_time, unsigned int local_object_id);
-
     // Retrieves the specified TimeWarpFileStream by looking at filename. If it has not been
     // created, then one will be created and returned.
     TimeWarpFileStream* getFileStream(const std::string& filename, std::ios_base::openmode mode,
-        unsigned int local_object_id);
+        unsigned int local_object_id, std::shared_ptr<Event> this_event);
 
     // Number of TimeWarpFileStreams associated with the specified object
     std::size_t size(unsigned int local_object_id);
