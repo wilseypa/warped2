@@ -22,15 +22,17 @@ install:
   # Always install g++
   - sudo apt-get install -qq g++-4.8
   - sudo apt-get install -qq g++-4.8-multilib
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8"; fi
+  - if [ "$CXX" == "g++" -a "$MPI_IMPLEMENTATION" == "MPICH"]; then export MPICH_CXX="g++-4.8"; fi
+  - if [ "$CXX" == "g++" -a "$MPI_IMPLEMENTATION" == "OPENMPI"]; then export OMPI_MPIXX="g++-4.8"; fi
 
   # Use clang 3.3
   - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.3; fi
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.3"; fi
+  - if [ "$CXX" == "clang++" -a "$MPI_IMPLEMENTATION" == "MPICH"]; then export MPICH_CXX="clang++-3.3"; fi
+  - if [ "$CXX" == "clang++" -a "$MPI_IMPLEMENTATION" == "OPENMPI"]; then export OMPI_MPIXX="clang++-3.3"; fi
 
 before_script:
   - mkdir -p $HOME/lib
   - autoreconf -i
-  - ./configure --prefix=$HOME/lib/warped --with-mpi=$MPI_IMPLEMENTATION
+  - ./configure --prefix=$HOME/lib/warped CXX=mpic++
 script:
   - make -j5 && make check && make install && make distcheck -j5

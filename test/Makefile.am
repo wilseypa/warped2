@@ -1,14 +1,5 @@
 CPPFLAGS += -I$(top_srcdir)/deps -I$(top_srcdir)/src
 
-LDFLAGS=
-if HAVE_MPICH
-    LDFLAGS += -static -lmpich -lmpl
-else
-if HAVE_MPI
-    LDFLAGS += -export-dynamic -lmpi -lmpi_cxx
-endif
-endif
-
 LDADD = $(top_builddir)/libwarped.la
 
 # With a default ext specified, we can skip defining SOURCES for a progarm

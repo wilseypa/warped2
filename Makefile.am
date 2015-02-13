@@ -84,18 +84,6 @@ libwarped_la_LIBADD = \
     $(top_builddir)/deps/json/libjsoncpp.la \
     $(top_builddir)/deps/metis/libmetis/libmetis.la
 
-# When MPI support is added, uncomment these next blocks
-if HAVE_MPICH
-    libwarped_la_LIBADD += -lmpich -lmpl
-	AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpi=MPICH
-else
-if HAVE_MPI
-    libwarped_la_LDFLAGS = -export-dynamic
-    libwarped_la_LIBADD += -lmpi -lmpi_cxx
-	AM_DISTCHECK_CONFIGURE_FLAGS = --with-mpi=OPENMPI
-endif
-endif
-
 libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror
 
 # Use -isystem here instead of -I to disable warnings for third party code
