@@ -49,3 +49,14 @@ tags*
 .tags*
 src/tags*
 src/.tags*
+
+# All test files except cpp files
+test_*
+!test_*.cpp
+
+.libs/
+.dirstamp
+test-driver
+*.tar.gz
+*.log
+
