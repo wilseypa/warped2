@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cassert>
+#include <string>
 
 #include "TimeWarpEventSet.hpp"
 #include "utility/warnings.hpp"
@@ -45,13 +46,6 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
     bool causal_order_ok = true;
 
     input_queue_lock_[obj_id].lock();
-    /*std::cout << "ins - " << event << " , r = " << event->timestamp() 
-              << " , send = " << event->sender_name_ << " , recv = " 
-              << event->receiverName() << " , type = " 
-              << ((event->event_type_ == EventType::NEGATIVE) ? 0 : 1) 
-              << " , s = " << event->send_time_ << " , c = " 
-              << event->counter_ << std::endl;*/
-
     auto event_iterator = input_queue_[obj_id]->insert(event);
 
     // If event is negative
@@ -157,22 +151,26 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 }
 
 void TimeWarpEventSet::startScheduling (unsigned int obj_id, 
-                                        std::shared_ptr<Event> processed_event) {
+                                        std::shared_ptr<Event> straggler_event) {
 
     input_queue_lock_[obj_id].lock();
     if (scheduled_event_pointer_[obj_id]) {
-        auto event_iterator = input_queue_[obj_id]->find(processed_event);
-        if (event_iterator == input_queue_[obj_id]->end()) {
-            assert(0);
-        }
+        // If straggler exists
+        if (straggler_event) {
+            auto event_iterator = input_queue_[obj_id]->find(straggler_event);
+            if (event_iterator == input_queue_[obj_id]->end()) {
+                assert(0);
+            }
+            scheduled_event_pointer_[obj_id] = straggler_event;
 
-        // If event is not a straggler
-        if (scheduled_event_pointer_[obj_id] == processed_event) {
+        } else { // Causal order
+            auto event_iterator = input_queue_[obj_id]->find(scheduled_event_pointer_[obj_id]);
+            if (event_iterator == input_queue_[obj_id]->end()) {
+                assert(0);
+            }
             event_iterator++;
             scheduled_event_pointer_[obj_id] = 
                 (event_iterator != input_queue_[obj_id]->end()) ? *event_iterator : 0;
-        } else { // straggler event
-            scheduled_event_pointer_[obj_id] = processed_event;
         }
         if (scheduled_event_pointer_[obj_id]) {
             unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];

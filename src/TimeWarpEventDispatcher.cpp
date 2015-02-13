@@ -122,6 +122,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             if (straggler_event_list_[current_object_id]) {
                 /*std::cout << "roll - " << event << " , " << current_object_id << " , " 
                           << straggler_event_list_[current_object_id] << std::endl;*/
+                assert(*straggler_event_list_[current_object_id] <= *event);
                 rollback(straggler_event_list_[current_object_id], 
                                     current_object_id, current_object);
                 if (straggler_event_list_[current_object_id]->event_type_ == 
@@ -183,7 +184,14 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Move the next event from object into the schedule queue
             // Also transfer old event to processed queue
-            event_set_->startScheduling(current_object_id, event);
+            null_thread = num_worker_threads_+1;
+            while (!straggler_event_list_lock_[current_object_id].compare_exchange_weak(
+                                                                            null_thread, id)) {
+                null_thread = num_worker_threads_+1;
+            }
+            event_set_->startScheduling(current_object_id, 
+                                            straggler_event_list_[current_object_id]);
+            straggler_event_list_lock_[current_object_id].store(num_worker_threads_+1);
 
         } else {
             // TODO, do something here
@@ -208,19 +216,20 @@ void TimeWarpEventDispatcher::insertIntoEventSet(
             null_thread = num_worker_threads_+1;
         }
     }
+
+    // If straggler already exists
     if (straggler_event_list_[object_id]) {
+        // If event less than existing straggler
         if ((*event < *straggler_event_list_[object_id]) || 
             ((*event == *straggler_event_list_[object_id]) && 
-             (event->event_type_ < straggler_event_list_[object_id]->event_type_))) {
+                (event->event_type_ < straggler_event_list_[object_id]->event_type_))) {
             straggler_event_list_[object_id] = event;
-            /*std::cout << "straggler1 - " << straggler_event_list_[object_id] 
-                                            << " , " << object_id << std::endl;*/
         }
-    } else {
+    } else { // Straggler does not exist
         straggler_event_list_[object_id] = event;
-        /*std::cout << "straggler2 - " << straggler_event_list_[object_id] 
-                                            << " , " << object_id << std::endl;*/
     }
+
+    // Release only if calling thread had lock from outside beforehand
     if (!calling_thread_has_lock) {
         straggler_event_list_lock_[object_id].store(num_worker_threads_+1);
     }
