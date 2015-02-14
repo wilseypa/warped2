@@ -23,9 +23,13 @@ AC_DEFUN([CHECK_LIB_MPI],
 
     AC_CHECK_LIB([mpich],
                  [MPI_Init],
-                 [AC_CHECK_LIB([mpl], [MPL_trinit], [], [AC_MSG_ERROR([Could not find libmpl.so])],[-lmpl])],
-                 [AC_CHECK_LIB([mpi], [MPI_Init], [],
-                    [AC_MSG_ERROR([Could not find libmpi.so or libmpich.so. Use --with-mpi-libdir to specify library path])])])
+                 [],
+                 [AC_CHECK_LIB([mpi], [MPI_Init],
+                               [],
+                               [AC_MSG_ERROR([Could not find libmpi.so or libmpich.so. Use --with-mpi-libdir to specify library path])],
+                               [])
+                 ],
+                 [-lmpl])
 
 ]) dnl end CHECK_MPI
 
