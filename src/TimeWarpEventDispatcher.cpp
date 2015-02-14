@@ -97,7 +97,11 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     }
 
     auto sim_stop = std::chrono::steady_clock::now();
-    std::cout << "Simulation completed in " << (sim_stop - sim_start).count() << " seconds" << std::endl;
+    double num_seconds = double((sim_stop - sim_start).count()) * 
+                            std::chrono::steady_clock::period::num / 
+                                std::chrono::steady_clock::period::den;
+    std::cout << "Simulation completed in " << num_seconds << " second(s) with " 
+                        << rollback_count_.load() << " rollback(s)." << std::endl;
 
     comm_manager_->finalize();
 }
@@ -112,43 +116,30 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
-            /*std::cout << "e = " << event << " , time = " << event->timestamp() 
-                << " , receiver = " << event->receiverName() << " , sender = " 
-                << event->sender_name_ << " , object time = " 
-                << object_simulation_time_[current_object_id] << std::endl;*/
-
             // Check to see if object needs a rollback
-            bool was_rolled_back = false;
-            unsigned int null_thread = num_worker_threads_+1;
-            while (!straggler_event_list_lock_[current_object_id].compare_exchange_weak(
-                                                                            null_thread, id)) {
-                null_thread = num_worker_threads_+1;
-            }
-            if (straggler_event_list_[current_object_id]) {
-                /*std::cout << "roll - " << event << " , " << current_object_id << " , " 
-                          << straggler_event_list_[current_object_id] << std::endl;*/
-                assert(*straggler_event_list_[current_object_id] <= *event);
-                rollback(straggler_event_list_[current_object_id], 
-                                    current_object_id, current_object);
-                if (straggler_event_list_[current_object_id]->event_type_ == 
-                                                            EventType::NEGATIVE) {
+            event_set_->acquireInputQueueLock(current_object_id);
+            if (event_set_->getStragglerEvent(current_object_id)) {
+                assert(*(event_set_->getStragglerEvent(current_object_id)) <= *event);
+                rollback(current_object_id, current_object);
+                if (event_set_->getStragglerEvent(current_object_id)->event_type_ == 
+                                                                        EventType::NEGATIVE) {
                     event_set_->cancelEvent(current_object_id, 
-                                            straggler_event_list_[current_object_id]);
+                                            event_set_->getStragglerEvent(current_object_id));
                 } else {
-                    event_set_->startScheduling(current_object_id, 
-                                            straggler_event_list_[current_object_id]);
+                    event_set_->startScheduling(current_object_id);
                 }
-                straggler_event_list_[current_object_id] = 0;
-                was_rolled_back = true;
+                event_set_->resetStragglerEvent(current_object_id);
+                event_set_->releaseInputQueueLock(current_object_id);
+                continue;
             }
-            straggler_event_list_lock_[current_object_id].store(num_worker_threads_+1);
-            if (was_rolled_back) continue;
 
             // Handle negative event
             if (event->event_type_ == EventType::NEGATIVE) {
                 event_set_->cancelEvent(current_object_id, event);
+                event_set_->releaseInputQueueLock(current_object_id);
                 continue;
             }
+            event_set_->releaseInputQueueLock(current_object_id);
 
             if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
                 min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
@@ -188,54 +179,15 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Move the next event from object into the schedule queue
             // Also transfer old event to processed queue
-            null_thread = num_worker_threads_+1;
-            while (!straggler_event_list_lock_[current_object_id].compare_exchange_weak(
-                                                                            null_thread, id)) {
-                null_thread = num_worker_threads_+1;
-            }
-            event_set_->startScheduling(current_object_id, 
-                                            straggler_event_list_[current_object_id]);
-            straggler_event_list_lock_[current_object_id].store(num_worker_threads_+1);
+            event_set_->acquireInputQueueLock(current_object_id);
+            event_set_->processedEvent(current_object_id, event);
+            event_set_->startScheduling(current_object_id);
+            event_set_->releaseInputQueueLock(current_object_id);
 
         } else {
             // TODO, do something here
             //assert(false);
         }
-    }
-}
-
-void TimeWarpEventDispatcher::insertIntoEventSet(
-        unsigned int thread_index, unsigned int object_id, std::shared_ptr<Event> event) {
-
-    if (event_set_->insertEvent(object_id, event)) return;
-
-    // If the calling thread already has lock (during rollback), don't release
-    bool calling_thread_has_lock = false;
-    if (straggler_event_list_lock_[object_id].load() == thread_index) {
-        calling_thread_has_lock = true;
-    } else {
-        unsigned int null_thread = num_worker_threads_+1;
-        while (!straggler_event_list_lock_[object_id].compare_exchange_weak(
-                                                            null_thread, thread_index)) {
-            null_thread = num_worker_threads_+1;
-        }
-    }
-
-    // If straggler already exists
-    if (straggler_event_list_[object_id]) {
-        // If event less than existing straggler
-        if ((*event < *straggler_event_list_[object_id]) || 
-            ((*event == *straggler_event_list_[object_id]) && 
-                (event->event_type_ < straggler_event_list_[object_id]->event_type_))) {
-            straggler_event_list_[object_id] = event;
-        }
-    } else { // Straggler does not exist
-        straggler_event_list_[object_id] = event;
-    }
-
-    // Release only if calling thread had lock from outside beforehand
-    if (!calling_thread_has_lock) {
-        straggler_event_list_lock_[object_id].store(num_worker_threads_+1);
     }
 }
 
@@ -247,15 +199,45 @@ MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
         msg->gvt_mattern_color);
 
     unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
-    // Manager thread id equals worker thread count
-    insertIntoEventSet(num_worker_threads_, receiver_object_id, msg->event);
+    event_set_->acquireInputQueueLock(receiver_object_id);
+    event_set_->insertEvent(receiver_object_id, msg->event);
+    event_set_->releaseInputQueueLock(receiver_object_id);
     return MessageFlags::None;
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
-    insertIntoEventSet(thread_id, receiver_object_id, event);
+    event_set_->acquireInputQueueLock(receiver_object_id);
+    event_set_->insertEvent(receiver_object_id, event);
+    event_set_->releaseInputQueueLock(receiver_object_id);
+
+    if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
+        unsigned int send_min = send_min_[thread_id];
+        send_min_[thread_id] = std::min(send_min, event->timestamp());
+    }
+}
+
+void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event, 
+                                                unsigned int sender_local_obj_id) {
+
+    unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
+
+    // If object needs to send itself a neg event, lock already acquired
+    if (sender_local_obj_id == receiver_object_id) {
+        event_set_->insertEvent(receiver_object_id, event);
+
+    } else { // Neg event sent to other objects
+
+        // Note: This avoid deadlock when 2 different objects are 
+        // rolling back in parallel and require each other's lock, 
+        // sender object lock is released.
+        event_set_->releaseInputQueueLock(sender_local_obj_id);
+        event_set_->acquireInputQueueLock(receiver_object_id);
+        event_set_->insertEvent(receiver_object_id, event);
+        event_set_->releaseInputQueueLock(receiver_object_id);
+        event_set_->acquireInputQueueLock(sender_local_obj_id);
+    }
 
     if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
         unsigned int send_min = send_min_[thread_id];
@@ -270,12 +252,10 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     event_set_->fossilCollectAll(gvt);
 }
 
-void TimeWarpEventDispatcher::cancelEvents(
-    std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel) {
+void TimeWarpEventDispatcher::cancelEvents(unsigned int sender_local_obj_id, 
+                std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel) {
 
-    if (events_to_cancel->empty()) {
-        return;
-    }
+    if (events_to_cancel->empty()) return;
 
     do {
         auto event = events_to_cancel->back();
@@ -286,20 +266,20 @@ void TimeWarpEventDispatcher::cancelEvents(
         if (receiver_node_id != comm_manager_->getID()) {
             enqueueRemoteEvent(neg_event, receiver_node_id);
         } else {
-            sendLocalEvent(neg_event);
+            sendLocalNegEvent(neg_event, sender_local_obj_id);
         }
     } while (!events_to_cancel->empty());
 }
 
-void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event, 
-                            unsigned int local_object_id, SimulationObject* object) {
+void TimeWarpEventDispatcher::rollback(unsigned int local_object_id, SimulationObject* object) {
 
+    auto straggler_event = event_set_->getStragglerEvent(local_object_id);
     twfs_manager_->rollback(straggler_event, local_object_id);
     //assert(straggler_time >= gvt_manager_->getGVT());
 
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
     if (events_to_cancel != nullptr) {
-        cancelEvents(std::move(events_to_cancel));
+        cancelEvents(local_object_id, std::move(events_to_cancel));
     }
 
     auto restored_state_event = state_manager_->restoreState(straggler_event, 
@@ -309,6 +289,8 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event,
     object_simulation_time_[local_object_id] = restored_state_event->timestamp();
 
     coastForward(object, straggler_event, restored_state_event);
+
+    rollback_count_++;
 }
 
 void TimeWarpEventDispatcher::coastForward(SimulationObject* object, 
@@ -324,8 +306,6 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
         assert((*event_riterator)->timestamp() >= object_simulation_time_[current_object_id]);
         assert((*event_riterator)->event_type_ != EventType::NEGATIVE);
 
-        /*std::cout << "coast = " << *event_riterator << std::endl;*/
-
         object_simulation_time_[current_object_id] = (*event_riterator)->timestamp();
         object->receiveEvent(**event_riterator);
         state_manager_->saveState(*event_riterator, current_object_id, object);
@@ -334,6 +314,7 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
 
 void TimeWarpEventDispatcher::initialize(
         const std::vector<std::vector<SimulationObject*>>& objects) {
+
     unsigned int num_local_objects = objects[comm_manager_->getID()].size();
     event_set_->initialize(num_local_objects, num_schedulers_, num_worker_threads_);
 
@@ -341,13 +322,7 @@ void TimeWarpEventDispatcher::initialize(
     std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
 
     event_counter_by_obj_ = make_unique<std::atomic<unsigned long> []>(num_local_objects);
-
-    // Create a structure to track which objects need to be rolled back
-    straggler_event_list_ = make_unique<std::shared_ptr<Event> []>(num_local_objects);
-    std::memset(straggler_event_list_.get(), 0, 
-                    num_local_objects*sizeof(std::shared_ptr<Event>));
-    straggler_event_list_lock_ = 
-        make_unique<std::atomic<unsigned int> []>(num_local_objects);
+    rollback_count_ = 0;
 
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
@@ -357,7 +332,6 @@ void TimeWarpEventDispatcher::initialize(
                 objects_by_name_[ob->name_] = ob;
                 local_object_id_by_name_[ob->name_] = object_id;
                 event_counter_by_obj_[object_id].store(0);
-                straggler_event_list_lock_[object_id].store(num_worker_threads_+1);
                 auto new_events = ob->createInitialEvents();
                 for (auto& e: new_events) {
                     assert(e->event_type_ == EventType::POSITIVE);
@@ -365,8 +339,9 @@ void TimeWarpEventDispatcher::initialize(
                     e->counter_ = event_counter_by_obj_[object_id]++;
                     e->send_time_ = object_simulation_time_[object_id];
 
-                    // Manager thread id equals worker thread count
-                    insertIntoEventSet(num_worker_threads_, object_id, e);
+                    event_set_->acquireInputQueueLock(object_id);
+                    event_set_->insertEvent(object_id, e);
+                    event_set_->releaseInputQueueLock(object_id);
                 }
                 object_id++;
             }

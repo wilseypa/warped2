@@ -21,6 +21,9 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
     for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
         input_queue_.push_back(
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
+        track_processed_event_.push_back(
+            make_unique<std::unordered_map<std::shared_ptr<Event>, bool>>());
+        straggler_event_pointer_.push_back(0);
         scheduled_event_pointer_.push_back(0);
         input_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
     }
@@ -40,13 +43,21 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
     }
 }
 
-bool TimeWarpEventSet::insertEvent (unsigned int obj_id, 
-                                    std::shared_ptr<Event> event) {
-
-    bool causal_order_ok = true;
+void TimeWarpEventSet::acquireInputQueueLock (unsigned int obj_id) {
 
     input_queue_lock_[obj_id].lock();
+}
+
+void TimeWarpEventSet::releaseInputQueueLock (unsigned int obj_id) {
+
+    input_queue_lock_[obj_id].unlock();
+}
+
+void TimeWarpEventSet::insertEvent (unsigned int obj_id, std::shared_ptr<Event> event) {
+
+    bool causal_order_ok = true;
     auto event_iterator = input_queue_[obj_id]->insert(event);
+    (*track_processed_event_[obj_id])[event] = false;
 
     // If event is negative
     // Assumption: Positive event arrives earlier than its negative counterpart
@@ -73,6 +84,8 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
                     causal_order_ok = false;
 
                 } else { // It is ok to delete the negative event
+                    (*track_processed_event_[obj_id]).erase(*event_iterator);
+                    (*track_processed_event_[obj_id]).erase(*next_iterator);
                     input_queue_[obj_id]->erase(event_iterator);
                     input_queue_[obj_id]->erase(next_iterator);
                 }
@@ -105,8 +118,19 @@ bool TimeWarpEventSet::insertEvent (unsigned int obj_id,
         schedule_queue_lock_[scheduler_id].unlock();
     }
 
-    input_queue_lock_[obj_id].unlock();
-    return causal_order_ok;
+    if (!causal_order_ok) {
+        // If straggler already exists
+        if (straggler_event_pointer_[obj_id]) {
+            // If event less than existing straggler
+            if ((*event < *straggler_event_pointer_[obj_id]) || 
+                ((*event == *straggler_event_pointer_[obj_id]) && 
+                    (event->event_type_ < straggler_event_pointer_[obj_id]->event_type_))) {
+                straggler_event_pointer_[obj_id] = event;
+            }
+        } else { // Straggler does not exist
+            straggler_event_pointer_[obj_id] = event;
+        }
+    }
 }
 
 std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) { 
@@ -123,6 +147,21 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     return event;
 }
 
+void TimeWarpEventSet::processedEvent (unsigned int obj_id, std::shared_ptr<Event> event) {
+
+    (*track_processed_event_[obj_id])[event] = true;
+}
+
+std::shared_ptr<Event> TimeWarpEventSet::getStragglerEvent (unsigned int obj_id) {
+
+    return straggler_event_pointer_[obj_id];
+}
+
+void TimeWarpEventSet::resetStragglerEvent (unsigned int obj_id) {
+
+    straggler_event_pointer_[obj_id] = 0;
+}
+
 std::unique_ptr<std::vector<std::shared_ptr<Event>>> 
         TimeWarpEventSet::getEventsForCoastForward (
                 unsigned int obj_id, 
@@ -131,7 +170,6 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 
     auto events = make_unique<std::vector<std::shared_ptr<Event>>>();
 
-    input_queue_lock_[obj_id].lock();
     auto straggler_iterator = input_queue_[obj_id]->find(straggler_event);
     auto restored_event_iterator = input_queue_[obj_id]->find(restored_state_event);
     assert(straggler_iterator != input_queue_[obj_id]->end());
@@ -143,17 +181,17 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
         if (straggler_iterator == restored_event_iterator) {
             break;
         }
-        events->push_back(*straggler_iterator);
+        if ((*track_processed_event_[obj_id])[*straggler_iterator]) {
+            events->push_back(*straggler_iterator);
+        }
     } while (straggler_iterator != input_queue_[obj_id]->begin());
 
-    input_queue_lock_[obj_id].unlock();
     return (std::move(events));
 }
 
-void TimeWarpEventSet::startScheduling (unsigned int obj_id, 
-                                        std::shared_ptr<Event> straggler_event) {
+void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
 
-    input_queue_lock_[obj_id].lock();
+    auto straggler_event = straggler_event_pointer_[obj_id];
     if (scheduled_event_pointer_[obj_id]) {
         // If straggler exists
         if (straggler_event) {
@@ -181,12 +219,10 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id,
     } else {
         assert(0);
     }
-    input_queue_lock_[obj_id].unlock();
 }
 
 void TimeWarpEventSet::cancelEvent (unsigned int obj_id, std::shared_ptr<Event> cancel_event) {
 
-    input_queue_lock_[obj_id].lock();
     auto neg_iterator = input_queue_[obj_id]->find(cancel_event);
     assert(neg_iterator != input_queue_[obj_id]->end());
     auto pos_iterator = std::next(neg_iterator);
@@ -202,15 +238,16 @@ void TimeWarpEventSet::cancelEvent (unsigned int obj_id, std::shared_ptr<Event> 
         schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[obj_id]);
         schedule_queue_lock_[scheduler_id].unlock();
     }
+    (*track_processed_event_[obj_id]).erase(*neg_iterator);
+    (*track_processed_event_[obj_id]).erase(*pos_iterator);
     input_queue_[obj_id]->erase(neg_iterator);
     input_queue_[obj_id]->erase(pos_iterator);
-    input_queue_lock_[obj_id].unlock();
 }
 
 void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {
-        input_queue_lock_[obj_id].lock();
+        acquireInputQueueLock(obj_id);
         auto event_iterator = input_queue_[obj_id]->begin();
         for (; event_iterator != input_queue_[obj_id]->end(); event_iterator++) {
             if ((*event_iterator)->timestamp() >= fossil_collect_time) {
@@ -221,7 +258,7 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
             input_queue_[obj_id]->erase(input_queue_[obj_id]->begin(), 
                                             std::prev(event_iterator));
         }
-        input_queue_lock_[obj_id].unlock();
+        releaseInputQueueLock(obj_id);
     }
 }
 

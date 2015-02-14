@@ -51,17 +51,16 @@ public:
 private:
     void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
 
-    void insertIntoEventSet(unsigned int thread_index, 
-            unsigned int object_id, std::shared_ptr<Event> event);
-
     void sendLocalEvent(std::shared_ptr<Event> event);
+
+    void sendLocalNegEvent(std::shared_ptr<Event> event, unsigned int sender_local_obj_id);
 
     void fossilCollect(unsigned int gvt);
 
-    void cancelEvents(std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel);
+    void cancelEvents(unsigned int sender_local_obj_id, 
+                        std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel);
 
-    void rollback(std::shared_ptr<Event> straggler_event, unsigned int local_object_id, 
-                                                                    SimulationObject* ob);
+    void rollback(unsigned int local_object_id, SimulationObject* ob);
 
     void coastForward(SimulationObject *object, std::shared_ptr<Event> stop_event,
         std::shared_ptr<Event> restored_state_event);
@@ -115,9 +114,6 @@ private:
 
     std::unique_ptr<std::atomic<unsigned long> []> event_counter_by_obj_;
 
-    std::unique_ptr<std::shared_ptr<Event> []> straggler_event_list_;
-    std::unique_ptr<std::atomic<unsigned int> []> straggler_event_list_lock_;
-
     std::deque<std::pair <std::shared_ptr<Event>, unsigned int>> remote_event_queue_;
     std::mutex remote_event_queue_lock_;
 
@@ -134,6 +130,9 @@ private:
 
     // flag to determine if worker thread has already calculated min lvt
     std::unique_ptr<bool []> calculated_min_flag_;
+
+    // Rollback counter
+    std::atomic<unsigned long> rollback_count_;
 };
 
 enum class MatternColor;

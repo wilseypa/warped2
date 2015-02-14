@@ -25,16 +25,26 @@ public:
                      unsigned int num_of_schedulers,
                      unsigned int num_of_worker_threads);
 
-    bool insertEvent (unsigned int obj_id, std::shared_ptr<Event> event);
+    void acquireInputQueueLock (unsigned int obj_id);
+
+    void releaseInputQueueLock (unsigned int obj_id);
+
+    void insertEvent (unsigned int obj_id, std::shared_ptr<Event> event);
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
+
+    void processedEvent (unsigned int obj_id, std::shared_ptr<Event> event);
+
+    std::shared_ptr<Event> getStragglerEvent (unsigned int obj_id);
+
+    void resetStragglerEvent (unsigned int obj_id);
 
     std::unique_ptr<std::vector<std::shared_ptr<Event>>> getEventsForCoastForward (
                         unsigned int obj_id, 
                         std::shared_ptr<Event> straggler_event, 
                         std::shared_ptr<Event> restored_state_event);
 
-    void startScheduling (unsigned int obj_id, std::shared_ptr<Event> processed_event);
+    void startScheduling (unsigned int obj_id);
 
     void cancelEvent (unsigned int obj_id, std::shared_ptr<Event> cancel_event);
 
@@ -50,6 +60,14 @@ private:
     // Queues to hold the unprocessed events for each simulation object
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
                                             compareEvents>>> input_queue_;
+
+    // Keep track of which events have been processed.
+    // This is needed to weed out new events from coast forwarded list.
+    std::vector<std::unique_ptr<
+        std::unordered_map<std::shared_ptr<Event>, bool>>> track_processed_event_;
+
+    // Straggler event record for all objects
+    std::vector<std::shared_ptr<Event>> straggler_event_pointer_;
 
     // Number of event schedulers
     unsigned int num_of_schedulers_ = 0;
@@ -67,7 +85,7 @@ private:
     // Map worker thread to a schedule queue
     std::vector<unsigned int> worker_thread_scheduler_map_;
 
-    // Position of the event scheduled from an object
+    // Event scheduled from all objects
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
 };
 
