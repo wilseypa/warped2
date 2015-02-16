@@ -23,7 +23,8 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
         track_processed_event_.push_back(
             make_unique<std::unordered_map<std::shared_ptr<Event>, bool>>());
-        straggler_event_pointer_.push_back(0);
+        lowest_unprocessed_event_pointer_.push_back(0);
+        last_processed_event_pointer_.push_back(0);
         scheduled_event_pointer_.push_back(0);
         input_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
     }
@@ -97,7 +98,7 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id, std::shared_ptr<Event> 
         // If no event is currently scheduled (all current events processed)
         if (!scheduled_event_pointer_[obj_id]) {
             scheduled_event_pointer_[obj_id] = event;
-            // Initial event should not be classified as a straggler
+            // Initial event should not be classified as a potential straggler
             if ((input_queue_[obj_id]->size() > 1) && 
                         (event != *input_queue_[obj_id]->rbegin())) {
                 causal_order_ok = false;
@@ -119,16 +120,17 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id, std::shared_ptr<Event> 
     }
 
     if (!causal_order_ok) {
-        // If straggler already exists
-        if (straggler_event_pointer_[obj_id]) {
-            // If event less than existing straggler
-            if ((*event < *straggler_event_pointer_[obj_id]) || 
-                ((*event == *straggler_event_pointer_[obj_id]) && 
-                    (event->event_type_ < straggler_event_pointer_[obj_id]->event_type_))) {
-                straggler_event_pointer_[obj_id] = event;
+        // If unprocessed event already exists
+        if (lowest_unprocessed_event_pointer_[obj_id]) {
+            // If event less than existing lowest unprocessed event
+            if ((*event < *lowest_unprocessed_event_pointer_[obj_id]) || 
+                ((*event == *lowest_unprocessed_event_pointer_[obj_id]) && 
+                    (event->event_type_ < 
+                        lowest_unprocessed_event_pointer_[obj_id]->event_type_))) {
+                lowest_unprocessed_event_pointer_[obj_id] = event;
             }
-        } else { // Straggler does not exist
-            straggler_event_pointer_[obj_id] = event;
+        } else { // Unprocessed event does not exist
+            lowest_unprocessed_event_pointer_[obj_id] = event;
         }
     }
 }
@@ -147,19 +149,48 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     return event;
 }
 
+bool TimeWarpEventSet::isRollbackRequired(unsigned int obj_id) {
+
+    bool rollback_req = true;
+
+    // If no events have been processed till that point
+    if (!last_processed_event_pointer_[obj_id]) {
+        rollback_req = false;
+
+    } else { // When atleast one event has been processed
+        auto last_processed_event_iterator = 
+                input_queue_[obj_id]->find(last_processed_event_pointer_[obj_id]);
+        assert (last_processed_event_iterator != input_queue_[obj_id]->end());
+        auto event_iterator = std::next(last_processed_event_iterator);
+        if (event_iterator != input_queue_[obj_id]->end()) {
+            // If the lowest unprocessed event is immediately next to the last processed event
+            if (lowest_unprocessed_event_pointer_[obj_id] == *event_iterator) {
+                rollback_req = false;
+            }
+        }
+    }
+    return rollback_req;
+}
+
+void TimeWarpEventSet::lastProcessedEvent (unsigned int obj_id, std::shared_ptr<Event> event) {
+
+    last_processed_event_pointer_[obj_id] = event;
+}
+
 void TimeWarpEventSet::processedEvent (unsigned int obj_id, std::shared_ptr<Event> event) {
 
     (*track_processed_event_[obj_id])[event] = true;
+    lastProcessedEvent(obj_id, event);
 }
 
-std::shared_ptr<Event> TimeWarpEventSet::getStragglerEvent (unsigned int obj_id) {
+std::shared_ptr<Event> TimeWarpEventSet::getLowestUnprocessedEvent (unsigned int obj_id) {
 
-    return straggler_event_pointer_[obj_id];
+    return lowest_unprocessed_event_pointer_[obj_id];
 }
 
-void TimeWarpEventSet::resetStragglerEvent (unsigned int obj_id) {
+void TimeWarpEventSet::resetLowestUnprocessedEvent (unsigned int obj_id) {
 
-    straggler_event_pointer_[obj_id] = 0;
+    lowest_unprocessed_event_pointer_[obj_id] = 0;
 }
 
 std::unique_ptr<std::vector<std::shared_ptr<Event>>> 
@@ -191,9 +222,9 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 
 void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
 
-    auto straggler_event = straggler_event_pointer_[obj_id];
+    auto straggler_event = lowest_unprocessed_event_pointer_[obj_id];
     if (scheduled_event_pointer_[obj_id]) {
-        // If straggler exists
+        // If there is a chance of causal order violation
         if (straggler_event) {
             auto event_iterator = input_queue_[obj_id]->find(straggler_event);
             if (event_iterator == input_queue_[obj_id]->end()) {

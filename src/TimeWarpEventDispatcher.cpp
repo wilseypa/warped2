@@ -118,17 +118,26 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Check to see if object needs a rollback
             event_set_->acquireInputQueueLock(current_object_id);
-            if (event_set_->getStragglerEvent(current_object_id)) {
-                assert(*(event_set_->getStragglerEvent(current_object_id)) <= *event);
+            if (event_set_->getLowestUnprocessedEvent(current_object_id)) {
+                assert(*(event_set_->getLowestUnprocessedEvent(current_object_id)) <= *event);
+
+                // If rollback unnecessary to handle the situation
+                if (!event_set_->isRollbackRequired(current_object_id)) {
+                    event_set_->startScheduling(current_object_id);
+                    event_set_->resetLowestUnprocessedEvent(current_object_id);
+                    event_set_->releaseInputQueueLock(current_object_id);
+                    continue;
+                }
+
                 rollback(current_object_id, current_object);
-                if (event_set_->getStragglerEvent(current_object_id)->event_type_ == 
+                if (event_set_->getLowestUnprocessedEvent(current_object_id)->event_type_ == 
                                                                         EventType::NEGATIVE) {
                     event_set_->cancelEvent(current_object_id, 
-                                            event_set_->getStragglerEvent(current_object_id));
+                                            event_set_->getLowestUnprocessedEvent(current_object_id));
                 } else {
                     event_set_->startScheduling(current_object_id);
                 }
-                event_set_->resetStragglerEvent(current_object_id);
+                event_set_->resetLowestUnprocessedEvent(current_object_id);
                 event_set_->releaseInputQueueLock(current_object_id);
                 continue;
             }
@@ -273,7 +282,7 @@ void TimeWarpEventDispatcher::cancelEvents(unsigned int sender_local_obj_id,
 
 void TimeWarpEventDispatcher::rollback(unsigned int local_object_id, SimulationObject* object) {
 
-    auto straggler_event = event_set_->getStragglerEvent(local_object_id);
+    auto straggler_event = event_set_->getLowestUnprocessedEvent(local_object_id);
     twfs_manager_->rollback(straggler_event, local_object_id);
     //assert(straggler_time >= gvt_manager_->getGVT());
 
@@ -289,6 +298,7 @@ void TimeWarpEventDispatcher::rollback(unsigned int local_object_id, SimulationO
     object_simulation_time_[local_object_id] = restored_state_event->timestamp();
 
     coastForward(object, straggler_event, restored_state_event);
+    event_set_->lastProcessedEvent(local_object_id, restored_state_event);
 
     rollback_count_++;
 }

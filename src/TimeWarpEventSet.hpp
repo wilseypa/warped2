@@ -33,11 +33,15 @@ public:
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
+    bool isRollbackRequired(unsigned int obj_id);
+
+    void lastProcessedEvent (unsigned int obj_id, std::shared_ptr<Event> event);
+
     void processedEvent (unsigned int obj_id, std::shared_ptr<Event> event);
 
-    std::shared_ptr<Event> getStragglerEvent (unsigned int obj_id);
+    std::shared_ptr<Event> getLowestUnprocessedEvent (unsigned int obj_id);
 
-    void resetStragglerEvent (unsigned int obj_id);
+    void resetLowestUnprocessedEvent (unsigned int obj_id);
 
     std::unique_ptr<std::vector<std::shared_ptr<Event>>> getEventsForCoastForward (
                         unsigned int obj_id, 
@@ -66,8 +70,11 @@ private:
     std::vector<std::unique_ptr<
         std::unordered_map<std::shared_ptr<Event>, bool>>> track_processed_event_;
 
-    // Straggler event record for all objects
-    std::vector<std::shared_ptr<Event>> straggler_event_pointer_;
+    // Last processed event record for all objects
+    std::vector<std::shared_ptr<Event>> last_processed_event_pointer_;
+
+    // Lowest unprocessed event record for all objects
+    std::vector<std::shared_ptr<Event>> lowest_unprocessed_event_pointer_;
 
     // Number of event schedulers
     unsigned int num_of_schedulers_ = 0;
