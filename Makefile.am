@@ -33,7 +33,6 @@ WARPED_NOINST_HPP_FILES = \
     src/STLLTSFQueue.hpp \
     src/TimeWarpEventDispatcher.hpp \
     src/utility/strings.hpp \
-    src/TimeWarpGVTManager.hpp \
     src/TimeWarpMatternGVTManager.hpp \
     src/TimeWarpKernelMessage.hpp \
     src/TimeWarpCommunicationManager.hpp \
@@ -44,7 +43,8 @@ WARPED_NOINST_HPP_FILES = \
     src/TimeWarpAggressiveOutputManager.hpp \
     src/TimeWarpFileStreamManager.hpp \
     src/TimeWarpFileStream.hpp \
-    src/TimeWarpEventSet.hpp
+    src/TimeWarpEventSet.hpp \
+	src/TimeWarpLocalGVTManager.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -60,7 +60,6 @@ WARPED_CPP_FILES = \
     src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
     src/TimeWarpEventDispatcher.cpp \
-    src/TimeWarpGVTManager.cpp \
     src/TimeWarpMatternGVTManager.cpp \
     src/TimeWarpCommunicationManager.cpp \
     src/TimeWarpMPICommunicationManager.cpp \
@@ -71,7 +70,8 @@ WARPED_CPP_FILES = \
     src/TimeWarpFileStreamManager.cpp \
     src/FileStream.cpp \
     src/TimeWarpFileStream.cpp \
-    src/TimeWarpEventSet.cpp
+    src/TimeWarpEventSet.cpp \
+	src/TimeWarpLocalGVTManager.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \

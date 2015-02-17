@@ -20,6 +20,7 @@
 #include "SimulationObject.hpp"
 #include "TimeWarpMPICommunicationManager.hpp"
 #include "TimeWarpMatternGVTManager.hpp"
+#include "TimeWarpLocalGVTManager.hpp"
 #include "TimeWarpStateManager.hpp"
 #include "TimeWarpOutputManager.hpp"
 #include "TimeWarpEventSet.hpp"
@@ -39,14 +40,15 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_schedulers,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<TimeWarpEventSet> event_set,
-    std::unique_ptr<TimeWarpGVTManager> gvt_manager,
+    std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager,
+    std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager,
     std::unique_ptr<TimeWarpStateManager> state_manager,
     std::unique_ptr<TimeWarpOutputManager> output_manager,
     std::unique_ptr<TimeWarpFileStreamManager> twfs_manager) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
-        num_schedulers_(num_schedulers), comm_manager_(comm_manager), 
-        event_set_(std::move(event_set)), gvt_manager_(std::move(gvt_manager)), 
-        state_manager_(std::move(state_manager)), 
+        num_schedulers_(num_schedulers), comm_manager_(comm_manager),
+        event_set_(std::move(event_set)), mattern_gvt_manager_(std::move(mattern_gvt_manager)),
+        local_gvt_manager_(std::move(local_gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)) {}
 
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
@@ -62,35 +64,31 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         threads.push_back(std::move(thread));
     }
 
-    MessageFlags msg_flags = MessageFlags::None;
-
-    auto gvt_start = std::chrono::steady_clock::now();
-    auto sim_start = gvt_start;
-
-    bool calculate_gvt = false;
-
-    // Flag that says we have started calculating minimum lvt of the objects on this node
-    bool started_min_lvt = false;
+    auto sim_start = std::chrono::steady_clock::now();
 
     // Master thread main loop
-    while (gvt_manager_->getGVT() < max_sim_time_) {
+    while (mattern_gvt_manager_->getGVT() < max_sim_time_) {
         // Get all received messages, handle messages, and get flags.
-        msg_flags |= handleReceivedMessages();
+        comm_manager_->dispatchReceivedMessages();
 
-        // Check if we have received new mattern token and we are not already in the middle
-        //  of a local gvt calculation.
-        checkLocalGVTStart(msg_flags, started_min_lvt);
+        if (mattern_gvt_manager_->startGVT()) {
+            local_gvt_manager_->startGVT();
+        }
 
-        // Check if we have received a GVT update message
-        checkGVTUpdate(msg_flags);
-
-        // Check if calculate_gvt flag is set.
-        // If not set, then check timer and set if timer period reached and a global gvt calculation
-        //  is not already active.
-        checkGlobalGVTStart(calculate_gvt, msg_flags, started_min_lvt, gvt_start);
-
-        // Check if local gvt calculation complete.
-        checkLocalGVTComplete(msg_flags, started_min_lvt);
+        if (local_gvt_manager_->completeGVT()) {
+            if (comm_manager_->getNumProcesses() > 1) {
+                if (mattern_gvt_manager_->completeGVT(local_gvt_manager_->getGVT())) {
+                    unsigned int gvt = mattern_gvt_manager_->getGVT();
+                    std::cout << "GVT: " << gvt << std::endl;
+                    fossilCollect(gvt);
+                    mattern_gvt_manager_->resetState();
+                }
+            } else {
+                unsigned int gvt = local_gvt_manager_->getGVT();
+                std::cout << "GVT: " << gvt << std::endl;
+                fossilCollect(gvt);
+            }
+        }
 
         // Send all events in the remote event queue.
         sendRemoteEvents();
@@ -109,7 +107,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     thread_id = id;
 
-    while (gvt_manager_->getGVT() < max_sim_time_) {
+    while (mattern_gvt_manager_->getGVT() < max_sim_time_) {
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
 
@@ -141,11 +139,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
             event_set_->releaseInputQueueLock(current_object_id);
 
-            if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
-                min_lvt_[thread_id] = std::min(send_min_[thread_id], event->timestamp());
-                calculated_min_flag_[thread_id] = true;
-                min_lvt_flag_.fetch_sub(1);
-            }
+            local_gvt_manager_->receiveEventUpdateState(event->timestamp(), thread_id);
 
             // Update simulation time
             object_simulation_time_[current_object_id] = event->timestamp();
@@ -191,36 +185,26 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     }
 }
 
-MessageFlags TimeWarpEventDispatcher::receiveEventMessage(
-        std::unique_ptr<TimeWarpKernelMessage> kmsg) {
+void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
 
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
-    dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->receiveEventUpdate(
-        msg->gvt_mattern_color);
+    mattern_gvt_manager_->receiveEventUpdateState(msg->gvt_mattern_color);
 
-    unsigned int receiver_object_id = local_object_id_by_name_[msg->event->receiverName()];
-    event_set_->acquireInputQueueLock(receiver_object_id);
-    event_set_->insertEvent(receiver_object_id, msg->event);
-    event_set_->releaseInputQueueLock(receiver_object_id);
-    return MessageFlags::None;
+    sendLocalEvent(msg->event);
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
-
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
+
     event_set_->acquireInputQueueLock(receiver_object_id);
     event_set_->insertEvent(receiver_object_id, event);
     event_set_->releaseInputQueueLock(receiver_object_id);
 
-    if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
-        unsigned int send_min = send_min_[thread_id];
-        send_min_[thread_id] = std::min(send_min, event->timestamp());
-    }
+    local_gvt_manager_->sendEventUpdateState(event->timestamp(), thread_id);
 }
 
 void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event, 
                                                 unsigned int sender_local_obj_id) {
-
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
 
     // If object needs to send itself a neg event, lock already acquired
@@ -239,13 +223,11 @@ void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event,
         event_set_->acquireInputQueueLock(sender_local_obj_id);
     }
 
-    if (min_lvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
-        unsigned int send_min = send_min_[thread_id];
-        send_min_[thread_id] = std::min(send_min, event->timestamp());
-    }
+    local_gvt_manager_->sendEventUpdateState(event->timestamp(), thread_id);
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
+    unused(gvt);
     twfs_manager_->fossilCollectAll(gvt);
     state_manager_->fossilCollectAll(gvt);
     output_manager_->fossilCollectAll(gvt);
@@ -275,7 +257,8 @@ void TimeWarpEventDispatcher::rollback(unsigned int local_object_id, SimulationO
 
     auto straggler_event = event_set_->getStragglerEvent(local_object_id);
     twfs_manager_->rollback(straggler_event, local_object_id);
-    //assert(straggler_time >= gvt_manager_->getGVT());
+
+    assert(straggler_event->timestamp() >= mattern_gvt_manager_->getGVT());
 
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
     if (events_to_cancel != nullptr) {
@@ -356,44 +339,22 @@ void TimeWarpEventDispatcher::initialize(
     twfs_manager_->initialize(num_local_objects);
 
     // Register message handlers
-    gvt_manager_->initialize();
+    mattern_gvt_manager_->initialize();
 
-    std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> handler =
-        std::bind(&TimeWarpEventDispatcher::receiveEventMessage, this,
-        std::placeholders::_1);
+    std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> handler =
+        std::bind(&TimeWarpEventDispatcher::receiveEventMessage, this, std::placeholders::_1);
     comm_manager_->addRecvMessageHandler(MessageType::EventMessage, handler);
 
     // Prepare local min lvt computation
-    min_lvt_ = make_unique<unsigned int []>(num_worker_threads_);
-    send_min_ = make_unique<unsigned int []>(num_worker_threads_);
-    calculated_min_flag_ = make_unique<bool []>(num_worker_threads_);
-    for (unsigned int i = 0; i < num_worker_threads_; i++) {
-        min_lvt_[i] = std::numeric_limits<unsigned int>::max();
-        send_min_[i] = std::numeric_limits<unsigned int>::max();
-        calculated_min_flag_[i] = false;
-    }
-}
-
-unsigned int TimeWarpEventDispatcher::getMinimumLVT() {
-    unsigned int min = std::numeric_limits<unsigned int>::max();
-    for (unsigned int i = 0; i < num_worker_threads_; i++) {
-        min = std::min(min, min_lvt_[i]);
-        // Reset send_min back to very large number for next calculation
-        send_min_[i] = std::numeric_limits<unsigned int>::max();
-        calculated_min_flag_[i] = false;
-        min_lvt_[i] = std::numeric_limits<unsigned int>::max();
-    }
-    return min;
+    local_gvt_manager_->initialize(num_worker_threads_, num_local_objects);
 }
 
 FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,
     const std::string& filename, std::ios_base::openmode mode, std::shared_ptr<Event> this_event) {
 
     unsigned int local_object_id = local_object_id_by_name_[object->name_];
-    TimeWarpFileStream* twfs = twfs_manager_->getFileStream(filename, mode, local_object_id,
-        this_event);
 
-    return *twfs;
+    return *twfs_manager_->getFileStream(filename, mode, local_object_id, this_event);
 }
 
 void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
@@ -410,8 +371,7 @@ void TimeWarpEventDispatcher::sendRemoteEvents() {
         auto event = std::move(remote_event_queue_.front());
         remote_event_queue_.pop_front();
 
-        MatternColor color = dynamic_cast<TimeWarpMatternGVTManager*>
-            (gvt_manager_.get())->sendEventUpdate(event.first->timestamp());
+        MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event.first->timestamp());
 
         unsigned int receiver_id = event.second;
         auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id,
@@ -420,65 +380,6 @@ void TimeWarpEventDispatcher::sendRemoteEvents() {
         comm_manager_->sendMessage(std::move(event_msg));
     }
     remote_event_queue_lock_.unlock();
-}
-
-MessageFlags TimeWarpEventDispatcher::handleReceivedMessages() {
-    return comm_manager_->dispatchReceivedMessages();
-}
-
-void TimeWarpEventDispatcher::checkLocalGVTStart(MessageFlags &msg_flags, bool &started_min_lvt) {
-    if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && !started_min_lvt) {
-        min_lvt_flag_.store(num_worker_threads_);
-        started_min_lvt = true;
-    }
-}
-
-void TimeWarpEventDispatcher::checkGVTUpdate(MessageFlags &msg_flags) {
-    if (GVT_UPDATE(msg_flags)) {
-        //fossilCollect(gvt_manager_->getGVT());
-        msg_flags &= ~MessageFlags::GVTUpdate;
-        dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
-    }
-}
-
-void TimeWarpEventDispatcher::checkGlobalGVTStart(bool &calculate_gvt, MessageFlags &msg_flags,
-    bool &started_min_lvt, std::chrono::time_point<std::chrono::steady_clock> &gvt_start) {
-
-    if (calculate_gvt && comm_manager_->getID() == 0) {
-        // This will only return true if a token is not in circulation and we need to
-        // start another one.
-        MessageFlags flags = gvt_manager_->calculateGVT();
-        msg_flags |= flags;
-        checkLocalGVTStart(msg_flags, started_min_lvt);
-        if (started_min_lvt) {
-            calculate_gvt = false;
-        }
-    } else if (comm_manager_->getID() == 0) {
-        auto now = std::chrono::steady_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>
-            (now - gvt_start).count();
-        if (elapsed >= gvt_manager_->getGVTPeriod()) {
-            calculate_gvt = true;
-            gvt_start = now;
-        }
-    }
-}
-
-void TimeWarpEventDispatcher::checkLocalGVTComplete(MessageFlags &msg_flags, bool &started_min_lvt) {
-    if (PENDING_MATTERN_TOKEN(msg_flags) && (min_lvt_flag_.load() == 0) && started_min_lvt) {
-        unsigned int local_min_lvt = getMinimumLVT();
-        if (comm_manager_->getNumProcesses() > 1) {
-            dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->sendMatternGVTToken(
-                local_min_lvt);
-        } else {
-            gvt_manager_->setGVT(local_min_lvt);
-            std::cout << "GVT: " << local_min_lvt << std::endl;
-            //fossilCollect(gvt_manager_->getGVT());
-            dynamic_cast<TimeWarpMatternGVTManager*>(gvt_manager_.get())->reset();
-        }
-        msg_flags &= ~MessageFlags::PendingMatternToken;
-        started_min_lvt = false;
-    }
 }
 
 } // namespace warped

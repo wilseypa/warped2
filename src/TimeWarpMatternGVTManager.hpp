@@ -2,10 +2,8 @@
 #define MATTERN_GVT_MANAGER_HPP
 
 #include <memory> // for unique_ptr
-#include <atomic>
 
 #include "TimeWarpEventDispatcher.hpp"
-#include "TimeWarpGVTManager.hpp"
 #include "serialization.hpp"
 #include "TimeWarpKernelMessage.hpp"
 
@@ -45,35 +43,42 @@
 
 namespace warped {
 
-// Color of messages for matterns algorithm
 enum class MatternColor { WHITE, RED };
 
-class TimeWarpMatternGVTManager : public TimeWarpGVTManager {
+class TimeWarpMatternGVTManager {
 public:
     TimeWarpMatternGVTManager(std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
         unsigned int period) :
-        TimeWarpGVTManager(comm_manager, period) {}
+        comm_manager_(comm_manager), gvt_period_(period) {}
 
     void initialize();
 
-    // Starts the GVT calculation process
-    MessageFlags calculateGVT();
+    bool startGVT();
 
-    // Called when a MatternGVTToken has been received
-    MessageFlags receiveMatternGVTToken(std::unique_ptr<TimeWarpKernelMessage> msg);
+    void resetState();
 
-    void sendMatternGVTToken(unsigned int local_minimum);
+    bool completeGVT(unsigned int local_min);
 
-    void receiveEventUpdate(MatternColor color);
+    void receiveEventUpdateState(MatternColor color);
 
-    MatternColor sendEventUpdate(unsigned int timestamp);
+    MatternColor sendEventUpdateState(unsigned int timestamp);
 
-    void reset();
+    void receiveMatternGVTToken(std::unique_ptr<TimeWarpKernelMessage> msg);
+
+    void receiveGVTUpdate(std::unique_ptr<TimeWarpKernelMessage> kmsg);
+
+    unsigned int getGVT() { return gVT_; }
 
 protected:
     unsigned int infinityVT();
 
+    void sendMatternGVTToken(unsigned int local_minimum);
+
+    void sendGVTUpdate();
+
 private:
+    unsigned int gVT_ = 0;
+
     unsigned int token_iteration_ = 0;
 
     MatternColor color_ = MatternColor::WHITE;
@@ -84,6 +89,12 @@ private:
     int msg_count_ = 0;
 
     bool gVT_token_pending_ = false;
+
+    std::chrono::time_point<std::chrono::steady_clock> gvt_start;
+
+    const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
+
+    unsigned int gvt_period_;
 
 };
 
@@ -110,6 +121,18 @@ struct MatternGVTToken : public TimeWarpKernelMessage {
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<TimeWarpKernelMessage>(this), m_clock,
                                          m_send, count)
 
+};
+
+struct GVTUpdateMessage : public TimeWarpKernelMessage {
+    GVTUpdateMessage() = default;
+    GVTUpdateMessage(unsigned int sender_id, unsigned int receiver_id, unsigned int gvt) :
+        TimeWarpKernelMessage(sender_id, receiver_id), new_gvt(gvt) {}
+
+    unsigned int new_gvt;
+
+    MessageType get_type() { return MessageType::GVTUpdateMessage; }
+
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<TimeWarpKernelMessage>(this), new_gvt)
 };
 
 } // warped namespace

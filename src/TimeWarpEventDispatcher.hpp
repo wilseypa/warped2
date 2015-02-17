@@ -26,11 +26,12 @@ class LTSFQueue;
 class Partitioner;
 class SimulationObject;
 class TimeWarpCommunicationManager;
-class TimeWarpGVTManager;
 class TimeWarpStateManager;
 class TimeWarpOutputManager;
 class TimeWarpFileStreamManager;
 class TimeWarpEventSet;
+class TimeWarpMatternGVTManager;
+class TimeWarpLocalGVTManager;
 
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
@@ -41,7 +42,8 @@ public:
         unsigned int num_schedulers,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
         std::unique_ptr<TimeWarpEventSet> event_set,
-        std::unique_ptr<TimeWarpGVTManager> gvt_manager,
+        std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager,
+        std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager,
         std::unique_ptr<TimeWarpStateManager> state_manager,
         std::unique_ptr<TimeWarpOutputManager> output_manager,
         std::unique_ptr<TimeWarpFileStreamManager> twfs_manager);
@@ -49,7 +51,6 @@ public:
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
 private:
-    void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
 
     void sendLocalEvent(std::shared_ptr<Event> event);
 
@@ -72,26 +73,13 @@ private:
 
     void processEvents(unsigned int id);
 
-    void populateThreadMap();
-
 /* ====================== Used by only manager thread ========================= */
 
-    MessageFlags receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
+    void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
 
-    unsigned int getMinimumLVT();
+    void receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
     void sendRemoteEvents();
-
-    MessageFlags handleReceivedMessages();
-
-    void checkLocalGVTStart(MessageFlags &msg_flags, bool &started_min_lvt);
-
-    void checkGVTUpdate(MessageFlags &msg_flags);
-
-    void checkGlobalGVTStart(bool &calculate_gvt, MessageFlags &msg_flags,
-        bool &started_min_lvt, std::chrono::time_point<std::chrono::steady_clock> &gvt_start);
-
-    void checkLocalGVTComplete(MessageFlags &msg_flags, bool &started_min_lvt);
 
 /* ============================================================================ */
 
@@ -105,7 +93,8 @@ private:
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<TimeWarpEventSet> event_set_;
-    const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
+    const std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager_;
+    const std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager_;
     const std::unique_ptr<TimeWarpStateManager> state_manager_;
     const std::unique_ptr<TimeWarpOutputManager> output_manager_;
     const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
@@ -118,18 +107,6 @@ private:
     std::mutex remote_event_queue_lock_;
 
     static thread_local unsigned int thread_id;
-
-    // flag to initiate minimum lvt calculation
-    std::atomic<unsigned int> min_lvt_flag_ = ATOMIC_VAR_INIT(0);
-
-    // local min lvt of each worker thread
-    std::unique_ptr<unsigned int []> min_lvt_;
-
-    // minimum timestamp of sent events used for minimum lvt calculation
-    std::unique_ptr<unsigned int []> send_min_;
-
-    // flag to determine if worker thread has already calculated min lvt
-    std::unique_ptr<bool []> calculated_min_flag_;
 
     // Rollback counter
     std::atomic<unsigned long> rollback_count_;

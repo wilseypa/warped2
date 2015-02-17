@@ -23,9 +23,10 @@
 #include "ProfileGuidedPartitioner.hpp"
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
+#include "TimeWarpMatternGVTManager.hpp"
+#include "TimeWarpLocalGVTManager.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 #include "utility/memory.hpp"
-#include "TimeWarpMatternGVTManager.hpp"
 #include "TimeWarpMPICommunicationManager.hpp"
 #include "TimeWarpPeriodicStateManager.hpp"
 #include "TimeWarpAggressiveOutputManager.hpp"
@@ -51,7 +52,6 @@ const static std::string DEFAULT_CONFIG = R"x({
 
 "time-warp" : {
     "gvt-calculation": {
-        "algorithm": "mattern",
         "period": 100
     },
 
@@ -182,11 +182,9 @@ Configuration::makeDispatcher() {
         std::unique_ptr<TimeWarpFileStreamManager> twfs_manager =
             make_unique<TimeWarpFileStreamManager>();
 
-        std::unique_ptr<TimeWarpGVTManager> gvt_manager;
-        if ((*root_)["time-warp"]["gvt-calculation"]["algorithm"].asString() == "mattern") {
-            int period = (*root_)["time-warp"]["gvt-calculation"]["period"].asInt();
-            gvt_manager = make_unique<TimeWarpMatternGVTManager>(comm_manager, period);
-        }
+        int period = (*root_)["time-warp"]["gvt-calculation"]["period"].asInt();
+        std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager
+            = make_unique<TimeWarpMatternGVTManager>(comm_manager, period);
 
         std::unique_ptr<TimeWarpStateManager> state_manager;
         if ((*root_)["time-warp"]["state-saving"]["type"].asString() == "periodic") {
@@ -201,12 +199,15 @@ Configuration::makeDispatcher() {
 
         int num_worker_threads = (*root_)["time-warp"]["worker-threads"].asInt();
 
+        std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager =
+            make_unique<TimeWarpLocalGVTManager>();
+
         int num_schedulers = (*root_)["time-warp"]["scheduler-count"].asInt();
 
         return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,
             num_worker_threads, num_schedulers, comm_manager, std::move(event_set),
-            std::move(gvt_manager), std::move(state_manager), std::move(output_manager),
-            std::move(twfs_manager)), num_partitions);
+            std::move(mattern_gvt_manager), std::move(local_gvt_manager), std::move(state_manager),
+            std::move(output_manager), std::move(twfs_manager)), num_partitions);
     }
 
     // Return a SequentialEventDispatcher by default

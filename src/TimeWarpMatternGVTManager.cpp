@@ -9,11 +9,12 @@
  */
 
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::MatternGVTToken)
+WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::GVTUpdateMessage)
 
 namespace warped {
 
 void TimeWarpMatternGVTManager::initialize() {
-    std::function<MessageFlags(std::unique_ptr<TimeWarpKernelMessage>)> handler =
+    std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> handler =
         std::bind(&TimeWarpMatternGVTManager::receiveMatternGVTToken, this,
         std::placeholders::_1);
     comm_manager_->addRecvMessageHandler(MessageType::MatternGVTToken, handler);
@@ -27,13 +28,13 @@ unsigned int TimeWarpMatternGVTManager::infinityVT() {
     return std::numeric_limits<unsigned int>::max();
 }
 
-void TimeWarpMatternGVTManager::receiveEventUpdate(MatternColor color) {
+void TimeWarpMatternGVTManager::receiveEventUpdateState(MatternColor color) {
     if (color == MatternColor::WHITE) {
         white_msg_counter_--;
     }
 }
 
-MatternColor TimeWarpMatternGVTManager::sendEventUpdate(unsigned int timestamp) {
+MatternColor TimeWarpMatternGVTManager::sendEventUpdateState(unsigned int timestamp) {
     if (color_ == MatternColor::WHITE) {
         white_msg_counter_++;
     } else {
@@ -42,24 +43,42 @@ MatternColor TimeWarpMatternGVTManager::sendEventUpdate(unsigned int timestamp) 
     return color_;
 }
 
-MessageFlags TimeWarpMatternGVTManager::calculateGVT() {
-
-    MessageFlags flags = MessageFlags::None;
+bool TimeWarpMatternGVTManager::startGVT() {
 
     if (comm_manager_->getID() != 0) {
-        return flags;
+        return false;
     }
 
-    if (gVT_token_pending_ == false) {
-        color_ = MatternColor::RED;
-        min_red_msg_timestamp_ = infinityVT();
-        white_msg_counter_ = 0;
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - gvt_start).count();
 
-        gVT_token_pending_ = true;
-        flags = MessageFlags::PendingMatternToken;
+    if (gVT_token_pending_ == false && elapsed >= gvt_period_) {
+
+        if (comm_manager_->getNumProcesses() > 1) {
+            color_ = MatternColor::RED;
+            min_red_msg_timestamp_ = infinityVT();
+            white_msg_counter_ = 0;
+
+            gVT_token_pending_ = true;
+        }
+
+        gvt_start = now;
+
+        return true;
     }
 
-    return flags;
+    return false;
+}
+
+bool TimeWarpMatternGVTManager::completeGVT(unsigned int local_minimum) {
+    bool finished = false;
+    if (gVT_token_pending_) {
+        sendMatternGVTToken(local_minimum);
+        finished = false;
+    } else {
+        finished = true;
+    }
+    return finished;
 }
 
 void TimeWarpMatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) {
@@ -83,12 +102,11 @@ void TimeWarpMatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) 
     comm_manager_->sendMessage(std::move(msg));
 }
 
-MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
+void TimeWarpMatternGVTManager::receiveMatternGVTToken(
     std::unique_ptr<TimeWarpKernelMessage> kmsg) {
 
     auto msg = unique_cast<TimeWarpKernelMessage, MatternGVTToken>(std::move(kmsg));
     unsigned int process_id = comm_manager_->getID();
-    MessageFlags flags = MessageFlags::None;
 
     if (process_id == 0) {
         // Initiator received the message
@@ -101,7 +119,6 @@ MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
             gVT_token_pending_ = false;
 
             sendGVTUpdate();
-            flags |= MessageFlags::GVTUpdate;
 
             // Reset
             white_msg_counter_ = 0;
@@ -113,7 +130,6 @@ MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
             min_red_msg_timestamp_ = std::min(msg->m_send, min_red_msg_timestamp_);
             msg_count_ = 0;
             white_msg_counter_ = 0;
-            flags |= MessageFlags::PendingMatternToken;
         }
 
     } else {
@@ -126,16 +142,25 @@ MessageFlags TimeWarpMatternGVTManager::receiveMatternGVTToken(
         min_of_all_lvt_ = std::min(min_of_all_lvt_, msg->m_clock);
         min_red_msg_timestamp_ = std::min(msg->m_send, min_red_msg_timestamp_);
         msg_count_ = msg->count;
-
-        flags |= MessageFlags::PendingMatternToken;
     }
-    return flags;
 }
 
-void TimeWarpMatternGVTManager::reset() {
+void TimeWarpMatternGVTManager::resetState() {
     token_iteration_ = 0;
     color_ = MatternColor::WHITE;
     gVT_token_pending_ = false;
+}
+
+void TimeWarpMatternGVTManager::receiveGVTUpdate(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
+    auto msg = unique_cast<TimeWarpKernelMessage, GVTUpdateMessage>(std::move(kmsg));
+    gVT_ = msg->new_gvt;
+}
+
+void TimeWarpMatternGVTManager::sendGVTUpdate() {
+    for (unsigned int i = 1; i < comm_manager_->getNumProcesses(); i++) {
+        auto update_msg = make_unique<GVTUpdateMessage>(0, i, gVT_);
+        comm_manager_->sendMessage(std::move(update_msg));
+    }
 }
 
 } // namespace warped
