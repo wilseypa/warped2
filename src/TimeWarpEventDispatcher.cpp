@@ -148,7 +148,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
             event_set_->releaseInputQueueLock(current_object_id);
 
-            local_gvt_manager_->receiveEventUpdateState(event->timestamp(), thread_id);
+            local_gvt_manager_->receiveEventUpdateState(event->timestamp(), current_object_id);
 
             // Update simulation time
             object_simulation_time_[current_object_id] = event->timestamp();
@@ -208,8 +208,6 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     event_set_->acquireInputQueueLock(receiver_object_id);
     event_set_->insertEvent(receiver_object_id, event);
     event_set_->releaseInputQueueLock(receiver_object_id);
-
-    local_gvt_manager_->sendEventUpdateState(event->timestamp(), thread_id);
 }
 
 void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event, 
@@ -232,11 +230,10 @@ void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event,
         event_set_->acquireInputQueueLock(sender_local_obj_id);
     }
 
-    local_gvt_manager_->sendEventUpdateState(event->timestamp(), thread_id);
+    local_gvt_manager_->sendEventUpdateState(event->timestamp(), sender_local_obj_id);
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
-    unused(gvt);
     twfs_manager_->fossilCollectAll(gvt);
     state_manager_->fossilCollectAll(gvt);
     output_manager_->fossilCollectAll(gvt);
@@ -356,7 +353,7 @@ void TimeWarpEventDispatcher::initialize(
     comm_manager_->addRecvMessageHandler(MessageType::EventMessage, handler);
 
     // Prepare local min lvt computation
-    local_gvt_manager_->initialize(num_worker_threads_, num_local_objects);
+    local_gvt_manager_->initialize(num_local_objects);
 }
 
 FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,
