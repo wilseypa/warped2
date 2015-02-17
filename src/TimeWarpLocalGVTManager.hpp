@@ -18,9 +18,9 @@ public:
 
     void resetState();
 
-    void receiveEventUpdateState(unsigned int timestamp, unsigned int thread_id);
+    void receiveEventUpdateState(unsigned int timestamp, unsigned int local_object_id);
 
-    void sendEventUpdateState(unsigned int timestamp, unsigned int thread_id);
+    void sendEventUpdateState(unsigned int timestamp, unsigned int local_object_id);
 
     unsigned int getGVT() { return gVT_; }
 
