@@ -17,7 +17,6 @@
 
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
-#include "TimeWarpFileStream.hpp"
 #include "TimeWarpCommunicationManager.hpp"
 
 namespace warped {
@@ -25,13 +24,13 @@ namespace warped {
 class LTSFQueue;
 class Partitioner;
 class SimulationObject;
-class TimeWarpCommunicationManager;
 class TimeWarpStateManager;
 class TimeWarpOutputManager;
 class TimeWarpFileStreamManager;
 class TimeWarpEventSet;
 class TimeWarpMatternGVTManager;
 class TimeWarpLocalGVTManager;
+class TimeWarpTerminationManager;
 
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
@@ -46,7 +45,8 @@ public:
         std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager,
         std::unique_ptr<TimeWarpStateManager> state_manager,
         std::unique_ptr<TimeWarpOutputManager> output_manager,
-        std::unique_ptr<TimeWarpFileStreamManager> twfs_manager);
+        std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
+        std::unique_ptr<TimeWarpTerminationManager> termination_manager);
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
@@ -98,6 +98,7 @@ private:
     const std::unique_ptr<TimeWarpStateManager> state_manager_;
     const std::unique_ptr<TimeWarpOutputManager> output_manager_;
     const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
+    const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
 
     std::unique_ptr<unsigned int []> object_simulation_time_;
 

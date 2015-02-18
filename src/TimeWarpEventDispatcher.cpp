@@ -23,6 +23,8 @@
 #include "TimeWarpLocalGVTManager.hpp"
 #include "TimeWarpStateManager.hpp"
 #include "TimeWarpOutputManager.hpp"
+#include "TimeWarpFileStreamManager.hpp"
+#include "TimeWarpTerminationManager.hpp"
 #include "TimeWarpEventSet.hpp"
 #include "utility/memory.hpp"
 #include "utility/warnings.hpp"
@@ -44,12 +46,14 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager,
     std::unique_ptr<TimeWarpStateManager> state_manager,
     std::unique_ptr<TimeWarpOutputManager> output_manager,
-    std::unique_ptr<TimeWarpFileStreamManager> twfs_manager) :
+    std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
+    std::unique_ptr<TimeWarpTerminationManager> termination_manager) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
         num_schedulers_(num_schedulers), comm_manager_(comm_manager),
         event_set_(std::move(event_set)), mattern_gvt_manager_(std::move(mattern_gvt_manager)),
         local_gvt_manager_(std::move(local_gvt_manager)), state_manager_(std::move(state_manager)),
-        output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)) {}
+        output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
+        termination_manager_(std::move(termination_manager)) {}
 
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
@@ -67,7 +71,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     auto sim_start = std::chrono::steady_clock::now();
 
     // Master thread main loop
-    while (mattern_gvt_manager_->getGVT() < max_sim_time_) {
+    while (!termination_manager_->terminationStatus()) {
         // Get all received messages, handle messages, and get flags.
         comm_manager_->dispatchReceivedMessages();
 
@@ -80,15 +84,19 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                 if (mattern_gvt_manager_->completeGVT(local_gvt_manager_->getGVT())) {
                     unsigned int gvt = mattern_gvt_manager_->getGVT();
                     std::cout << "GVT: " << gvt << std::endl;
-                    fossilCollect(gvt);
+//                    fossilCollect(gvt);
                     mattern_gvt_manager_->resetState();
                 }
             } else {
                 unsigned int gvt = local_gvt_manager_->getGVT();
                 mattern_gvt_manager_->setGVT(gvt);
                 std::cout << "GVT: " << gvt << std::endl;
-                fossilCollect(gvt);
+//                fossilCollect(gvt);
             }
+        }
+
+        if (termination_manager_->nodePassive()) {
+            termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID());
         }
 
         // Send all events in the remote event queue.
@@ -108,9 +116,12 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     thread_id = id;
 
-    while (mattern_gvt_manager_->getGVT() < max_sim_time_) {
+    while (!termination_manager_->terminationStatus()) {
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
+            if (termination_manager_->threadPassive(thread_id)) {
+                termination_manager_->setThreadActive(thread_id);
+            }
 
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
@@ -189,8 +200,9 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             event_set_->releaseInputQueueLock(current_object_id);
 
         } else {
-            // TODO, do something here
-            //assert(false);
+            if (!termination_manager_->threadPassive(thread_id)) {
+                termination_manager_->setThreadPassive(thread_id);
+            }
         }
     }
 }
@@ -207,7 +219,9 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
 
     event_set_->acquireInputQueueLock(receiver_object_id);
-    event_set_->insertEvent(receiver_object_id, event);
+    if (event->timestamp() <= max_sim_time_) {
+        event_set_->insertEvent(receiver_object_id, event);
+    }
     event_set_->releaseInputQueueLock(receiver_object_id);
 }
 
@@ -226,7 +240,9 @@ void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event,
         // sender object lock is released.
         event_set_->releaseInputQueueLock(sender_local_obj_id);
         event_set_->acquireInputQueueLock(receiver_object_id);
-        event_set_->insertEvent(receiver_object_id, event);
+        if (event->timestamp() <= max_sim_time_) {
+            event_set_->insertEvent(receiver_object_id, event);
+        }
         event_set_->releaseInputQueueLock(receiver_object_id);
         event_set_->acquireInputQueueLock(sender_local_obj_id);
     }
@@ -355,6 +371,8 @@ void TimeWarpEventDispatcher::initialize(
 
     // Prepare local min lvt computation
     local_gvt_manager_->initialize(num_local_objects);
+
+    termination_manager_->initialize(num_worker_threads_);
 }
 
 FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,

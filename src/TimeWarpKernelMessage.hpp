@@ -12,7 +12,9 @@ namespace warped {
 enum class MessageType {
     EventMessage,
     MatternGVTToken,
-    GVTUpdateMessage
+    GVTUpdateMessage,
+    TerminationToken,
+    Terminator
 };
 
 struct TimeWarpKernelMessage {

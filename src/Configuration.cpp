@@ -32,6 +32,7 @@
 #include "TimeWarpAggressiveOutputManager.hpp"
 #include "TimeWarpFileStreamManager.hpp"
 #include "TimeWarpEventSet.hpp"
+#include "TimeWarpTerminationManager.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
@@ -202,12 +203,16 @@ Configuration::makeDispatcher() {
         std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager =
             make_unique<TimeWarpLocalGVTManager>();
 
+        std::unique_ptr<TimeWarpTerminationManager> termination_manager =
+            make_unique<TimeWarpTerminationManager>(comm_manager);
+
         int num_schedulers = (*root_)["time-warp"]["scheduler-count"].asInt();
 
         return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,
             num_worker_threads, num_schedulers, comm_manager, std::move(event_set),
             std::move(mattern_gvt_manager), std::move(local_gvt_manager), std::move(state_manager),
-            std::move(output_manager), std::move(twfs_manager)), num_partitions);
+            std::move(output_manager), std::move(twfs_manager), std::move(termination_manager)),
+            num_partitions);
     }
 
     // Return a SequentialEventDispatcher by default
