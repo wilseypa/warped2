@@ -280,14 +280,14 @@ void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
     for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {
         acquireInputQueueLock(obj_id);
         auto event_iterator = input_queue_[obj_id]->begin();
-        for (; event_iterator != input_queue_[obj_id]->end(); event_iterator++) {
+        while (event_iterator != input_queue_[obj_id]->end()) {
             if ((*event_iterator)->timestamp() >= fossil_collect_time) {
                 break;
             }
-        }
-        if (event_iterator != input_queue_[obj_id]->begin()) {
-            input_queue_[obj_id]->erase(input_queue_[obj_id]->begin(), 
-                                            std::prev(event_iterator));
+            (*track_processed_event_[obj_id]).erase(*event_iterator);
+            input_queue_[obj_id]->erase(event_iterator);
+
+            event_iterator = input_queue_[obj_id]->begin();
         }
         releaseInputQueueLock(obj_id);
     }
