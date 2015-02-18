@@ -69,6 +69,8 @@ public:
 
     unsigned int getGVT() { return gVT_; }
 
+    void setGVT(unsigned int gvt) { gVT_ = gvt; }
+
 protected:
     unsigned int infinityVT();
 

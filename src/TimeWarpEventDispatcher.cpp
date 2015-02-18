@@ -85,6 +85,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                 }
             } else {
                 unsigned int gvt = local_gvt_manager_->getGVT();
+                mattern_gvt_manager_->setGVT(gvt);
                 std::cout << "GVT: " << gvt << std::endl;
                 fossilCollect(gvt);
             }
