@@ -18,11 +18,14 @@ public:
 
     void resetState();
 
-    void receiveEventUpdateState(unsigned int timestamp, unsigned int local_object_id);
+    void receiveEventUpdateState(unsigned int timestamp, unsigned int local_object_id,
+        unsigned int local_gvt_flag);
 
     void sendEventUpdateState(unsigned int timestamp, unsigned int local_object_id);
 
     unsigned int getGVT() { return gVT_; }
+
+    unsigned int getLocalGVTFlag();
 
 protected:
     unsigned int getMinimumLVT();

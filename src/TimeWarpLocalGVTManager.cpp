@@ -48,9 +48,9 @@ bool TimeWarpLocalGVTManager::completeGVT() {
 }
 
 void TimeWarpLocalGVTManager::receiveEventUpdateState(unsigned int timestamp,
-    unsigned int local_object_id) {
+    unsigned int local_object_id, unsigned int local_gvt_flag) {
 
-    if (local_gvt_flag_.load() > 0 && !calculated_min_flag_[local_object_id]) {
+    if (local_gvt_flag > 0 && !calculated_min_flag_[local_object_id]) {
         local_min_[local_object_id] = std::min(send_min_[local_object_id], timestamp);
         calculated_min_flag_[local_object_id] = true;
         local_gvt_flag_.fetch_sub(1);
@@ -73,6 +73,10 @@ void TimeWarpLocalGVTManager::resetState() {
         calculated_min_flag_[i] = false;
         local_min_[i] = std::numeric_limits<unsigned int>::max();
     }
+}
+
+unsigned int TimeWarpLocalGVTManager::getLocalGVTFlag() {
+    return local_gvt_flag_.load();
 }
 
 } // namespace warped

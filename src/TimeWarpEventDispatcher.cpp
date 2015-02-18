@@ -115,10 +115,16 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     thread_id = id;
+    unsigned int local_gvt_flag;
 
     while (!termination_manager_->terminationStatus()) {
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
+
+            // This flag must be obtained before any rollbacks occur so that no anti-messages
+            // are missed during gvt calculation.
+            local_gvt_flag = local_gvt_manager_->getLocalGVTFlag();
+
             if (termination_manager_->threadPassive(thread_id)) {
                 termination_manager_->setThreadActive(thread_id);
             }
@@ -160,7 +166,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
             event_set_->releaseInputQueueLock(current_object_id);
 
-            local_gvt_manager_->receiveEventUpdateState(event->timestamp(), current_object_id);
+            local_gvt_manager_->receiveEventUpdateState(event->timestamp(), current_object_id,
+                local_gvt_flag);
 
             // Update simulation time
             object_simulation_time_[current_object_id] = event->timestamp();
