@@ -31,6 +31,7 @@ class TimeWarpEventSet;
 class TimeWarpMatternGVTManager;
 class TimeWarpLocalGVTManager;
 class TimeWarpTerminationManager;
+enum class MatternColor;
 
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
@@ -104,7 +105,7 @@ private:
 
     std::unique_ptr<std::atomic<unsigned long> []> event_counter_by_obj_;
 
-    std::deque<std::pair <std::shared_ptr<Event>, unsigned int>> remote_event_queue_;
+    std::deque<std::tuple <std::shared_ptr<Event>, unsigned int, MatternColor>> remote_event_queue_;
     std::mutex remote_event_queue_lock_;
 
     static thread_local unsigned int thread_id;
@@ -112,8 +113,6 @@ private:
     // Rollback counter
     std::atomic<unsigned long> rollback_count_;
 };
-
-enum class MatternColor;
 
 struct EventMessage : public TimeWarpKernelMessage {
     EventMessage() = default;

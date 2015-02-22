@@ -118,12 +118,11 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     unsigned int local_gvt_flag;
 
     while (!termination_manager_->terminationStatus()) {
+        // local_gvt_flag must be obtained before getting the next event
+        local_gvt_flag = local_gvt_manager_->getLocalGVTFlag();
+
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
-
-            // This flag must be obtained before any rollbacks occur so that no anti-messages
-            // are missed during gvt calculation.
-            local_gvt_flag = local_gvt_manager_->getLocalGVTFlag();
 
             if (termination_manager_->threadPassive(thread_id)) {
                 termination_manager_->setThreadActive(thread_id);
@@ -224,12 +223,15 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
+    unsigned int sender_object_id = local_object_id_by_name_[event->sender_name_];
 
     event_set_->acquireInputQueueLock(receiver_object_id);
     if (event->timestamp() <= max_sim_time_) {
         event_set_->insertEvent(receiver_object_id, event);
     }
     event_set_->releaseInputQueueLock(receiver_object_id);
+
+    local_gvt_manager_->sendEventUpdateState(event->timestamp(), sender_object_id);
 }
 
 void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event, 
@@ -394,21 +396,24 @@ void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
     unsigned int receiver_id) {
 
     remote_event_queue_lock_.lock();
-    remote_event_queue_.push_back(std::make_pair(event, receiver_id));
+    // NOTE: sendEventUpdateState must be called with remote_event_queue_lock_
+    MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event->timestamp());
+    remote_event_queue_.push_back(std::make_tuple(event, receiver_id, color));
     remote_event_queue_lock_.unlock();
 }
 
 void TimeWarpEventDispatcher::sendRemoteEvents() {
     remote_event_queue_lock_.lock();
     while (!remote_event_queue_.empty()) {
-        auto event = std::move(remote_event_queue_.front());
+        auto event_tuple = std::move(remote_event_queue_.front());
         remote_event_queue_.pop_front();
 
-        MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event.first->timestamp());
+        auto event = std::get<0>(event_tuple);
+        unsigned int receiver_id = std::get<1>(event_tuple);
+        MatternColor color = std::get<2>(event_tuple);
 
-        unsigned int receiver_id = event.second;
         auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id,
-            event.first, color);
+            event, color);
 
         comm_manager_->sendMessage(std::move(event_msg));
     }
