@@ -3,36 +3,37 @@ compiler:
   - gcc
   - clang
 env:
-  - MPII=OPENMPI
-  - MPII=MPICH
+  - MPII=openmpi
+  - MPII=mpich
 before_install:
   # Add repo for gcc 4.8
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
   # Add repo for clang 3.3
-  - if [ "$CXX" = "clang++" ]; then sudo add-apt-repository -y ppa:h-rayflood/llvm; fi
-
+  - if [ "$CXX" == "clang++" ]; then sudo add-apt-repository -y ppa:h-rayflood/llvm; fi
   - sudo apt-get update -qq
+
 install:
   - sudo apt-get install -qq libtool automake
 
-  - if [ "$MPII" = "MPICH" ]; then sudo apt-get install -qq mpich2; fi
-  - if [ "$MPII" = "OPENMPI" ]; then sudo apt-get install -qq libopenmpi-dev openmpi-bin; fi
+  - if ["$MPII" == "mpich"]; then sudo apt-get install -qq mpich2; fi
+  - if ["$MPII" == "openmpi"]; then sudo apt-get install -qq libopenmpi-dev openmpi-bin; fi
 
   # Always install g++
   - sudo apt-get install -qq g++-4.8
   - sudo apt-get install -qq g++-4.8-multilib
-  - if [ "$CXX" = "g++" -a "$MPII" == "MPICH"]; then export MPICH_CXX="g++-4.8"; fi
-  - if [ "$CXX" = "g++" -a "$MPII" == "OPENMPI"]; then export OMPI_MPIXX="g++-4.8"; fi
 
   # Use clang 3.3
-  - if [ "$CXX" = "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.3; fi
-  - if [ "$CXX" = "clang++" -a "$MPII" = "MPICH"]; then export MPICH_CXX="clang++-3.3"; fi
-  - if [ "$CXX" = "clang++" -a "$MPII" = "OPENMPI"]; then export OMPI_MPIXX="clang++-3.3"; fi
+  - if ["$CXX" == "clang++"]; then sudo apt-get install --allow-unauthenticated -qq clang-3.3; fi
 
 before_script:
+  - if ["$CXX" == "g++"] && ["$MPII" == "mpich"]; then export MPICH_CXX="g++-4.8"; fi
+  - if ["$CXX" == "g++"] && ["$MPII" == "openmpi"]; then export OMPI_MPIXX="g++-4.8"; fi
+  - if ["$CXX" == "clang++"] && ["$MPII" == "mpich"]; then export MPICH_CXX="clang++-3.3"; fi
+  - if ["$CXX" == "clang++"] && ["$MPII" == "openmpi"]; then export OMPI_MPIXX="clang++-3.3"; fi
   - mkdir -p $HOME/lib
   - autoreconf -i
   - ./configure --prefix=$HOME/lib/warped CXX=mpic++
+
 script:
   - make -j5 && make check && make install && make distcheck -j5
