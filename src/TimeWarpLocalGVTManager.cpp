@@ -24,13 +24,13 @@ unsigned int TimeWarpLocalGVTManager::getMinimumLVT() {
     for (unsigned int i = 0; i < num_local_objects_; i++) {
         min = std::min(min, local_min_[i]);
     }
-    resetState();
     return min;
 }
 
 bool TimeWarpLocalGVTManager::startGVT() {
     if ((local_gvt_flag_.load() == 0) && !started_local_gvt_) {
         local_gvt_flag_.store(num_local_objects_);
+        resetState();
         started_local_gvt_ = true;
         return true;
     }
@@ -54,7 +54,6 @@ void TimeWarpLocalGVTManager::receiveEventUpdateState(unsigned int timestamp,
         local_min_[local_object_id] = std::min(send_min_[local_object_id], timestamp);
         calculated_min_flag_[local_object_id] = true;
         local_gvt_flag_.fetch_sub(1);
-//        std::cout << "Thread " << thread_id << "time: " << timestamp << std::endl;
     }
 }
 
