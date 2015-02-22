@@ -26,10 +26,15 @@ void TimeWarpTerminationManager::sendTerminationToken(State state, unsigned int 
     unsigned int sender_id = comm_manager_->getID();
     unsigned int num_processes = comm_manager_->getNumProcesses();
 
+    if (pending_termination_token_)
+        return;
+
     auto msg = make_unique<TerminationToken>(sender_id, (sender_id + 1) % num_processes,
         state, initiator);
 
     comm_manager_->sendMessage(std::move(msg));
+
+    pending_termination_token_ = true;
 }
 
 void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
@@ -39,12 +44,17 @@ void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWar
         msg->state_ = State::ACTIVE;
     }
 
-    if ((msg->receiver_id == msg->initiator_) && (msg->state_ == State::PASSIVE)) {
-        // Signal termination to all nodes including self
-        sendTerminator();
-    }
+    if (msg->receiver_id == msg->initiator_) {
 
-    if (msg->receiver_id != msg->initiator_) {
+        pending_termination_token_ = false;
+
+        if (msg->state_ == State::PASSIVE) {
+            // Signal termination to all nodes including self
+            sendTerminator();
+        }
+
+    } else {
+
         sendTerminationToken(msg->state_, msg->initiator_);
     }
 

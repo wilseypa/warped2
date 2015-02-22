@@ -47,6 +47,8 @@ private:
     std::atomic<unsigned int> active_thread_count_;
 
     bool terminate_ = false;
+
+    bool pending_termination_token_ = false;
 };
 
 struct TerminationToken : public TimeWarpKernelMessage {
