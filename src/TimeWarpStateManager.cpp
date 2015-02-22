@@ -40,7 +40,7 @@ void TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_ob
     state_queue_lock_[local_object_id].lock();
 
     auto min = state_queue_[local_object_id].begin();
-    while (min != state_queue_[local_object_id].end() && min->first->timestamp() < gvt) {
+    while (min != std::prev(state_queue_[local_object_id].end()) && min->first->timestamp() < gvt) {
         min = state_queue_[local_object_id].erase(min);
     }
 
