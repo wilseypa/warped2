@@ -27,7 +27,7 @@ void TimeWarpFileStreamManager::fossilCollect(unsigned int gvt, unsigned int loc
 }
 
 void TimeWarpFileStreamManager::fossilCollectAll(unsigned int gvt) {
-    for (unsigned int i = 0; i < file_streams_.get()->size(); i++) {
+    for (unsigned int i = 0; i < num_local_objects_; i++) {
         fossilCollect(gvt, i);
     }
 }
@@ -36,6 +36,7 @@ void TimeWarpFileStreamManager::initialize(unsigned int num_local_objects) {
     file_streams_ = make_unique<std::vector<std::unique_ptr<TimeWarpFileStream,
         FileStreamDeleter>> []>(num_local_objects);
     file_streams_lock_ = make_unique<std::mutex []>(num_local_objects);
+    num_local_objects_ = num_local_objects;
 }
 
 TimeWarpFileStream* TimeWarpFileStreamManager::getFileStream(const std::string& filename,

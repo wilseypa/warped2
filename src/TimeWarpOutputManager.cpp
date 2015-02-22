@@ -8,6 +8,7 @@ namespace warped {
 void TimeWarpOutputManager::initialize(unsigned int num_local_objects) {
     output_queue_ = make_unique<std::vector<std::shared_ptr<Event>> []>(num_local_objects);
     output_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
+    num_local_objects_ = num_local_objects;
 }
 
 void TimeWarpOutputManager::insertEvent(std::shared_ptr<Event> event,
@@ -21,10 +22,11 @@ unsigned int TimeWarpOutputManager::fossilCollect(unsigned int gvt, unsigned int
 
     unsigned int retval = std::numeric_limits<unsigned int>::max();
 
-    if (output_queue_[local_object_id].empty())
-        return retval;
-
     output_queue_lock_[local_object_id].lock();
+    if (output_queue_[local_object_id].empty()) {
+        output_queue_lock_[local_object_id].unlock();
+        return retval;
+    }
 
     auto min = output_queue_[local_object_id].begin();
     while ((min != output_queue_[local_object_id].end()) && (min->get()->timestamp() < gvt)) {
@@ -41,7 +43,7 @@ unsigned int TimeWarpOutputManager::fossilCollect(unsigned int gvt, unsigned int
 }
 
 void TimeWarpOutputManager::fossilCollectAll(unsigned int gvt) {
-    for (unsigned int i = 0; i < output_queue_.get()->size(); i++) {
+    for (unsigned int i = 0; i < num_local_objects_; i++) {
         fossilCollect(gvt, i);
     }
 }

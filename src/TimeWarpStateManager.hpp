@@ -50,6 +50,7 @@ protected:
     // fossil collection and the worker threads can save and restore state when needed.
     std::unique_ptr<std::mutex []> state_queue_lock_;
 
+    unsigned int num_local_objects_;
 };
 
 } // warped namespace

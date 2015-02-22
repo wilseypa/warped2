@@ -45,6 +45,8 @@ protected:
     // Array of local output queues and locks
     std::unique_ptr<std::vector<std::shared_ptr<Event>> []> output_queue_;
     std::unique_ptr<std::mutex []> output_queue_lock_;
+
+    unsigned int num_local_objects_;
 };
 
 }

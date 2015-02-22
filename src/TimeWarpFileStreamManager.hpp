@@ -50,6 +50,8 @@ private:
 
     // Map to get TimeWarpFileStream* given a filename.
     std::unordered_map<std::string, TimeWarpFileStream*> file_stream_by_filename_;
+
+    unsigned int num_local_objects_;
 };
 
 } // namespace warped

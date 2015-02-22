@@ -13,6 +13,7 @@ void TimeWarpStateManager::initialize(unsigned int num_local_objects) {
 
     state_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
 
+    num_local_objects_ = num_local_objects;
 }
 
 std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event> rollback_event,
@@ -39,7 +40,7 @@ void TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_ob
     state_queue_lock_[local_object_id].lock();
 
     auto min = state_queue_[local_object_id].begin();
-    while (min->first->timestamp() < gvt && min != state_queue_[local_object_id].end()) {
+    while (min != state_queue_[local_object_id].end() && min->first->timestamp() < gvt) {
         min = state_queue_[local_object_id].erase(min);
     }
 
@@ -47,7 +48,7 @@ void TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_ob
 }
 
 void TimeWarpStateManager::fossilCollectAll(unsigned int gvt) {
-    for (unsigned int i = 0; i < state_queue_.get()->size(); i++) {
+    for (unsigned int i = 0; i < num_local_objects_; i++) {
         fossilCollect(gvt, i);
     }
 }
