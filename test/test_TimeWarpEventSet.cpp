@@ -27,10 +27,11 @@ TEST_CASE("Test the event set operations") {
         CHECK(spe != nullptr);
         CHECK(spe->timestamp() == 15);
         CHECK(spe->event_type_ == warped::EventType::POSITIVE);
+#if 0
         twes. startScheduling(0, spe);
 
 
-#if 0
+
         twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9}));
         spe = std::shared_ptr<warped::Event>(new test_Event {"b", 9, false});
         twes.insertEvent(1, spe);

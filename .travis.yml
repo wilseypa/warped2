@@ -1,7 +1,7 @@
 language: cpp
 env:
-  - MPII=openmpi OMPI_MPIXX=g++-4.8
-  - MPII=openmpi OMPI_MPIXX=clang++-3.3
+  - MPII=openmpi OMPI_MPICXX=g++-4.8
+  - MPII=openmpi OMPI_MPICXX=clang++-3.3
   - MPII=mpich   MPICH_CXX=g++-4.8
   - MPII=mpich   MPICH_CXX=clang++-3.3
 before_install:

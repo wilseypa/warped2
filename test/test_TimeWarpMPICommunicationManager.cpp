@@ -59,17 +59,9 @@ TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialize
                     mpi_manager->sendMessage(warped::make_unique<warped::GVTUpdateMessage>
                         (0, 0, 1234));
 
-                    warped::MessageFlags flags = mpi_manager->dispatchReceivedMessages();
-
                     // Ensure gvt has been updated
                     CHECK(mattern_gvt_manager->getGVT() == 1234);
 
-                    // true means that a mattern token has been received
-                    CHECK((flags & warped::MessageFlags::PendingMatternToken) ==
-                        warped::MessageFlags::PendingMatternToken);
-
-                    CHECK((flags & warped::MessageFlags::GVTUpdate) ==
-                        warped::MessageFlags::GVTUpdate);
                 }
             }
         }
