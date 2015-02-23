@@ -1,7 +1,7 @@
 language: cpp
 env:
-  - MPII=openmpi OMPI_MPICXX=g++-4.8
-  - MPII=openmpi OMPI_MPICXX=clang++-3.3
+  - MPII=openmpi OMPI_CXX=g++-4.8
+  - MPII=openmpi OMPI_CXX=clang++-3.3
   - MPII=mpich   MPICH_CXX=g++-4.8
   - MPII=mpich   MPICH_CXX=clang++-3.3
 before_install:
@@ -15,8 +15,8 @@ before_install:
 install:
   - sudo apt-get install -qq libtool automake
 
-  - sudo apt-get install -qq mpich2
-  - sudo apt-get install -qq libopenmpi-dev openmpi-bin
+  - if [ "$MPII" == "mpich" ]: then sudo apt-get install -qq mpich2; fi
+  - if [ "$MPII" == "openmpi" ]; then sudo apt-get install -qq libopenmpi-dev openmpi-bin; fi
 
   # Always install g++
   - sudo apt-get install -qq g++-4.8

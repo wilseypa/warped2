@@ -59,9 +59,6 @@ TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialize
                     mpi_manager->sendMessage(warped::make_unique<warped::GVTUpdateMessage>
                         (0, 0, 1234));
 
-                    // Ensure gvt has been updated
-                    CHECK(mattern_gvt_manager->getGVT() == 1234);
-
                 }
             }
         }
