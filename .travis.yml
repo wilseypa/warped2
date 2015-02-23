@@ -15,7 +15,7 @@ before_install:
 install:
   - sudo apt-get install -qq libtool automake
 
-  - if [ "$MPII" == "mpich" ]: then sudo apt-get install -qq mpich2; fi
+  - if [ "$MPII" == "mpich" ]; then sudo apt-get install -qq mpich2; fi
   - if [ "$MPII" == "openmpi" ]; then sudo apt-get install -qq libopenmpi-dev openmpi-bin; fi
 
   # Always install g++
