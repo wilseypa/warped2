@@ -52,6 +52,8 @@ public:
 
     void cancelEvent (unsigned int obj_id, std::shared_ptr<Event> cancel_event);
 
+    void fossilCollect (unsigned int fossil_collect_time, unsigned int obj_id);
+
     void fossilCollectAll (unsigned int fossil_collect_time);
 
 private:

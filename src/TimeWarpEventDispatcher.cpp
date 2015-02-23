@@ -261,9 +261,12 @@ void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event,
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     twfs_manager_->fossilCollectAll(gvt);
-    state_manager_->fossilCollectAll(gvt);
+    unsigned int event_fossil_collect_time;
+    for (unsigned int local_object_id = 0; local_object_id < num_local_objects_; local_object_id++) {
+        event_fossil_collect_time = state_manager_->fossilCollect(gvt, local_object_id);
+        event_set_->fossilCollect(event_fossil_collect_time, local_object_id);
+    }
     output_manager_->fossilCollectAll(gvt);
-    event_set_->fossilCollectAll(gvt);
 }
 
 void TimeWarpEventDispatcher::cancelEvents(unsigned int sender_local_obj_id, 
@@ -331,13 +334,13 @@ void TimeWarpEventDispatcher::coastForward(SimulationObject* object,
 void TimeWarpEventDispatcher::initialize(
         const std::vector<std::vector<SimulationObject*>>& objects) {
 
-    unsigned int num_local_objects = objects[comm_manager_->getID()].size();
-    event_set_->initialize(num_local_objects, num_schedulers_, num_worker_threads_);
+    num_local_objects_ = objects[comm_manager_->getID()].size();
+    event_set_->initialize(num_local_objects_, num_schedulers_, num_worker_threads_);
 
-    object_simulation_time_ = make_unique<unsigned int []>(num_local_objects);
-    std::memset(object_simulation_time_.get(), 0, num_local_objects*sizeof(unsigned int));
+    object_simulation_time_ = make_unique<unsigned int []>(num_local_objects_);
+    std::memset(object_simulation_time_.get(), 0, num_local_objects_*sizeof(unsigned int));
 
-    event_counter_by_obj_ = make_unique<std::atomic<unsigned long> []>(num_local_objects);
+    event_counter_by_obj_ = make_unique<std::atomic<unsigned long> []>(num_local_objects_);
     rollback_count_ = 0;
 
     unsigned int partition_id = 0;
@@ -367,9 +370,9 @@ void TimeWarpEventDispatcher::initialize(
     }
 
     // Creates the state queues, output queues, and filestream queues for each local object
-    state_manager_->initialize(num_local_objects);
-    output_manager_->initialize(num_local_objects);
-    twfs_manager_->initialize(num_local_objects);
+    state_manager_->initialize(num_local_objects_);
+    output_manager_->initialize(num_local_objects_);
+    twfs_manager_->initialize(num_local_objects_);
 
     // Register message handlers
     mattern_gvt_manager_->initialize();
@@ -379,7 +382,7 @@ void TimeWarpEventDispatcher::initialize(
     comm_manager_->addRecvMessageHandler(MessageType::EventMessage, handler);
 
     // Prepare local min lvt computation
-    local_gvt_manager_->initialize(num_local_objects);
+    local_gvt_manager_->initialize(num_local_objects_);
 
     termination_manager_->initialize(num_worker_threads_);
 }

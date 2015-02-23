@@ -1,5 +1,6 @@
 #include <limits> // for std::numeric_limits<unsigned int>::max();
 #include <cassert>
+#include <algorithm> // for std::min
 
 #include "TimeWarpStateManager.hpp"
 #include "SimulationObject.hpp"
@@ -36,8 +37,10 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
     return max->first;
 }
 
-void TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
+unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
     state_queue_lock_[local_object_id].lock();
+
+    assert(!state_queue_[local_object_id].empty());
 
     auto min = state_queue_[local_object_id].begin();
     while (min != std::prev(state_queue_[local_object_id].end()) && min->first->timestamp() < gvt) {
@@ -45,6 +48,8 @@ void TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_ob
     }
 
     state_queue_lock_[local_object_id].unlock();
+
+    return std::min(min->first->timestamp(), gvt);
 }
 
 void TimeWarpStateManager::fossilCollectAll(unsigned int gvt) {

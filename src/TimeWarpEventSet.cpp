@@ -275,21 +275,25 @@ void TimeWarpEventSet::cancelEvent (unsigned int obj_id, std::shared_ptr<Event> 
     input_queue_[obj_id]->erase(pos_iterator);
 }
 
+void TimeWarpEventSet::fossilCollect (unsigned int fossil_collect_time, unsigned int obj_id) {
+    acquireInputQueueLock(obj_id);
+    auto event_iterator = input_queue_[obj_id]->begin();
+    while (event_iterator != input_queue_[obj_id]->end()) {
+        if ((*event_iterator)->timestamp() >= fossil_collect_time) {
+            break;
+        }
+        (*track_processed_event_[obj_id]).erase(*event_iterator);
+        input_queue_[obj_id]->erase(event_iterator);
+
+        event_iterator = input_queue_[obj_id]->begin();
+    }
+    releaseInputQueueLock(obj_id);
+}
+
 void TimeWarpEventSet::fossilCollectAll (unsigned int fossil_collect_time) {
 
     for (unsigned int obj_id = 0; obj_id < num_of_objects_; obj_id++) {
-        acquireInputQueueLock(obj_id);
-        auto event_iterator = input_queue_[obj_id]->begin();
-        while (event_iterator != input_queue_[obj_id]->end()) {
-            if ((*event_iterator)->timestamp() >= fossil_collect_time) {
-                break;
-            }
-            (*track_processed_event_[obj_id]).erase(*event_iterator);
-            input_queue_[obj_id]->erase(event_iterator);
-
-            event_iterator = input_queue_[obj_id]->begin();
-        }
-        releaseInputQueueLock(obj_id);
+        fossilCollect(fossil_collect_time, obj_id);
     }
 }
 

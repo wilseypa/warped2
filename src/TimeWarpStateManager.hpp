@@ -25,7 +25,7 @@ public:
     virtual void initialize(unsigned int num_local_objects);
 
     // Removes states from state queues before or equal to the gvt for the specified object
-    void fossilCollect(unsigned int gvt, unsigned int local_object_id);
+    unsigned int fossilCollect(unsigned int gvt, unsigned int local_object_id);
 
     // Removes all states before or equal to the gvt for all objects
     void fossilCollectAll(unsigned int gvt);
