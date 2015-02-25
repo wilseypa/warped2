@@ -68,6 +68,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         threads.push_back(std::move(thread));
     }
 
+    unsigned int gvt;
     auto sim_start = std::chrono::steady_clock::now();
 
     // Master thread main loop
@@ -75,24 +76,27 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         // Get all received messages, handle messages, and get flags.
         comm_manager_->dispatchReceivedMessages();
 
-        if (mattern_gvt_manager_->startGVT()) {
+        if (mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT()) {
             local_gvt_manager_->startGVT();
         }
 
         if (local_gvt_manager_->completeGVT()) {
             if (comm_manager_->getNumProcesses() > 1) {
-                if (mattern_gvt_manager_->completeGVT(local_gvt_manager_->getGVT())) {
-                    unsigned int gvt = mattern_gvt_manager_->getGVT();
-                    std::cout << "GVT: " << gvt << std::endl;
-                    fossilCollect(gvt);
-                    mattern_gvt_manager_->resetState();
-                }
+                mattern_gvt_manager_->sendMatternGVTToken(local_gvt_manager_->getGVT());
             } else {
-                unsigned int gvt = local_gvt_manager_->getGVT();
-                mattern_gvt_manager_->setGVT(gvt);
+                gvt = local_gvt_manager_->getGVT();
                 std::cout << "GVT: " << gvt << std::endl;
                 fossilCollect(gvt);
             }
+        }
+
+        if (mattern_gvt_manager_->gvtUpdated()) {
+            gvt = mattern_gvt_manager_->getGVT();
+            if (comm_manager_->getID() == 0) {
+                std::cout << "GVT: " << gvt << std::endl;
+            }
+            fossilCollect(gvt);
+            mattern_gvt_manager_->resetState();
         }
 
         if (termination_manager_->nodePassive()) {
@@ -128,6 +132,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 termination_manager_->setThreadActive(thread_id);
             }
 
+            assert(object_node_id_by_name_[event->receiverName()] == comm_manager_->getID());
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
@@ -188,7 +193,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                 assert(e->timestamp() >= object_simulation_time_[current_object_id]);
 
-                unsigned int node_id = object_node_id_by_name_[event->receiverName()];
+                unsigned int node_id = object_node_id_by_name_[e->receiverName()];
                 if (node_id == comm_manager_->getID()) {
                     // Local event
                     sendLocalEvent(e);
@@ -217,6 +222,8 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
 
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
     mattern_gvt_manager_->receiveEventUpdateState(msg->gvt_mattern_color);
+
+    assert(msg->event != nullptr);
 
     sendLocalEvent(msg->event);
 }

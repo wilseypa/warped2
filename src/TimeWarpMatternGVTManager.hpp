@@ -57,11 +57,11 @@ public:
 
     void resetState();
 
-    bool completeGVT(unsigned int local_min);
-
     void receiveEventUpdateState(MatternColor color);
 
     MatternColor sendEventUpdateState(unsigned int timestamp);
+
+    void sendMatternGVTToken(unsigned int local_minimum);
 
     void receiveMatternGVTToken(std::unique_ptr<TimeWarpKernelMessage> msg);
 
@@ -71,12 +71,14 @@ public:
 
     void setGVT(unsigned int gvt) { gVT_ = gvt; }
 
+    bool needLocalGVT();
+
+    bool gvtUpdated();
+
 protected:
     unsigned int infinityVT();
 
-    void sendMatternGVTToken(unsigned int local_minimum);
-
-    void sendGVTUpdate();
+    void sendGVTUpdate(unsigned int gvt);
 
 private:
     unsigned int gVT_ = 0;
@@ -85,9 +87,9 @@ private:
 
     MatternColor color_ = MatternColor::WHITE;
     int white_msg_counter_ = 0;
-    unsigned int min_red_msg_timestamp_ = infinityVT();
 
-    unsigned int min_of_all_lvt_ = infinityVT();
+    unsigned int min_red_msg_timestamp_ = infinityVT();
+    unsigned int global_min_;
     int msg_count_ = 0;
 
     bool gVT_token_pending_ = false;
@@ -97,6 +99,10 @@ private:
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
 
     unsigned int gvt_period_;
+
+    bool need_local_gvt_ = false;
+
+    bool gvt_updated_ = false;
 
 };
 
