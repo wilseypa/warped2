@@ -138,40 +138,22 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Check to see if object needs a rollback
             event_set_->acquireInputQueueLock(current_object_id);
-            if (event_set_->getLowestUnprocessedEvent(current_object_id)) {
-                assert(*(event_set_->getLowestUnprocessedEvent(current_object_id)) <= *event);
-
-                // If rollback unnecessary to handle the situation
-                if (!event_set_->isRollbackRequired(current_object_id)) {
-                    event_set_->startScheduling(current_object_id);
-                    event_set_->resetLowestUnprocessedEvent(current_object_id);
-                    event_set_->releaseInputQueueLock(current_object_id);
-                    continue;
-                }
-
-                rollback(current_object_id, current_object);
-                if (event_set_->getLowestUnprocessedEvent(current_object_id)->event_type_ == 
-                                                                        EventType::NEGATIVE) {
-                    event_set_->cancelEvent(current_object_id, 
-                                            event_set_->getLowestUnprocessedEvent(current_object_id));
-                } else {
-                    event_set_->startScheduling(current_object_id);
-                }
-                event_set_->resetLowestUnprocessedEvent(current_object_id);
-                event_set_->releaseInputQueueLock(current_object_id);
-                continue;
-            }
-
-            // Handle negative event
-            if (event->event_type_ == EventType::NEGATIVE) {
-                event_set_->cancelEvent(current_object_id, event);
-                event_set_->releaseInputQueueLock(current_object_id);
-                continue;
-            }
+            auto last_processed_event = event_set_->lastProcessedEvent(current_object_id);
             event_set_->releaseInputQueueLock(current_object_id);
+            if ((event->event_type_ == EventType::NEGATIVE) || 
+                    (last_processed_event && (*event < *last_processed_event))) {
+                rollback(event);
+                event_set_->acquireInputQueueLock(current_object_id);
+                if (event->event_type_ == EventType::NEGATIVE) {
+                    event_set_->cancelEvent(current_object_id, event);
+                }
+                event_set_->startScheduling(current_object_id);
+                event_set_->releaseInputQueueLock(current_object_id);
+                continue;
+            }
 
-            local_gvt_manager_->receiveEventUpdateState(event->timestamp(), current_object_id,
-                local_gvt_flag);
+            local_gvt_manager_->receiveEventUpdateState(
+                    event->timestamp(), current_object_id, local_gvt_flag);
 
             // Update simulation time
             object_simulation_time_[current_object_id] = event->timestamp();
@@ -206,8 +188,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Move the next event from object into the schedule queue
             // Also transfer old event to processed queue
             event_set_->acquireInputQueueLock(current_object_id);
-            event_set_->processedEvent(current_object_id, event);
-            event_set_->startScheduling(current_object_id);
+            event_set_->replenishScheduler(current_object_id);
             event_set_->releaseInputQueueLock(current_object_id);
 
         } else {
@@ -242,36 +223,27 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 }
 
 void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event, 
-                                                unsigned int sender_local_obj_id) {
+                                                    unsigned int sender_local_obj_id) {
+
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
-
-    // If object needs to send itself a neg event, lock already acquired
-    if (sender_local_obj_id == receiver_object_id) {
-        event_set_->insertEvent(receiver_object_id, event);
-
-    } else { // Neg event sent to other objects
-
-        // Note: This avoid deadlock when 2 different objects are 
-        // rolling back in parallel and require each other's lock, 
-        // sender object lock is released.
-        event_set_->releaseInputQueueLock(sender_local_obj_id);
+    if (event->timestamp() <= max_sim_time_) {
         event_set_->acquireInputQueueLock(receiver_object_id);
-        if (event->timestamp() <= max_sim_time_) {
-            event_set_->insertEvent(receiver_object_id, event);
-        }
+        event_set_->insertEvent(receiver_object_id, event);
         event_set_->releaseInputQueueLock(receiver_object_id);
-        event_set_->acquireInputQueueLock(sender_local_obj_id);
     }
 
     local_gvt_manager_->sendEventUpdateState(event->timestamp(), sender_local_obj_id);
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
+
     twfs_manager_->fossilCollectAll(gvt);
     unsigned int event_fossil_collect_time;
     for (unsigned int local_object_id = 0; local_object_id < num_local_objects_; local_object_id++) {
         event_fossil_collect_time = state_manager_->fossilCollect(gvt, local_object_id);
+        event_set_->acquireInputQueueLock(local_object_id);
         event_set_->fossilCollect(event_fossil_collect_time, local_object_id);
+        event_set_->releaseInputQueueLock(local_object_id);
     }
     output_manager_->fossilCollectAll(gvt);
 }
@@ -295,43 +267,50 @@ void TimeWarpEventDispatcher::cancelEvents(unsigned int sender_local_obj_id,
     } while (!events_to_cancel->empty());
 }
 
-void TimeWarpEventDispatcher::rollback(unsigned int local_object_id, SimulationObject* object) {
+void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
 
-    auto straggler_event = event_set_->getLowestUnprocessedEvent(local_object_id);
+    unsigned int local_object_id = local_object_id_by_name_[straggler_event->receiverName()];
+    SimulationObject* current_object = objects_by_name_[straggler_event->receiverName()];
+
     twfs_manager_->rollback(straggler_event, local_object_id);
 
     assert(straggler_event->timestamp() >= mattern_gvt_manager_->getGVT());
+
+    event_set_->acquireInputQueueLock(local_object_id);
+    event_set_->rollback(local_object_id, straggler_event);
+    event_set_->releaseInputQueueLock(local_object_id);
 
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
     if (events_to_cancel != nullptr) {
         cancelEvents(local_object_id, std::move(events_to_cancel));
     }
 
-    auto restored_state_event = state_manager_->restoreState(straggler_event, 
-                                                                local_object_id, object);
+    auto restored_state_event = state_manager_->restoreState(
+                                            straggler_event, local_object_id, current_object);
     assert(restored_state_event);
     assert(*restored_state_event < *straggler_event);
     object_simulation_time_[local_object_id] = restored_state_event->timestamp();
 
-    coastForward(object, straggler_event, restored_state_event);
-    event_set_->lastProcessedEvent(local_object_id, restored_state_event);
+    coastForward(straggler_event, restored_state_event);
 
     rollback_count_++;
 }
 
-void TimeWarpEventDispatcher::coastForward(SimulationObject* object, 
-                std::shared_ptr<Event> straggler_event, std::shared_ptr<Event> restored_state_event) {
+void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_event, 
+                                            std::shared_ptr<Event> restored_state_event) {
 
     unsigned int stop_time = straggler_event->timestamp();
-    unsigned int current_object_id = local_object_id_by_name_[object->name_];
+    SimulationObject* object = objects_by_name_[straggler_event->receiverName()];
+    unsigned int current_object_id = local_object_id_by_name_[straggler_event->receiverName()];
 
+    event_set_->acquireInputQueueLock(current_object_id);
     auto events = event_set_->getEventsForCoastForward(
-            current_object_id, straggler_event, restored_state_event);
-    for (auto event_riterator = events->rbegin(); event_riterator != events->rend(); event_riterator++) {
+                                    current_object_id, straggler_event, restored_state_event);
+    event_set_->releaseInputQueueLock(current_object_id);
+    for (auto event_riterator = events->rbegin();
+                    event_riterator != events->rend(); event_riterator++) {
         assert((*event_riterator)->timestamp() <= stop_time);
         assert((*event_riterator)->timestamp() >= object_simulation_time_[current_object_id]);
-        assert((*event_riterator)->event_type_ != EventType::NEGATIVE);
-
         object_simulation_time_[current_object_id] = (*event_riterator)->timestamp();
         object->receiveEvent(**event_riterator);
         state_manager_->saveState(*event_riterator, current_object_id, object);

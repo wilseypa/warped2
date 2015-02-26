@@ -55,17 +55,17 @@ private:
 
     void sendLocalEvent(std::shared_ptr<Event> event);
 
-    void sendLocalNegEvent(std::shared_ptr<Event> event, unsigned int sender_local_obj_id);
+    void sendLocalNegEvent(std::shared_ptr<Event> event, unsigned int obj_id);
 
     void fossilCollect(unsigned int gvt);
 
     void cancelEvents(unsigned int sender_local_obj_id, 
                         std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel);
 
-    void rollback(unsigned int local_object_id, SimulationObject* ob);
+    void rollback(std::shared_ptr<Event> straggler_event);
 
-    void coastForward(SimulationObject *object, std::shared_ptr<Event> stop_event,
-        std::shared_ptr<Event> restored_state_event);
+    void coastForward(std::shared_ptr<Event> stop_event, 
+                            std::shared_ptr<Event> restored_state_event);
 
     FileStream& getFileStream(SimulationObject *object, const std::string& filename,
         std::ios_base::openmode mode, std::shared_ptr<Event> this_event);

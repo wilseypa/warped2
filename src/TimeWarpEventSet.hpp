@@ -33,15 +33,9 @@ public:
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
-    bool isRollbackRequired(unsigned int obj_id);
+    std::shared_ptr<Event> lastProcessedEvent (unsigned int obj_id);
 
-    void lastProcessedEvent (unsigned int obj_id, std::shared_ptr<Event> event);
-
-    void processedEvent (unsigned int obj_id, std::shared_ptr<Event> event);
-
-    std::shared_ptr<Event> getLowestUnprocessedEvent (unsigned int obj_id);
-
-    void resetLowestUnprocessedEvent (unsigned int obj_id);
+    void rollback (unsigned int obj_id, std::shared_ptr<Event> straggler_event);
 
     std::unique_ptr<std::vector<std::shared_ptr<Event>>> getEventsForCoastForward (
                         unsigned int obj_id, 
@@ -50,11 +44,11 @@ public:
 
     void startScheduling (unsigned int obj_id);
 
+    void replenishScheduler (unsigned int obj_id);
+
     void cancelEvent (unsigned int obj_id, std::shared_ptr<Event> cancel_event);
 
     void fossilCollect (unsigned int fossil_collect_time, unsigned int obj_id);
-
-    void fossilCollectAll (unsigned int fossil_collect_time);
 
 private:
     // Number of simulation objects
@@ -67,16 +61,9 @@ private:
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
                                             compareEvents>>> input_queue_;
 
-    // Keep track of which events have been processed.
-    // This is needed to weed out new events from coast forwarded list.
-    std::vector<std::unique_ptr<
-        std::unordered_map<std::shared_ptr<Event>, bool>>> track_processed_event_;
-
-    // Last processed event record for all objects
-    std::vector<std::shared_ptr<Event>> last_processed_event_pointer_;
-
-    // Lowest unprocessed event record for all objects
-    std::vector<std::shared_ptr<Event>> lowest_unprocessed_event_pointer_;
+    // Queues to hold the processed events for each simulation object
+    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> 
+                                                            processed_queue_;
 
     // Number of event schedulers
     unsigned int num_of_schedulers_ = 0;
