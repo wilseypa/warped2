@@ -54,7 +54,7 @@ void TimeWarpEventSet::releaseInputQueueLock (unsigned int obj_id) {
 
 void TimeWarpEventSet::insertEvent (unsigned int obj_id, std::shared_ptr<Event> event) {
 
-    auto event_iterator = input_queue_[obj_id]->insert(event);
+    input_queue_[obj_id]->insert(event);
     unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
     // If no event is currently scheduled (all current events processed)
     if (!scheduled_event_pointer_[obj_id]) {
@@ -65,46 +65,15 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id, std::shared_ptr<Event> 
         scheduled_event_pointer_[obj_id] = event;
 
     } else { // Scheduled event present
-        // If inserted event is the negative
-        if (event->event_type_ == EventType::NEGATIVE) {
-            auto next_iterator = std::next(event_iterator);
-            // If negative event is larger than event currently scheduled
-            if (*scheduled_event_pointer_[obj_id] < *event) {
-                assert(next_iterator != input_queue_[obj_id]->end());
-                assert(*event == **next_iterator);
-                assert((*next_iterator)->event_type_ == EventType::POSITIVE);
-                input_queue_[obj_id]->erase(event_iterator, next_iterator);
-
-            } else if (*scheduled_event_pointer_[obj_id] == *event) { // Equal
-                assert(next_iterator != input_queue_[obj_id]->end());
-                assert(scheduled_event_pointer_[obj_id] == *next_iterator);
-                assert(scheduled_event_pointer_[obj_id]->event_type_ == EventType::POSITIVE);
-                schedule_queue_lock_[scheduler_id].lock();
-                if (schedule_queue_[scheduler_id]->erase(*next_iterator)) {
-                    input_queue_[obj_id]->erase(event_iterator, next_iterator);
-                    schedule_queue_[scheduler_id]->insert(*input_queue_[obj_id]->begin());
-                    scheduled_event_pointer_[obj_id] = *input_queue_[obj_id]->begin();
-                }
-                schedule_queue_lock_[scheduler_id].unlock();
-
-            } else { // negative event is smaller than scheduled event
-                // do nothing here
+        // Try to schedule the lowest unprocessed event
+        auto smallest_event = *input_queue_[obj_id]->begin();
+        if (smallest_event != scheduled_event_pointer_[obj_id]) {
+            schedule_queue_lock_[scheduler_id].lock();
+            if (schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[obj_id])) {
+                schedule_queue_[scheduler_id]->insert(smallest_event);
+                scheduled_event_pointer_[obj_id] = smallest_event;
             }
-        } else { // Positive event
-            // If inserted event is smaller than scheduled object
-            if (*event < *scheduled_event_pointer_[obj_id]) {
-                schedule_queue_lock_[scheduler_id].lock();
-                if (schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[obj_id])) {
-                    schedule_queue_[scheduler_id]->insert(event);
-                    scheduled_event_pointer_[obj_id] = event;
-                }
-                schedule_queue_lock_[scheduler_id].unlock();
-
-            } else { 
-                // Positive event > scheduled event. Equality condition should not 
-                // occur as negative event can never arrive before positive event.
-                assert(*scheduled_event_pointer_[obj_id] < *event);
-            }
+            schedule_queue_lock_[scheduler_id].unlock();
         }
     }
 }

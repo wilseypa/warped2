@@ -140,13 +140,21 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             event_set_->acquireInputQueueLock(current_object_id);
             auto last_processed_event = event_set_->lastProcessedEvent(current_object_id);
             event_set_->releaseInputQueueLock(current_object_id);
-            if ((event->event_type_ == EventType::NEGATIVE) || 
-                    (last_processed_event && (*event < *last_processed_event))) {
+            if (last_processed_event && 
+                    ((*event < *last_processed_event) || 
+                        ((*event == *last_processed_event) && 
+                         (event->event_type_ == EventType::NEGATIVE)))) {
                 rollback(event);
                 event_set_->acquireInputQueueLock(current_object_id);
-                if (event->event_type_ == EventType::NEGATIVE) {
-                    event_set_->cancelEvent(current_object_id, event);
-                }
+                event_set_->startScheduling(current_object_id);
+                event_set_->releaseInputQueueLock(current_object_id);
+                continue;
+            }
+
+            // Check to see if event is NEGATIVE
+            if (event->event_type_ == EventType::NEGATIVE) {
+                event_set_->acquireInputQueueLock(current_object_id);
+                event_set_->cancelEvent(current_object_id, event);
                 event_set_->startScheduling(current_object_id);
                 event_set_->releaseInputQueueLock(current_object_id);
                 continue;
