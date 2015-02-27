@@ -59,21 +59,19 @@ void TimeWarpMPICommunicationManager::sendMessage(std::unique_ptr<TimeWarpKernel
 std::unique_ptr<TimeWarpKernelMessage> TimeWarpMPICommunicationManager::recvMessage() {
     int flag = 0;
     MPI_Status status;
-    int count = 0;
     uint8_t* message = nullptr;
     std::unique_ptr<TimeWarpKernelMessage> msg;
 
     MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
 
     if (flag != 0) {
-        MPI_Get_count(&status, MPI_BYTE, &count);
+        int size = 512;
+        message = new uint8_t[size];
 
-        message = new uint8_t[count];
-
-        MPI_Recv(message, count, MPI_BYTE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD,
+        MPI_Recv(message, size, MPI_BYTE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD,
                  &status);
 
-        std::istringstream iss(std::string(reinterpret_cast<char*>(message), count));
+        std::istringstream iss(std::string(reinterpret_cast<char*>(message), size));
         {
             cereal::PortableBinaryInputArchive iarchive(iss);
             iarchive(msg);
