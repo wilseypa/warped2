@@ -55,12 +55,9 @@ private:
 
     void sendLocalEvent(std::shared_ptr<Event> event);
 
-    void sendLocalNegEvent(std::shared_ptr<Event> event, unsigned int obj_id);
-
     void fossilCollect(unsigned int gvt);
 
-    void cancelEvents(unsigned int sender_local_obj_id, 
-                        std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel);
+    void cancelEvents(std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel);
 
     void rollback(std::shared_ptr<Event> straggler_event);
 

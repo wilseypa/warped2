@@ -222,26 +222,13 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
     unsigned int sender_object_id = local_object_id_by_name_[event->sender_name_];
 
-    event_set_->acquireInputQueueLock(receiver_object_id);
-    if (event->timestamp() <= max_sim_time_) {
-        event_set_->insertEvent(receiver_object_id, event);
-    }
-    event_set_->releaseInputQueueLock(receiver_object_id);
-
-    local_gvt_manager_->sendEventUpdateState(event->timestamp(), sender_object_id);
-}
-
-void TimeWarpEventDispatcher::sendLocalNegEvent(std::shared_ptr<Event> event, 
-                                                    unsigned int sender_local_obj_id) {
-
-    unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
     if (event->timestamp() <= max_sim_time_) {
         event_set_->acquireInputQueueLock(receiver_object_id);
         event_set_->insertEvent(receiver_object_id, event);
         event_set_->releaseInputQueueLock(receiver_object_id);
     }
 
-    local_gvt_manager_->sendEventUpdateState(event->timestamp(), sender_local_obj_id);
+    local_gvt_manager_->sendEventUpdateState(event->timestamp(), sender_object_id);
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
@@ -257,8 +244,8 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     output_manager_->fossilCollectAll(gvt);
 }
 
-void TimeWarpEventDispatcher::cancelEvents(unsigned int sender_local_obj_id, 
-                std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel) {
+void TimeWarpEventDispatcher::cancelEvents(
+            std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel) {
 
     if (events_to_cancel->empty()) return;
 
@@ -271,7 +258,7 @@ void TimeWarpEventDispatcher::cancelEvents(unsigned int sender_local_obj_id,
         if (receiver_node_id != comm_manager_->getID()) {
             enqueueRemoteEvent(neg_event, receiver_node_id);
         } else {
-            sendLocalNegEvent(neg_event, sender_local_obj_id);
+            sendLocalEvent(neg_event);
         }
     } while (!events_to_cancel->empty());
 }
@@ -291,7 +278,7 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
 
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
     if (events_to_cancel != nullptr) {
-        cancelEvents(local_object_id, std::move(events_to_cancel));
+        cancelEvents(std::move(events_to_cancel));
     }
 
     auto restored_state_event = state_manager_->restoreState(
