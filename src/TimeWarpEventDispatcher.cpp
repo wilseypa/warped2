@@ -353,7 +353,9 @@ void TimeWarpEventDispatcher::initialize(
                     e->send_time_ = object_simulation_time_[object_id];
 
                     event_set_->acquireInputQueueLock(object_id);
-                    event_set_->insertEvent(object_id, e);
+                    if (e->timestamp() <= max_sim_time_) {
+                        event_set_->insertEvent(object_id, e);
+                    }
                     event_set_->releaseInputQueueLock(object_id);
                 }
                 object_id++;
@@ -395,7 +397,9 @@ void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
     remote_event_queue_lock_.lock();
     // NOTE: sendEventUpdateState must be called with remote_event_queue_lock_
     MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event->timestamp());
-    remote_event_queue_.push_back(std::make_tuple(event, receiver_id, color));
+    if (event->timestamp() <= max_sim_time_) {
+        remote_event_queue_.push_back(std::make_tuple(event, receiver_id, color));
+    }
     remote_event_queue_lock_.unlock();
 }
 
