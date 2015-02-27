@@ -118,6 +118,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
+
     thread_id = id;
     unsigned int local_gvt_flag;
 
@@ -352,11 +353,11 @@ void TimeWarpEventDispatcher::initialize(
                     e->counter_ = event_counter_by_obj_[object_id]++;
                     e->send_time_ = object_simulation_time_[object_id];
 
-                    event_set_->acquireInputQueueLock(object_id);
                     if (e->timestamp() <= max_sim_time_) {
+                        event_set_->acquireInputQueueLock(object_id);
                         event_set_->insertEvent(object_id, e);
+                        event_set_->releaseInputQueueLock(object_id);
                     }
-                    event_set_->releaseInputQueueLock(object_id);
                 }
                 object_id++;
             }
