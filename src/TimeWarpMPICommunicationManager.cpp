@@ -110,7 +110,7 @@ bool TimeWarpMPICommunicationManager::isInitiatingThread() {
     return flag;
 }
 
-int TimeWarpMPICommunicationManager::sumReduceUint(const unsigned int *send_local,
+int TimeWarpMPICommunicationManager::sumReduceUint(unsigned int *send_local,
         unsigned int *recv_global) {
     assert(isInitiatingThread());
     return MPI_Reduce(send_local, recv_global, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);

@@ -28,7 +28,7 @@ public:
 
     virtual int waitForAllProcesses() = 0;
 
-    virtual int sumReduceUint(const unsigned int* send_local, unsigned int* recv_global) = 0;
+    virtual int sumReduceUint(unsigned int* send_local, unsigned int* recv_global) = 0;
 
     // Sends a single message
     virtual void sendMessage(std::unique_ptr<TimeWarpKernelMessage> msg) = 0;

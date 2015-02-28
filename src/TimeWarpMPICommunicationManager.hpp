@@ -30,7 +30,7 @@ public:
 
     bool isInitiatingThread();
 
-    int sumReduceUint(const unsigned int* send_local, unsigned int* recv_global);
+    int sumReduceUint(unsigned int* send_local, unsigned int* recv_global);
 
 private:
     std::vector<std::unique_ptr<MPIMessage>> pending_sends_;
