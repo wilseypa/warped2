@@ -40,7 +40,9 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
 unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
     state_queue_lock_[local_object_id].lock();
 
-    assert(!state_queue_[local_object_id].empty());
+    if (state_queue_[local_object_id].empty()) {
+        return 0;
+    }
 
     auto min = state_queue_[local_object_id].begin();
     while (min != std::prev(state_queue_[local_object_id].end()) && min->first->timestamp() < gvt) {
