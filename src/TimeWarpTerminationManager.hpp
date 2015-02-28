@@ -18,7 +18,7 @@ public:
 
     void initialize(unsigned int num_worker_threads);
 
-    void sendTerminationToken(State state, unsigned int initiator);
+    void sendTerminationToken(State state);
 
     void receiveTerminationToken(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
@@ -53,17 +53,14 @@ private:
 
 struct TerminationToken : public TimeWarpKernelMessage {
     TerminationToken() = default;
-    TerminationToken(unsigned int sender_id, unsigned int receiver_id, State state,
-        unsigned int initiator) :
-        TimeWarpKernelMessage(sender_id, receiver_id), state_(state), initiator_(initiator) {}
+    TerminationToken(unsigned int sender_id, unsigned int receiver_id, State state) :
+        TimeWarpKernelMessage(sender_id, receiver_id), state_(state) {}
 
     State state_;
 
-    unsigned int initiator_;
-
     MessageType get_type() { return MessageType::TerminationToken; }
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<TimeWarpKernelMessage>(this), state_, initiator_)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<TimeWarpKernelMessage>(this), state_)
 };
 
 struct Terminator : public TimeWarpKernelMessage {

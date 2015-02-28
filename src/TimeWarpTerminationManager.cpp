@@ -22,19 +22,20 @@ void TimeWarpTerminationManager::initialize(unsigned int num_worker_threads) {
     comm_manager_->addRecvMessageHandler(MessageType::Terminator, handler);
 }
 
-void TimeWarpTerminationManager::sendTerminationToken(State state, unsigned int initiator) {
+void TimeWarpTerminationManager::sendTerminationToken(State state) {
     unsigned int sender_id = comm_manager_->getID();
     unsigned int num_processes = comm_manager_->getNumProcesses();
 
     if (pending_termination_token_)
         return;
 
-    auto msg = make_unique<TerminationToken>(sender_id, (sender_id + 1) % num_processes,
-        state, initiator);
+    auto msg = make_unique<TerminationToken>(sender_id, (sender_id + 1) % num_processes, state);
 
     comm_manager_->sendMessage(std::move(msg));
 
-    pending_termination_token_ = true;
+    if (sender_id == 0) {
+        pending_termination_token_ = true;
+    }
 }
 
 void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
@@ -44,7 +45,7 @@ void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWar
         msg->state_ = State::ACTIVE;
     }
 
-    if (msg->receiver_id == msg->initiator_) {
+    if (msg->receiver_id == 0) {
 
         pending_termination_token_ = false;
 
@@ -55,7 +56,7 @@ void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWar
 
     } else {
 
-        sendTerminationToken(msg->state_, msg->initiator_);
+        sendTerminationToken(msg->state_);
     }
 
     sticky_state_ = state_;
@@ -63,7 +64,6 @@ void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWar
 
 void TimeWarpTerminationManager::sendTerminator() {
     for (unsigned int i = 0; i < comm_manager_->getNumProcesses(); i++) {
-        // NOTE: sender is set to 0 although this may not  be true. It does not matter who sends.
         auto terminator_msg = make_unique<Terminator>(0, i);
         comm_manager_->sendMessage(std::move(terminator_msg));
     }
