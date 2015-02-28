@@ -99,20 +99,29 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             mattern_gvt_manager_->resetState();
         }
 
-        if (termination_manager_->nodePassive()) {
-            termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID());
+        if (comm_manager_->getID() == 0 && termination_manager_->nodePassive()) {
+            termination_manager_->sendTerminationToken(State::PASSIVE);
         }
 
         // Send all events in the remote event queue.
         sendRemoteEvents();
     }
 
+    comm_manager_->waitForAllProcesses();
     auto sim_stop = std::chrono::steady_clock::now();
+
+    unsigned int global_rollback_count;
+    unsigned int local_rollback_count = rollback_count_.load();
+    comm_manager_->sumReduceUint(&local_rollback_count, &global_rollback_count);
+
     double num_seconds = double((sim_stop - sim_start).count()) * 
                             std::chrono::steady_clock::period::num / 
                                 std::chrono::steady_clock::period::den;
-    std::cout << "Simulation completed in " << num_seconds << " second(s) with " 
-                        << rollback_count_.load() << " rollback(s)." << std::endl;
+
+    if (comm_manager_->getID() == 0) {
+        std::cout << "Simulation completed in " << num_seconds << " second(s) with "
+            << global_rollback_count << " rollback(s)." << std::endl;
+    }
 
     comm_manager_->finalize();
 }
@@ -162,7 +171,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             local_gvt_manager_->receiveEventUpdateState(
-                    event->timestamp(), current_object_id, local_gvt_flag);
+                    event->timestamp(), thread_id, local_gvt_flag);
 
             // Update simulation time
             object_simulation_time_[current_object_id] = event->timestamp();
@@ -220,7 +229,6 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
-    unsigned int sender_object_id = local_object_id_by_name_[event->sender_name_];
 
     if (event->timestamp() <= max_sim_time_) {
         event_set_->acquireInputQueueLock(receiver_object_id);
@@ -228,7 +236,7 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
         event_set_->releaseInputQueueLock(receiver_object_id);
     }
 
-    local_gvt_manager_->sendEventUpdateState(event->timestamp(), sender_object_id);
+    local_gvt_manager_->sendEventUpdateState(event->timestamp(), thread_id);
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
@@ -366,7 +374,7 @@ void TimeWarpEventDispatcher::initialize(
     comm_manager_->addRecvMessageHandler(MessageType::EventMessage, handler);
 
     // Prepare local min lvt computation
-    local_gvt_manager_->initialize(num_local_objects_);
+    local_gvt_manager_->initialize(num_worker_threads_);
 
     termination_manager_->initialize(num_worker_threads_);
 }
