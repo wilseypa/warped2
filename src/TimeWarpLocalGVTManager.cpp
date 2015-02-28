@@ -8,20 +8,20 @@
 
 namespace warped {
 
-void TimeWarpLocalGVTManager::initialize(unsigned int num_local_objects) {
-    num_local_objects_ = num_local_objects;
+void TimeWarpLocalGVTManager::initialize(unsigned int num_worker_threads) {
+    num_worker_threads_ = num_worker_threads;
 
     // Prepare local min lvt computation
-    local_min_ = make_unique<unsigned int []>(num_local_objects_);
-    send_min_ = make_unique<unsigned int []>(num_local_objects_);
-    calculated_min_flag_ = make_unique<bool []>(num_local_objects_);
+    local_min_ = make_unique<unsigned int []>(num_worker_threads_);
+    send_min_ = make_unique<unsigned int []>(num_worker_threads_);
+    calculated_min_flag_ = make_unique<bool []>(num_worker_threads_);
 
     resetState();
 }
 
 unsigned int TimeWarpLocalGVTManager::getMinimumLVT() {
     unsigned int min = std::numeric_limits<unsigned int>::max();
-    for (unsigned int i = 0; i < num_local_objects_; i++) {
+    for (unsigned int i = 0; i < num_worker_threads_; i++) {
         min = std::min(min, local_min_[i]);
     }
     return min;
@@ -29,7 +29,7 @@ unsigned int TimeWarpLocalGVTManager::getMinimumLVT() {
 
 bool TimeWarpLocalGVTManager::startGVT() {
     if ((local_gvt_flag_.load() == 0) && !started_local_gvt_) {
-        local_gvt_flag_.store(num_local_objects_);
+        local_gvt_flag_.store(num_worker_threads_);
         resetState();
         started_local_gvt_ = true;
         return true;
@@ -48,25 +48,25 @@ bool TimeWarpLocalGVTManager::completeGVT() {
 }
 
 void TimeWarpLocalGVTManager::receiveEventUpdateState(unsigned int timestamp,
-    unsigned int local_object_id, unsigned int local_gvt_flag) {
+    unsigned int thread_id, unsigned int local_gvt_flag) {
 
-    if (local_gvt_flag > 0 && !calculated_min_flag_[local_object_id]) {
-        local_min_[local_object_id] = std::min(send_min_[local_object_id], timestamp);
-        calculated_min_flag_[local_object_id] = true;
+    if (local_gvt_flag > 0 && !calculated_min_flag_[thread_id]) {
+        local_min_[thread_id] = std::min(send_min_[thread_id], timestamp);
+        calculated_min_flag_[thread_id] = true;
         local_gvt_flag_.fetch_sub(1);
     }
 }
 
 void TimeWarpLocalGVTManager::sendEventUpdateState(unsigned int timestamp,
-    unsigned int local_object_id) {
+    unsigned int thread_id) {
 
-    if (local_gvt_flag_.load() > 0 && !calculated_min_flag_[local_object_id]) {
-        send_min_[local_object_id] = std::min(send_min_[local_object_id], timestamp);
+    if (local_gvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
+        send_min_[thread_id] = std::min(send_min_[thread_id], timestamp);
     }
 }
 
 void TimeWarpLocalGVTManager::resetState() {
-    for (unsigned int i = 0; i < num_local_objects_; i++) {
+    for (unsigned int i = 0; i < num_worker_threads_; i++) {
         // Reset send_min back to very large number for next calculation
         send_min_[i] = std::numeric_limits<unsigned int>::max();
         calculated_min_flag_[i] = false;

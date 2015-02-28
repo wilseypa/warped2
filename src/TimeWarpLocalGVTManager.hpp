@@ -11,17 +11,17 @@ class TimeWarpLocalGVTManager {
 public:
     TimeWarpLocalGVTManager() = default;
 
-    void initialize(unsigned int num_local_objects);
+    void initialize(unsigned int num_worker_threads);
 
     bool startGVT();
     bool completeGVT();
 
     void resetState();
 
-    void receiveEventUpdateState(unsigned int timestamp, unsigned int local_object_id,
+    void receiveEventUpdateState(unsigned int timestamp, unsigned int thread_id,
         unsigned int local_gvt_flag);
 
-    void sendEventUpdateState(unsigned int timestamp, unsigned int local_object_id);
+    void sendEventUpdateState(unsigned int timestamp, unsigned int thread_id);
 
     unsigned int getGVT() { return gVT_; }
 
@@ -44,7 +44,7 @@ private:
     // flag to determine if object has already calculated min
     std::unique_ptr<bool []> calculated_min_flag_;
 
-    unsigned int num_local_objects_;
+    unsigned int num_worker_threads_;
 
     bool started_local_gvt_ = false;
 };

@@ -41,6 +41,7 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
     state_queue_lock_[local_object_id].lock();
 
     if (state_queue_[local_object_id].empty()) {
+        state_queue_lock_[local_object_id].unlock();
         return 0;
     }
 
