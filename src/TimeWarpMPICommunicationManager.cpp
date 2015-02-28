@@ -1,6 +1,7 @@
 #include <cstring> // for memcpy
 #include <algorithm> // for std::remove_if
 #include <cstdint>  // for uint8_t type
+#include <cassert>
 
 #include "TimeWarpMPICommunicationManager.hpp"
 #include "utility/memory.hpp"
@@ -13,8 +14,10 @@ unsigned int TimeWarpMPICommunicationManager::initialize() {
     int argc = 0;
     char** argv = new char*[1];
     argv[0] = NULL;
+    int provided;
 
-    MPI_Init(&argc, &argv);
+    MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
+    assert(provided == MPI_THREAD_FUNNELED);
 
     delete [] argv;
 
@@ -22,6 +25,7 @@ unsigned int TimeWarpMPICommunicationManager::initialize() {
 }
 
 void TimeWarpMPICommunicationManager::finalize() {
+    assert(isInitiatingThread());
     MPI_Finalize();
 }
 
@@ -49,6 +53,7 @@ void TimeWarpMPICommunicationManager::sendMessage(std::unique_ptr<TimeWarpKernel
 
     std::unique_ptr<MPI_Request> request = make_unique<MPI_Request>();
 
+    assert(isInitiatingThread());
     MPI_Isend(buf.get(), size, MPI_BYTE, msg->receiver_id,
               MPI_DATA_TAG, MPI_COMM_WORLD, request.get());
 
@@ -62,6 +67,7 @@ std::unique_ptr<TimeWarpKernelMessage> TimeWarpMPICommunicationManager::recvMess
     uint8_t* message = nullptr;
     std::unique_ptr<TimeWarpKernelMessage> msg;
 
+    assert(isInitiatingThread());
     MPI_Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &flag, &status);
 
     if (flag != 0) {
@@ -94,8 +100,22 @@ unsigned int TimeWarpMPICommunicationManager::getID() {
 }
 
 int TimeWarpMPICommunicationManager::waitForAllProcesses() {
+    assert(isInitiatingThread());
     return MPI_Barrier(MPI_COMM_WORLD);
 }
 
+bool TimeWarpMPICommunicationManager::isInitiatingThread() {
+    int flag = 0;
+    MPI_Is_thread_main(&flag);
+    return flag;
+}
+
+int TimeWarpMPICommunicationManager::sumReduceUint(const unsigned int *send_local,
+        unsigned int *recv_global) {
+    assert(isInitiatingThread());
+    return MPI_Reduce(send_local, recv_global, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
+}
+
 } // namespace warped
+
 

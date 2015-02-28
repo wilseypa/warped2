@@ -28,6 +28,10 @@ public:
     void sendMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
     std::unique_ptr<TimeWarpKernelMessage> recvMessage();
 
+    bool isInitiatingThread();
+
+    int sumReduceUint(const unsigned int* send_local, unsigned int* recv_global);
+
 private:
     std::vector<std::unique_ptr<MPIMessage>> pending_sends_;
 };
