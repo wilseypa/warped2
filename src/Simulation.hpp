@@ -5,11 +5,13 @@
 #include <vector>
 
 #include "Configuration.hpp"
+#include "FileStream.hpp"
 
 namespace TCLAP { class Arg; }
 
 namespace warped {
 class SimulationObject;
+class Event;
 
 // The main entry point into the simulation.
 //
@@ -45,8 +47,13 @@ public:
     // void simulate(const std::vector<SimulationObject*>& objects,
     //               std::unique_ptr<Partitioner> partitioner); // TODO
 
+    static FileStream& getFileStream(SimulationObject* object, const std::string& filename,
+        std::ios_base::openmode mode, std::shared_ptr<Event> this_event);
+
 private:
     Configuration config_;
+
+    static std::unique_ptr<EventDispatcher> event_dispatcher_;
 };
 
 } // namespace warped

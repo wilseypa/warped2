@@ -7,13 +7,16 @@ lib_LTLIBRARIES = libwarped.la
 # sorted.
 WARPED_INSTALL_HPP_FILES = \
     src/Configuration.hpp \
+    src/FileStream.hpp \
     src/Event.hpp \
     src/ObjectState.hpp \
     src/Partitioner.hpp \
     src/serialization.hpp \
     src/Simulation.hpp \
     src/SimulationObject.hpp \
-    src/warped.hpp
+    src/warped.hpp \
+    src/utility/memory.hpp \
+    src/utility/warnings.hpp
 
 # All other headers are listed in this variable
 WARPED_NOINST_HPP_FILES = \
@@ -29,9 +32,20 @@ WARPED_NOINST_HPP_FILES = \
     src/SequentialEventDispatcher.hpp \
     src/STLLTSFQueue.hpp \
     src/TimeWarpEventDispatcher.hpp \
-    src/utility/memory.hpp \
     src/utility/strings.hpp \
-    src/utility/warnings.hpp
+    src/TimeWarpMatternGVTManager.hpp \
+    src/TimeWarpKernelMessage.hpp \
+    src/TimeWarpCommunicationManager.hpp \
+    src/TimeWarpMPICommunicationManager.hpp \
+    src/TimeWarpStateManager.hpp \
+    src/TimeWarpPeriodicStateManager.hpp \
+    src/TimeWarpOutputManager.hpp \
+    src/TimeWarpAggressiveOutputManager.hpp \
+    src/TimeWarpFileStreamManager.hpp \
+    src/TimeWarpFileStream.hpp \
+    src/TimeWarpEventSet.hpp \
+	src/TimeWarpLocalGVTManager.hpp \
+	src/TimeWarpTerminationManager.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -40,14 +54,26 @@ WARPED_CPP_FILES = \
     src/Configuration.cpp \
     src/EventStatistics.cpp \
     src/IndividualEventStatistics.cpp \
-    src/Partitioner.cpp \
     src/ProfileGuidedPartitioner.cpp \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
     src/Simulation.cpp \
     src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
-    src/TimeWarpEventDispatcher.cpp
+    src/TimeWarpEventDispatcher.cpp \
+    src/TimeWarpMatternGVTManager.cpp \
+    src/TimeWarpCommunicationManager.cpp \
+    src/TimeWarpMPICommunicationManager.cpp \
+    src/TimeWarpStateManager.cpp \
+    src/TimeWarpPeriodicStateManager.cpp \
+    src/TimeWarpOutputManager.cpp \
+    src/TimeWarpAggressiveOutputManager.cpp \
+    src/TimeWarpFileStreamManager.cpp \
+    src/FileStream.cpp \
+    src/TimeWarpFileStream.cpp \
+    src/TimeWarpEventSet.cpp \
+	src/TimeWarpLocalGVTManager.cpp \
+	src/TimeWarpTerminationManager.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \
@@ -55,15 +81,6 @@ libwarped_la_SOURCES = \
     $(WARPED_CPP_FILES)
 
 include_HEADERS = $(WARPED_INSTALL_HPP_FILES)
-
-# When MPI support is added, uncomment these next blocks
-# if HAVE_MPICH
-# libwarped_la_LIBADD = -lmpich -lmpl -lpthread 
-# else 
-# if HAVE_MPI
-# libwarped_la_LIBADD = -lmpi -lpthread
-# endif
-# endif
 
 libwarped_la_LIBADD = \
     $(top_builddir)/deps/json/libjsoncpp.la \

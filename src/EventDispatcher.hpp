@@ -4,9 +4,12 @@
 #include <limits>
 #include <vector>
 
+#include "FileStream.hpp"
+
 namespace warped {
 
 class SimulationObject;
+class Event;
 
 // An EventDispatcher is responsible for sending events between objects.
 class EventDispatcher {
@@ -23,6 +26,9 @@ public:
     // process events until a termination condition is reached.
     // The objects argument is a partitioned set of SimulationObjects
     virtual void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects) = 0;
+
+    virtual FileStream& getFileStream(SimulationObject* object, const std::string& filename,
+        std::ios_base::openmode mode, std::shared_ptr<Event> this_event) = 0;
 
 protected:
     const unsigned int max_sim_time_;

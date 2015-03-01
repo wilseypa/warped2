@@ -12,6 +12,7 @@ namespace warped {
 
 class EventDispatcher;
 class Partitioner;
+class TimeWarpCommunicationManager;
 
 // This class is responsible for creating and configuring the EventDispatcher
 // to be used in the simulation. There are three tiers of configuration data
@@ -29,7 +30,7 @@ public:
     ~Configuration();
 
     // Create a fully configured EventDispatcher
-    std::unique_ptr<EventDispatcher> makeDispatcher();
+    std::tuple<std::unique_ptr<EventDispatcher>, unsigned int> makeDispatcher();
 
     // Create a partitioner based on the chosen configuration.
     std::unique_ptr<Partitioner> makePartitioner();

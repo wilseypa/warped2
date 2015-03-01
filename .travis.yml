@@ -1,30 +1,34 @@
 language: cpp
-compiler:
-  - gcc
-  - clang
+env:
+  - MPII=openmpi OMPI_CXX=g++-4.8
+  - MPII=openmpi OMPI_CXX=clang++-3.3
+  - MPII=mpich   MPICH_CXX=g++-4.8
+  - MPII=mpich   MPICH_CXX=clang++-3.3
 before_install:
   # Add repo for gcc 4.8
   - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
 
   # Add repo for clang 3.3
-  - if [ "$CXX" == "clang++" ]; then sudo add-apt-repository -y ppa:h-rayflood/llvm; fi
-
+  - sudo add-apt-repository -y ppa:h-rayflood/llvm
   - sudo apt-get update -qq
+
 install:
-  - sudo apt-get install -qq libtool automake 
+  - sudo apt-get install -qq libtool automake
+
+  - if [ "$MPII" == "mpich" ]; then sudo apt-get install -qq mpich2; fi
+  - if [ "$MPII" == "openmpi" ]; then sudo apt-get install -qq libopenmpi1.5-dev openmpi1.5-bin; fi
 
   # Always install g++
   - sudo apt-get install -qq g++-4.8
   - sudo apt-get install -qq g++-4.8-multilib
-  - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8"; fi
 
   # Use clang 3.3
-  - if [ "$CXX" == "clang++" ]; then sudo apt-get install --allow-unauthenticated -qq clang-3.3; fi
-  - if [ "$CXX" == "clang++" ]; then export CXX="clang++-3.3"; fi
+  - sudo apt-get install --allow-unauthenticated -qq clang-3.3
 
 before_script:
   - mkdir -p $HOME/lib
-  - autoreconf -i 
-  - ./configure --prefix=$HOME/lib/warped 
-script: 
+  - autoreconf -i
+  - ./configure --prefix=$HOME/lib/warped CXX=$(which mpic++)
+
+script:
   - make -j5 && make check && make install && make distcheck -j5

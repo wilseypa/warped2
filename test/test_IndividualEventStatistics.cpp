@@ -17,8 +17,8 @@ TEST_CASE("IndividualEventStatistics can be reported as JSON", "[IndividualEvent
     warped::IndividualEventStatistics stats{"", type};
     Json::Value val;
 
-    std::unique_ptr<warped::Event> e1 = warped::make_unique<test_Event>("e1", 1);
-    std::unique_ptr<warped::Event> e2 = warped::make_unique<test_Event>("e2", 2);
+    std::shared_ptr<warped::Event> e1 = warped::make_unique<test_Event>("e1", 1);
+    std::shared_ptr<warped::Event> e2 = warped::make_unique<test_Event>("e2", 2);
 
     stats.record("s1", 0, e1.get());
     stats.record("s2", 1, e2.get());

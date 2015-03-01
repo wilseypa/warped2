@@ -20,8 +20,8 @@ m4_include([m4/ax_cxx_compile_stdcxx_11.m4])
 AX_CXX_COMPILE_STDCXX_11([noext], [mandatory])
 
 dnl Once MPI support is added, uncomment the next two lines
-dnl m4_include([m4/check_lib_mpi.m4])
-dnl CHECK_LIB_MPI
+m4_include([m4/check_lib_mpi.m4])
+CHECK_LIB_MPI
 
 AC_CONFIG_FILES([deps/cereal/Makefile])
 AC_CONFIG_FILES([deps/json/Makefile])
@@ -32,4 +32,5 @@ AC_CONFIG_FILES([deps/metis/Makefile])
 AC_CONFIG_FILES([deps/tclap/Makefile])
 AC_CONFIG_FILES([Makefile])
 AC_CONFIG_FILES([test/Makefile])
+
 AC_OUTPUT

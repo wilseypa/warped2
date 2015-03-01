@@ -19,11 +19,20 @@
 #include "IndividualEventStatistics.hpp"
 #include "NullEventStatistics.hpp"
 #include "Partitioner.hpp"
+#include "STLLTSFQueue.hpp"
 #include "ProfileGuidedPartitioner.hpp"
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
+#include "TimeWarpMatternGVTManager.hpp"
+#include "TimeWarpLocalGVTManager.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 #include "utility/memory.hpp"
+#include "TimeWarpMPICommunicationManager.hpp"
+#include "TimeWarpPeriodicStateManager.hpp"
+#include "TimeWarpAggressiveOutputManager.hpp"
+#include "TimeWarpFileStreamManager.hpp"
+#include "TimeWarpEventSet.hpp"
+#include "TimeWarpTerminationManager.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
@@ -40,6 +49,23 @@ const static std::string DEFAULT_CONFIG = R"x({
     "type": "none",
     // If statistics-type is not "none", save the output in this file
     "file": "statistics.out"
+},
+
+"time-warp" : {
+    "gvt-calculation": {
+        "period": 100
+    },
+
+    "state-saving": {
+        "type": "periodic",
+        "period": 10
+    },
+
+    "cancellation": "aggressive",
+
+    "worker-threads": 3,
+
+    "scheduler-count": 1
 },
 
 "partitioning": {
@@ -138,18 +164,55 @@ void Configuration::init(const std::string& model_description, int argc, const c
     }
 }
 
-std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
+
+std::tuple<std::unique_ptr<EventDispatcher>, unsigned int>
+Configuration::makeDispatcher() {
     if ((*root_)["max-sim-time"].isUInt()) {
         max_sim_time_ = (*root_)["max-sim-time"].asUInt();
     }
 
     if ((*root_)["simulation-type"].asString() == "time-warp") {
-        //TODO: Create, configure, and return a TimeWarpEventDispatcher
-        // This is just a rough idea of how the dispatcher could be configured
-        // if ((*root_)["ltsf-queue"].asString() == "ladder-queue" {
-        //     std::unique_ptr<LTSFQueue> queue = make_unique<LadderQueue>();
-        // }
-        // return make_unique<TimeWarpEventDispatcher>(max_sim_time_, std::move(queue));
+
+        std::shared_ptr<TimeWarpCommunicationManager> comm_manager =
+                            std::make_shared<TimeWarpMPICommunicationManager>();
+
+        int num_partitions = comm_manager->initialize();
+
+        std::unique_ptr<TimeWarpEventSet> event_set = make_unique<TimeWarpEventSet>();
+
+        std::unique_ptr<TimeWarpFileStreamManager> twfs_manager =
+            make_unique<TimeWarpFileStreamManager>();
+
+        int period = (*root_)["time-warp"]["gvt-calculation"]["period"].asInt();
+        std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager
+            = make_unique<TimeWarpMatternGVTManager>(comm_manager, period);
+
+        std::unique_ptr<TimeWarpStateManager> state_manager;
+        if ((*root_)["time-warp"]["state-saving"]["type"].asString() == "periodic") {
+            int period = (*root_)["state-saving"]["period"].asInt();
+            state_manager = make_unique<TimeWarpPeriodicStateManager>(period);
+        }
+
+        std::unique_ptr<TimeWarpOutputManager> output_manager;
+        if ((*root_)["time-warp"]["cancellation"].asString() == "aggressive") {
+            output_manager = make_unique<TimeWarpAggressiveOutputManager>();
+        }
+
+        int num_worker_threads = (*root_)["time-warp"]["worker-threads"].asInt();
+
+        std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager =
+            make_unique<TimeWarpLocalGVTManager>();
+
+        std::unique_ptr<TimeWarpTerminationManager> termination_manager =
+            make_unique<TimeWarpTerminationManager>(comm_manager);
+
+        int num_schedulers = (*root_)["time-warp"]["scheduler-count"].asInt();
+
+        return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,
+            num_worker_threads, num_schedulers, comm_manager, std::move(event_set),
+            std::move(mattern_gvt_manager), std::move(local_gvt_manager), std::move(state_manager),
+            std::move(output_manager), std::move(twfs_manager), std::move(termination_manager)),
+            num_partitions);
     }
 
     // Return a SequentialEventDispatcher by default
@@ -171,7 +234,8 @@ std::unique_ptr<EventDispatcher> Configuration::makeDispatcher() {
     } else {
         stats = make_unique<NullEventStatistics>();
     }
-    return make_unique<SequentialEventDispatcher>(max_sim_time_, std::move(stats));
+    return std::make_tuple(make_unique<SequentialEventDispatcher>(max_sim_time_,
+        std::move(stats)), 1);
 }
 
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
