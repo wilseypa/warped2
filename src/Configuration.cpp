@@ -189,8 +189,9 @@ Configuration::makeDispatcher() {
 
         std::unique_ptr<TimeWarpStateManager> state_manager;
         if ((*root_)["time-warp"]["state-saving"]["type"].asString() == "periodic") {
-            int period = (*root_)["state-saving"]["period"].asInt();
+            int period = (*root_)["time-warp"]["state-saving"]["period"].asInt();
             state_manager = make_unique<TimeWarpPeriodicStateManager>(period);
+            std::cout << period << std::endl;
         }
 
         std::unique_ptr<TimeWarpOutputManager> output_manager;
