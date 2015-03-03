@@ -5,6 +5,7 @@
 #include "TimeWarpStateManager.hpp"
 #include "SimulationObject.hpp"
 #include "utility/memory.hpp"
+#include "utility/warnings.hpp"
 
 namespace warped {
 
@@ -46,13 +47,14 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
     }
 
     auto min = state_queue_[local_object_id].begin();
-    while (min != std::prev(state_queue_[local_object_id].end()) && min->first->timestamp() < gvt) {
+    auto next = std::next(min);
+    while ((next != state_queue_[local_object_id].end()) && (next->first->timestamp() < gvt)) {
         min = state_queue_[local_object_id].erase(min);
     }
 
     state_queue_lock_[local_object_id].unlock();
 
-    return std::min(min->first->timestamp(), gvt);
+    return min->first->timestamp();
 }
 
 void TimeWarpStateManager::fossilCollectAll(unsigned int gvt) {
