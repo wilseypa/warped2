@@ -9,6 +9,12 @@
 #include "Partitioner.hpp"
 #include "SimulationObject.hpp"
 
+extern "C" {
+    void warped_is_present(void) {
+        return;
+    }
+}
+
 namespace warped {
 
 std::unique_ptr<EventDispatcher> Simulation::event_dispatcher_;
