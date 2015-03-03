@@ -240,16 +240,19 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
-
-    twfs_manager_->fossilCollectAll(gvt);
     unsigned int event_fossil_collect_time;
     for (unsigned int local_object_id = 0; local_object_id < num_local_objects_; local_object_id++) {
+
+        twfs_manager_->fossilCollect(gvt, local_object_id);
+
+        output_manager_->fossilCollect(gvt, local_object_id);
+
         event_fossil_collect_time = state_manager_->fossilCollect(gvt, local_object_id);
+
         event_set_->acquireInputQueueLock(local_object_id);
         event_set_->fossilCollect(event_fossil_collect_time, local_object_id);
         event_set_->releaseInputQueueLock(local_object_id);
     }
-    output_manager_->fossilCollectAll(gvt);
 }
 
 void TimeWarpEventDispatcher::cancelEvents(

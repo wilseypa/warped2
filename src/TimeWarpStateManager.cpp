@@ -57,12 +57,6 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
     return min->first->timestamp();
 }
 
-void TimeWarpStateManager::fossilCollectAll(unsigned int gvt) {
-    for (unsigned int i = 0; i < num_local_objects_; i++) {
-        fossilCollect(gvt, i);
-    }
-}
-
 std::size_t TimeWarpStateManager::size(unsigned int local_object_id) {
     return state_queue_[local_object_id].size();
 }

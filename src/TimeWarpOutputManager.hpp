@@ -26,9 +26,6 @@ public:
     // Remove any events from the output queue before the gvt for the specified object
     unsigned int fossilCollect(unsigned int gvt, unsigned int local_object_id);
 
-    // Remove all events before gvt for all objects
-    void fossilCollectAll(unsigned int gvt);
-
     // Number of events in the output queue for the specified object.
     std::size_t size(unsigned int local_object_id);
 
