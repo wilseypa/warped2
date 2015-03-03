@@ -138,6 +138,8 @@ void TimeWarpEventSet::startScheduling (unsigned int obj_id) {
         schedule_queue_lock_[scheduler_id].lock();
         schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[obj_id]);
         schedule_queue_lock_[scheduler_id].unlock();
+    } else {
+        scheduled_event_pointer_[obj_id] = 0;
     }
 }
 
@@ -155,6 +157,8 @@ void TimeWarpEventSet::replenishScheduler (unsigned int obj_id) {
             schedule_queue_lock_[scheduler_id].lock();
             schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[obj_id]);
             schedule_queue_lock_[scheduler_id].unlock();
+        } else {
+            scheduled_event_pointer_[obj_id] = 0;
         }
     } else {
         assert(0);
