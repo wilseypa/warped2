@@ -19,19 +19,22 @@ TEST_CASE("Test the event set operations") {
 
     SECTION("Insert event (+ve, -ve), get event and start scheduling events") {
 
-        twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 15}));
+        twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"c", 15}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 10}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 15}));
         twes.insertEvent(0, std::shared_ptr<warped::Event>(new test_Event {"a", 10, false}));
         spe = twes.getEvent(0);
         CHECK(spe != nullptr);
+        CHECK(spe->timestamp() == 10);
+        CHECK(spe->event_type_ == warped::EventType::NEGATIVE);
+        twes.cancelEvent(0, spe);
+        twes.startScheduling(0);
+        spe = twes.getEvent(0);
+        CHECK(spe != nullptr);
         CHECK(spe->timestamp() == 15);
         CHECK(spe->event_type_ == warped::EventType::POSITIVE);
+
 #if 0
-        twes. startScheduling(0, spe);
-
-
-
         twes.insertEvent(1, std::shared_ptr<warped::Event>(new test_Event {"b", 9}));
         spe = std::shared_ptr<warped::Event>(new test_Event {"b", 9, false});
         twes.insertEvent(1, spe);
