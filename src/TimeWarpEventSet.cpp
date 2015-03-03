@@ -168,7 +168,8 @@ void TimeWarpEventSet::cancelEvent (unsigned int obj_id, std::shared_ptr<Event> 
     auto pos_iterator = std::next(neg_iterator);
     assert(**pos_iterator == **neg_iterator);
     assert((*pos_iterator)->event_type_ == EventType::POSITIVE);
-    input_queue_[obj_id]->erase(neg_iterator, pos_iterator);
+    input_queue_[obj_id]->erase(neg_iterator);
+    input_queue_[obj_id]->erase(pos_iterator);
 }
 
 void TimeWarpEventSet::fossilCollect (unsigned int fossil_collect_time, unsigned int obj_id) {
