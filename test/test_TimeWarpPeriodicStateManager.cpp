@@ -81,7 +81,7 @@ TEST_CASE("States saved and restored correctly", "[state][queue]") {
 
             SECTION("Fossil collection removes correct states", "[state][fossilCollection]") {
                 sm.fossilCollect(28, 3);
-                REQUIRE(sm.size(3) == 2);
+                REQUIRE(sm.size(3) == 3);
             }
 
             SECTION("State can be restored on rollback", "[state][rollback][restore]") {
