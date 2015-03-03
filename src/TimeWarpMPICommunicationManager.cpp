@@ -17,9 +17,12 @@ unsigned int TimeWarpMPICommunicationManager::initialize() {
     int provided;
 
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
-    assert(provided == MPI_THREAD_FUNNELED);
 
     delete [] argv;
+
+    if (provided == MPI_THREAD_SINGLE) {
+        std::cout << "Warning: Your MPI Implementation only supports single-threaded applications" << std::endl;
+    }
 
     return getNumProcesses();
 }
