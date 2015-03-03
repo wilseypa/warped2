@@ -42,12 +42,6 @@ unsigned int TimeWarpOutputManager::fossilCollect(unsigned int gvt, unsigned int
     return retval;
 }
 
-void TimeWarpOutputManager::fossilCollectAll(unsigned int gvt) {
-    for (unsigned int i = 0; i < num_local_objects_; i++) {
-        fossilCollect(gvt, i);
-    }
-}
-
 std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 TimeWarpOutputManager::removeEventsSentAfter(std::shared_ptr<Event> straggler_event,
     unsigned int local_object_id) {

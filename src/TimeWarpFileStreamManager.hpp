@@ -30,9 +30,6 @@ public:
     // Commits any output request before or equal to the gvt for the specified object
     void fossilCollect(unsigned int gvt, unsigned int local_object_id);
 
-    // Commits all output requests before or equal to the gvt.
-    void fossilCollectAll(unsigned int gvt);
-
     // Retrieves the specified TimeWarpFileStream by looking at filename. If it has not been
     // created, then one will be created and returned.
     TimeWarpFileStream* getFileStream(const std::string& filename, std::ios_base::openmode mode,
