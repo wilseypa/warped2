@@ -30,7 +30,19 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
 
     auto partitioned_objects = config_.makePartitioner()->partition(objects, num_partitions);
     event_dispatcher_->startSimulation(partitioned_objects);
+}
 
+void Simulation::simulate(const std::vector<SimulationObject*>& objects,
+    std::unique_ptr<Partitioner> partitioner) {
+
+    unsigned int num_partitions;
+
+    std::tie(event_dispatcher_, num_partitions) = config_.makeDispatcher();
+
+    auto partitioned_objects =
+        config_.makePartitioner(std::move(partitioner))->partition(objects, num_partitions);
+
+    event_dispatcher_->startSimulation(partitioned_objects);
 }
 
 FileStream& Simulation::getFileStream(SimulationObject* object, const std::string& filename,

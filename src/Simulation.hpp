@@ -44,8 +44,8 @@ public:
     //
     // The user supplied partition may not be used if a specific partitioner
     // is configured.
-    // void simulate(const std::vector<SimulationObject*>& objects,
-    //               std::unique_ptr<Partitioner> partitioner); // TODO
+    void simulate(const std::vector<SimulationObject*>& objects,
+                  std::unique_ptr<Partitioner> partitioner);
 
     static FileStream& getFileStream(SimulationObject* object, const std::string& filename,
         std::ios_base::openmode mode, std::shared_ptr<Event> this_event);
