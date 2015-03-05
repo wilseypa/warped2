@@ -52,10 +52,10 @@ public:
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
 private:
+    void sendEvents(std::vector<std::shared_ptr<Event>> new_events,
+                    unsigned int sender_object_id, SimulationObject *sender_object);
 
     void sendLocalEvent(std::shared_ptr<Event> event);
-
-    void fossilCollect(unsigned int gvt);
 
     void cancelEvents(std::unique_ptr<std::vector<std::shared_ptr<Event>>> events_to_cancel);
 
@@ -78,6 +78,8 @@ private:
     void receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
     void sendRemoteEvents();
+
+    void fossilCollect(unsigned int gvt);
 
 /* ============================================================================ */
 

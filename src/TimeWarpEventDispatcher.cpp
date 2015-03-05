@@ -58,7 +58,6 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
     initialize(objects);
-    comm_manager_->waitForAllProcesses();
 
     // Create worker threads
     std::vector<std::thread> threads;
@@ -183,25 +182,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             state_manager_->saveState(event, current_object_id, current_object);
 
             // Send new events
-            for (auto& e: new_events) {
-                assert(e->event_type_ == EventType::POSITIVE);
-                e->sender_name_ = current_object->name_;
-                e->counter_ = event_counter_by_obj_[current_object_id]++;
-                e->send_time_ = object_simulation_time_[current_object_id];
-
-                output_manager_->insertEvent(e, current_object_id);
-
-                assert(e->timestamp() >= object_simulation_time_[current_object_id]);
-
-                unsigned int node_id = object_node_id_by_name_[e->receiverName()];
-                if (node_id == comm_manager_->getID()) {
-                    // Local event
-                    sendLocalEvent(e);
-                } else {
-                    // Remote event
-                    enqueueRemoteEvent(e, node_id);
-                }
-            }
+            sendEvents(new_events, current_object_id, current_object);
 
             // Move the next event from object into the schedule queue
             // Also transfer old event to processed queue
@@ -225,6 +206,30 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
     assert(msg->event != nullptr);
 
     sendLocalEvent(msg->event);
+}
+
+void TimeWarpEventDispatcher::sendEvents(std::vector<std::shared_ptr<Event>> new_events,
+    unsigned int sender_object_id, SimulationObject *sender_object) {
+
+    for (auto& e: new_events) {
+        assert(e->event_type_ == EventType::POSITIVE);
+        e->sender_name_ = sender_object->name_;
+        e->counter_ = event_counter_by_obj_[sender_object_id]++;
+        e->send_time_ = object_simulation_time_[sender_object_id];
+
+        output_manager_->insertEvent(e, sender_object_id);
+
+        assert(e->timestamp() >= object_simulation_time_[sender_object_id]);
+
+        unsigned int node_id = object_node_id_by_name_[e->receiverName()];
+        if (node_id == comm_manager_->getID()) {
+           // Local event
+           sendLocalEvent(e);
+        } else {
+            // Remote event
+            enqueueRemoteEvent(e, node_id);
+        }
+    }
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
@@ -344,19 +349,6 @@ void TimeWarpEventDispatcher::initialize(
                 objects_by_name_[ob->name_] = ob;
                 local_object_id_by_name_[ob->name_] = object_id;
                 event_counter_by_obj_[object_id].store(0);
-                auto new_events = ob->createInitialEvents();
-                for (auto& e: new_events) {
-                    assert(e->event_type_ == EventType::POSITIVE);
-                    e->sender_name_ = ob->name_;
-                    e->counter_ = event_counter_by_obj_[object_id]++;
-                    e->send_time_ = object_simulation_time_[object_id];
-
-                    if (e->timestamp() <= max_sim_time_) {
-                        event_set_->acquireInputQueueLock(object_id);
-                        event_set_->insertEvent(object_id, e);
-                        event_set_->releaseInputQueueLock(object_id);
-                    }
-                }
                 object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;
@@ -380,6 +372,24 @@ void TimeWarpEventDispatcher::initialize(
     local_gvt_manager_->initialize(num_worker_threads_);
 
     termination_manager_->initialize(num_worker_threads_);
+
+    // Send local initial events and enqueue remote initial events
+    partition_id = 0;
+    for (auto& partition : objects) {
+        if (partition_id == comm_manager_->getID()) {
+            for (auto& ob : partition) {
+                auto new_events = ob->createInitialEvents();
+                sendEvents(new_events, local_object_id_by_name_[ob->name_], ob);
+            }
+        }
+        partition_id++;
+    }
+
+    // Send and receive remote initial events
+    sendRemoteEvents();
+    comm_manager_->waitForAllProcesses();
+    comm_manager_->dispatchReceivedMessages();
+    comm_manager_->waitForAllProcesses();
 }
 
 FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,
