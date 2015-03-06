@@ -23,6 +23,9 @@ dnl Once MPI support is added, uncomment the next two lines
 m4_include([m4/check_lib_mpi.m4])
 CHECK_LIB_MPI
 
+m4_include([m4/check_enable_debug.m4])
+CHECK_ENABLE_DEBUG
+
 AC_CONFIG_FILES([deps/cereal/Makefile])
 AC_CONFIG_FILES([deps/json/Makefile])
 AC_CONFIG_FILES([deps/Makefile])
