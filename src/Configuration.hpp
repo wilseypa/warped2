@@ -39,6 +39,9 @@ public:
     // partitioner.
     std::unique_ptr<Partitioner> makePartitioner(std::unique_ptr<Partitioner> user_partitioner);
 
+     bool checkTimeWarpConfigs(unsigned int local_config_id, unsigned int *all_config_ids,
+        std::shared_ptr<TimeWarpCommunicationManager> comm_manager);
+
 private:
     void init(const std::string& model_description, int argc, const char* const* argv,
               const std::vector<TCLAP::Arg*>& cmd_line_args);

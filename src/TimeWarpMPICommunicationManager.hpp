@@ -31,6 +31,7 @@ public:
     bool isInitiatingThread();
 
     int sumReduceUint(unsigned int* send_local, unsigned int* recv_global);
+    int gatherUint(unsigned int *send_local, unsigned int* recv_root);
 
 private:
     std::vector<std::unique_ptr<MPIMessage>> pending_sends_;

@@ -119,6 +119,11 @@ int TimeWarpMPICommunicationManager::sumReduceUint(unsigned int *send_local,
     return MPI_Reduce(send_local, recv_global, 1, MPI_UNSIGNED, MPI_SUM, 0, MPI_COMM_WORLD);
 }
 
+int TimeWarpMPICommunicationManager::gatherUint(unsigned int *send_local, unsigned int* recv_root) {
+    assert(isInitiatingThread());
+    return MPI_Gather(send_local, 1, MPI_UNSIGNED, recv_root, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+}
+
 } // namespace warped
 
 
