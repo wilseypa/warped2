@@ -14,7 +14,7 @@ AC_DEFUN([CHECK_LIB_MPI],
     dnl This allows user to override default library directory
     AC_ARG_WITH([mpi-libdir],
                 [AS_HELP_STRING([--with-mpi-libdir(=LIBDIR)],[location of mpi library])],
-                [LDFLAG="$LDFLAGS -L$withval"],
+                [LDFLAGS="$LDFLAGS -L$withval"],
                 [])
 
     AC_CHECK_HEADER([mpi.h],
