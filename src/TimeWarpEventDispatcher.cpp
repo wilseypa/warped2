@@ -194,6 +194,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             if (!termination_manager_->threadPassive(thread_id)) {
                 termination_manager_->setThreadPassive(thread_id);
             }
+            local_gvt_manager_->receiveEventUpdateState((unsigned int)-1,
+                thread_id, local_gvt_flag);
         }
     }
 }
