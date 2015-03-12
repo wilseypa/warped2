@@ -11,21 +11,13 @@
 #include "mocks.hpp"
 
 TEST_CASE("ProfileGuidedPartitioner partitions fully connected graph", "[partitioning]") {
-    std::stringstream input;
-    input <<
-          "2 1 001\n"
-          "%: ob1\n"
-          "2 1\n"
-          "%: ob2\n"
-          "1 1\n";
-
     unsigned int num_parts = 2;
 
     test_SimulationObject ob1{"ob1"};
     test_SimulationObject ob2{"ob2"};
     std::vector<warped::SimulationObject*> objects = {&ob1, &ob2};
 
-    auto partitions = warped::ProfileGuidedPartitioner(input).partition(objects, num_parts);
+    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test").partition(objects, num_parts);
 
     SECTION("correct number of partitions") {
         REQUIRE(partitions.size() == num_parts);
@@ -55,14 +47,6 @@ TEST_CASE("ProfileGuidedPartitioner partitions fully connected graph", "[partiti
 }
 
 TEST_CASE("ProfileGuidedPartitioner partitions graph with extra nodes", "[partitioning]") {
-    std::stringstream input;
-    input <<
-          "2 1 001\n"
-          "%: ob1\n"
-          "2 1\n"
-          "%: ob2\n"
-          "1 1\n";
-
     int num_parts = 2;
 
     test_SimulationObject ob1{"ob1"};
@@ -70,7 +54,7 @@ TEST_CASE("ProfileGuidedPartitioner partitions graph with extra nodes", "[partit
     test_SimulationObject ob3{"ob3"};
     std::vector<warped::SimulationObject*> objects = {&ob1, &ob2, &ob3};
 
-    auto partitions = warped::ProfileGuidedPartitioner(input).partition(objects, num_parts);
+    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test").partition(objects, num_parts);
 
     SECTION("correct number of partitions") {
         REQUIRE(partitions.size() == num_parts);
