@@ -3,6 +3,7 @@
 
 #include <iosfwd>
 #include <vector>
+#include <string>
 
 #include "Partitioner.hpp"
 
@@ -12,14 +13,14 @@ class SimulationObject;
 
 class ProfileGuidedPartitioner : public Partitioner {
 public:
-    ProfileGuidedPartitioner(std::istream& input);
+    ProfileGuidedPartitioner(std::string stats_file);
 
     std::vector<std::vector<SimulationObject*>> partition(
              const std::vector<SimulationObject*>& objects,
              const unsigned int num_partitions) const;
 
 private:
-    std::istream& input;
+    std::string stats_file_;
 };
 
 } // namespace warped

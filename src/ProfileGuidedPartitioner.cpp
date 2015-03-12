@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cassert>
 
 #include "metis/include/metis.h"
 
@@ -15,8 +16,8 @@
 
 namespace warped {
 
-ProfileGuidedPartitioner::ProfileGuidedPartitioner(std::istream& input)
-    : input(input) {}
+ProfileGuidedPartitioner::ProfileGuidedPartitioner(std::string stats_file)
+    : stats_file_(stats_file) {}
 
 std::vector<std::vector<SimulationObject*>> ProfileGuidedPartitioner::partition(
 const std::vector<SimulationObject*>& objects, const unsigned int num_partitions) const {
@@ -24,8 +25,9 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
         return {objects};
     }
 
-    if (!input) {
-        throw std::runtime_error("Could not read file.");
+    std::ifstream input(stats_file_);
+    if (!input.is_open()) {
+        throw std::runtime_error(std::string("Could not open statistics file ") + stats_file_);
     }
 
     std::vector<std::vector<SimulationObject*>> partitions(num_partitions);
@@ -36,13 +38,13 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
 
     // METIS parameters
     // idx_t is a METIS typedef
-    idx_t nvtxs; // number of verticies
+    idx_t nvtxs = 0; // number of verticies
     idx_t ncon = 1; // number of constraints
     idx_t nparts = num_partitions; // number of partitions
     std::vector<idx_t> xadj; // part of the edge list
     std::vector<idx_t> adjncy; // part of the edge list
     std::vector<idx_t> adjwgt; // edge weights
-    idx_t edgecut; // output var for the final communication volume
+    idx_t edgecut = 0; // output var for the final communication volume
     std::vector<idx_t> part(objects.size()); // output var for partition list
 
     xadj.push_back(0);
@@ -58,7 +60,7 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
 
         std::istringstream iss(line);
         if (i == 0) {
-            unsigned int nedges, format;
+            int nedges, format;
             iss >> nvtxs >> nedges >> format;
             if (format != 1) {
                 throw std::runtime_error("Graph format must be 001.");
@@ -67,7 +69,7 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
                 throw std::runtime_error("Invalid statistics file for this simulation.");
             }
         } else {
-            unsigned int vertex, weight;
+            int vertex, weight;
             while (iss >> vertex >> weight) {
                 // The metis file format counts from 1, but the API counts from 0. Cool.
                 adjncy.push_back(vertex - 1);
@@ -77,6 +79,7 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
         }
         i++;
     }
+    input.close();
 
     METIS_PartGraphKway(&nvtxs,     // nvtxs
                         &ncon,      // ncon

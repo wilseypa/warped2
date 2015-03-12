@@ -335,11 +335,7 @@ std::unique_ptr<Partitioner> Configuration::makePartitioner() {
         return make_unique<RoundRobinPartitioner>();
     } else if (partitioner_type == "profile-guided") {
         auto filename = (*root_)["partitioning"]["file"].asString();
-        std::ifstream input(filename);
-        if (!input.is_open()) {
-            throw std::runtime_error(std::string("Could not open statistics file ") + filename);
-        }
-        return make_unique<ProfileGuidedPartitioner>(input);
+        return make_unique<ProfileGuidedPartitioner>(filename);
     }
     throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
 }
