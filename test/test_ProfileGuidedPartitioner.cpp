@@ -11,6 +11,10 @@
 #include "mocks.hpp"
 
 TEST_CASE("ProfileGuidedPartitioner partitions fully connected graph", "[partitioning]") {
+    std::ofstream of("profile_guided_stats.test", std::ios_base::trunc);
+    of << "2 1 001\n%: ob1\n2 1\n%: ob2\n1 1\n";
+    of.close();
+
     unsigned int num_parts = 2;
 
     test_SimulationObject ob1{"ob1"};
@@ -47,6 +51,10 @@ TEST_CASE("ProfileGuidedPartitioner partitions fully connected graph", "[partiti
 }
 
 TEST_CASE("ProfileGuidedPartitioner partitions graph with extra nodes", "[partitioning]") {
+    std::ofstream of("profile_guided_stats.test", std::ios_base::trunc);
+    of << "2 1 001\n%: ob1\n2 1\n%: ob2\n1 1\n";
+    of.close();
+
     int num_parts = 2;
 
     test_SimulationObject ob1{"ob1"};
