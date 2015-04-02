@@ -76,25 +76,31 @@ void TimeWarpTerminationManager::receiveTerminator(std::unique_ptr<TimeWarpKerne
 }
 
 void TimeWarpTerminationManager::setThreadPassive(unsigned int thread_id) {
+    state_lock_.lock();
+
     if (state_by_thread_[thread_id] != State::PASSIVE) {
         state_by_thread_[thread_id] = State::PASSIVE;
-        active_thread_count_.fetch_sub(1);
+        active_thread_count_--;
+
+        if (active_thread_count_ == 0) {
+            state_ = State::PASSIVE;
+        }
     }
 
-    if (active_thread_count_.load() == 0) {
-        state_ = State::PASSIVE;
-    }
+    state_lock_.unlock();
 }
 
 void TimeWarpTerminationManager::setThreadActive(unsigned int thread_id) {
+    state_lock_.lock();
+
     if (state_by_thread_[thread_id] != State::ACTIVE) {
         state_by_thread_[thread_id] = State::ACTIVE;
-        active_thread_count_.fetch_add(1);
-    }
+        active_thread_count_++;
 
-    if (active_thread_count_.load() > 0) {
         state_ = State::ACTIVE;
     }
+
+    state_lock_.unlock();
 }
 
 bool TimeWarpTerminationManager::terminationStatus() {

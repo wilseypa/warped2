@@ -2,7 +2,7 @@
 #define TERMINATION_HPP
 
 #include <memory>
-#include <atomic>
+#include <mutex>
 
 #include "TimeWarpCommunicationManager.hpp"
 
@@ -39,12 +39,13 @@ public:
 private:
 
     State state_ = State::ACTIVE;
+    std::mutex state_lock_;
     State sticky_state_ = State::ACTIVE;
 
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
 
     std::unique_ptr<State []> state_by_thread_;
-    std::atomic<unsigned int> active_thread_count_;
+    unsigned int active_thread_count_;
 
     bool terminate_ = false;
 
