@@ -97,5 +97,78 @@ TEST_CASE("States saved and restored correctly", "[state][queue]") {
     }
 }
 
+TEST_CASE("States with shared_ptr saved and restored correctly", "[state][queue][shared_ptr]") {
+    unsigned int num_objects = 1;
+    unsigned int period = 1;
+    warped::TimeWarpPeriodicStateManager sm(period);
+    sm.initialize(num_objects);
+    warped::SimulationObject *object;
+    std::shared_ptr<warped::Event> e;
 
+    object = new test_SimulationObject("test_object", 50);
+
+    *(static_cast<test_ObjectState&>(object->getState()).y) = 5;
+    e = std::make_shared<test_Event>();
+    dynamic_cast<test_Event*>(e.get())->receive_time_ = 15;
+    sm.saveState(e, 0, object); // timestamp 15
+    REQUIRE(sm.size(0) == 1);   // Saved
+
+    *(static_cast<test_ObjectState&>(object->getState()).y) = 10;
+    e = std::make_shared<test_Event>();
+    dynamic_cast<test_Event*>(e.get())->receive_time_ = 30;
+    sm.saveState(e, 0, object); // timestamp 30
+    REQUIRE(sm.size(0) == 2);   // Saved
+
+    SECTION("State can be restored on rollback", "[state][rollback][restore]") {
+        REQUIRE(sm.size(0) == 2);
+        e = std::make_shared<test_Event>();
+        dynamic_cast<test_Event*>(e.get())->receive_time_ = 26;
+        std::shared_ptr<warped::Event> restored_state_event = sm.restoreState(e, 0, object);
+        REQUIRE(sm.size(0) == 1);
+        REQUIRE(restored_state_event->timestamp() == 15);
+        REQUIRE(*(static_cast<test_ObjectState&>(object->getState()).y) == 5);
+    }
+}
+
+TEST_CASE("States with maps saved and restored correctly", "[state][queue][map]") {
+    unsigned int num_objects = 1;
+    unsigned int period = 1;
+    warped::TimeWarpPeriodicStateManager sm(period);
+    sm.initialize(num_objects);
+    warped::SimulationObject *object;
+    std::shared_ptr<warped::Event> e;
+
+    object = new test_SimulationObject("test_object", 50);
+
+    auto val1 = std::make_shared<enum_type>(VALUE1);
+    static_cast<test_ObjectState&>(object->getState()).a_map->insert(std::pair<unsigned int, std::shared_ptr<enum_type>>(1, val1));
+    e = std::make_shared<test_Event>();
+    dynamic_cast<test_Event*>(e.get())->receive_time_ = 15;
+    sm.saveState(e, 0, object); // timestamp 15
+    REQUIRE(sm.size(0) == 1);   // Saved
+
+    auto val2 = std::make_shared<enum_type>(VALUE2);
+    static_cast<test_ObjectState&>(object->getState()).a_map->insert(std::pair<unsigned int, std::shared_ptr<enum_type>>(2, val2));
+    e = std::make_shared<test_Event>();
+    dynamic_cast<test_Event*>(e.get())->receive_time_ = 30;
+    sm.saveState(e, 0, object); // timestamp 30
+    REQUIRE(sm.size(0) == 2);   // Saved
+
+    SECTION("State can be restored on rollback", "[state][rollback][restore]") {
+        REQUIRE(sm.size(0) == 2);
+        REQUIRE(static_cast<test_ObjectState&>(object->getState()).a_map->size() == 2);
+        REQUIRE(*(static_cast<test_ObjectState&>(object->getState()).a_map->at(1)) == VALUE1);
+        REQUIRE(*(static_cast<test_ObjectState&>(object->getState()).a_map->at(2)) == VALUE2);
+
+        e = std::make_shared<test_Event>();
+        dynamic_cast<test_Event*>(e.get())->receive_time_ = 26;
+        std::shared_ptr<warped::Event> restored_state_event = sm.restoreState(e, 0, object);
+
+        REQUIRE(sm.size(0) == 1);
+        REQUIRE(restored_state_event->timestamp() == 15);
+        REQUIRE(static_cast<test_ObjectState&>(object->getState()).a_map->size() == 1);
+        REQUIRE(*(static_cast<test_ObjectState&>(object->getState()).a_map->at(1)) == VALUE1);
+        REQUIRE_THROWS(static_cast<test_ObjectState&>(object->getState()).a_map->at(2));
+    }
+}
 

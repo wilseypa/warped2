@@ -6,9 +6,37 @@
 #include "serialization.hpp"
 #include "SimulationObject.hpp"
 
+enum enum_type {
+    VALUE1,
+    VALUE2,
+};
+
+struct some_type {
+    double z;
+    enum_type a;
+};
+
 WARPED_DEFINE_OBJECT_STATE_STRUCT(test_ObjectState) {
-    test_ObjectState(int x=0): x(x) {}
+    test_ObjectState(int x=0): x(x) {
+        y = std::make_shared<int>(0);
+        *y = 0;
+        a_map = std::make_shared<std::map<unsigned int, std::shared_ptr<enum_type>>>();
+    }
+
+    test_ObjectState(const test_ObjectState& other) {
+        x = other.x;
+        y = std::make_shared<int>(*other.y);
+
+        a_map = std::make_shared<std::map<unsigned int, std::shared_ptr<enum_type>>>();
+        for (auto it = other.a_map->begin(); it != other.a_map->end(); it++) {
+            auto new_val = std::make_shared<enum_type>(*it->second);
+            a_map->insert(a_map->begin(), std::pair<unsigned int, std::shared_ptr<enum_type>>(it->first , new_val));
+        }
+    }
+
     int x;
+    std::shared_ptr<int> y;
+    std::shared_ptr<std::map<unsigned int, std::shared_ptr<enum_type>>> a_map;
 };
 
 struct test_Event : public warped::Event {
@@ -48,3 +76,5 @@ public:
 private:
     test_ObjectState state;
 };
+
+

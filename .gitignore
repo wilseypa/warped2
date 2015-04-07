@@ -53,6 +53,7 @@ src/.tags*
 # All test files except cpp files
 test_*
 !test_*.cpp
+*.test
 
 .libs/
 .dirstamp
