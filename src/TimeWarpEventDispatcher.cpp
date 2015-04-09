@@ -67,7 +67,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         threads.push_back(std::move(thread));
     }
 
-    unsigned int gvt;
+    unsigned int gvt = 0;
     auto sim_start = std::chrono::steady_clock::now();
 
     // Master thread main loop
@@ -85,7 +85,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             } else {
                 gvt = local_gvt_manager_->getGVT();
                 std::cout << "GVT: " << gvt << std::endl;
-                fossilCollect(gvt);
+                fossil_collect_ = true;
             }
         }
 
@@ -94,15 +94,16 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             if (comm_manager_->getID() == 0) {
                 std::cout << "GVT: " << gvt << std::endl;
             }
-            fossilCollect(gvt);
+            fossil_collect_ = true;
             mattern_gvt_manager_->resetState();
         }
 
-        if (comm_manager_->getID() == 0 && termination_manager_->nodePassive()) {
+        fossilCollect(gvt);
+
+        if ((comm_manager_->getID() == 0) && termination_manager_->nodePassive()) {
             termination_manager_->sendTerminationToken(State::PASSIVE);
         }
 
-        // Send all events in the remote event queue.
         sendRemoteEvents();
     }
 
@@ -231,6 +232,7 @@ void TimeWarpEventDispatcher::sendEvents(std::vector<std::shared_ptr<Event>> new
             // Remote event
             enqueueRemoteEvent(e, node_id);
         }
+        local_gvt_manager_->sendEventUpdateState(e->timestamp(), thread_id);
     }
 }
 
@@ -242,23 +244,32 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
         event_set_->insertEvent(receiver_object_id, event);
         event_set_->releaseInputQueueLock(receiver_object_id);
     }
-
-    local_gvt_manager_->sendEventUpdateState(event->timestamp(), thread_id);
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     unsigned int event_fossil_collect_time;
-    for (unsigned int local_object_id = 0; local_object_id < num_local_objects_; local_object_id++) {
 
-        twfs_manager_->fossilCollect(gvt, local_object_id);
+    if (!fossil_collect_) {
+        return;
+    }
 
-        output_manager_->fossilCollect(gvt, local_object_id);
+    for (unsigned int i = 0; i < 100; i++) {
 
-        event_fossil_collect_time = state_manager_->fossilCollect(gvt, local_object_id);
+        if (curr_fc_object_id_ >= num_local_objects_) {
+            curr_fc_object_id_ = 0;
+            fossil_collect_ = false;
+            break;
+        }
 
-        event_set_->acquireInputQueueLock(local_object_id);
-        event_set_->fossilCollect(event_fossil_collect_time, local_object_id);
-        event_set_->releaseInputQueueLock(local_object_id);
+        twfs_manager_->fossilCollect(gvt, curr_fc_object_id_);
+        output_manager_->fossilCollect(gvt, curr_fc_object_id_);
+        event_fossil_collect_time = state_manager_->fossilCollect(gvt, curr_fc_object_id_);
+
+        event_set_->acquireInputQueueLock(curr_fc_object_id_);
+        event_set_->fossilCollect(event_fossil_collect_time, curr_fc_object_id_);
+        event_set_->releaseInputQueueLock(curr_fc_object_id_);
+
+        curr_fc_object_id_++;
     }
 }
 
