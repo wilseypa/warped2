@@ -35,7 +35,7 @@ to specify the path to the MPI headers and libraries manually in the configurati
 step. You can specify the path to the library file with the `--with-mpi` configure option,
 and the header location with the `--with-mpiheader` option.
 
- 	./configure --with-mpiheader=/usr/include/mpich --with-mpi=/usr/lib/mpich2
+ 	./configure --with-mpi-includedir=/usr/include/mpich --with-mpi=/usr/lib/mpich2
 
 Replace the paths in the above example with the locations of the MPI libraries and headers
 on your machine.   
