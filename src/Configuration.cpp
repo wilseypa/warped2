@@ -54,7 +54,7 @@ const static std::string DEFAULT_CONFIG = R"x({
 
 "time-warp" : {
     "gvt-calculation": {
-        "period": 100
+        "period": 1000
     },
 
     "state-saving": {

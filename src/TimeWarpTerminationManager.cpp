@@ -1,3 +1,5 @@
+#include <cstring> // For memset
+
 #include "TimeWarpTerminationManager.hpp"
 #include "utility/memory.hpp"
 
@@ -8,6 +10,8 @@ namespace warped {
 
 void TimeWarpTerminationManager::initialize(unsigned int num_worker_threads) {
     state_by_thread_ = make_unique<State []>(num_worker_threads);
+    std::memset(state_by_thread_.get(), 0, num_worker_threads*sizeof(State));
+
     active_thread_count_ = num_worker_threads;
 
     // Register token handler
