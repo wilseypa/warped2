@@ -14,16 +14,8 @@ void TimeWarpTerminationManager::initialize(unsigned int num_worker_threads) {
 
     active_thread_count_ = num_worker_threads;
 
-    // Register token handler
-    std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> handler =
-        std::bind(&TimeWarpTerminationManager::receiveTerminationToken, this,
-        std::placeholders::_1);
-    comm_manager_->addRecvMessageHandler(MessageType::TerminationToken, handler);
-
-    // Register terminator message
-    handler = std::bind(&TimeWarpTerminationManager::receiveTerminator, this,
-        std::placeholders::_1);
-    comm_manager_->addRecvMessageHandler(MessageType::Terminator, handler);
+    WARPED_REGISTER_MSG_HANDLER(TimeWarpTerminationManager, receiveTerminationToken, TerminationToken);
+    WARPED_REGISTER_MSG_HANDLER(TimeWarpTerminationManager, receiveTerminator, Terminator);
 }
 
 void TimeWarpTerminationManager::sendTerminationToken(State state) {

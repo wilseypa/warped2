@@ -14,6 +14,12 @@
  * processes(nodes), get a node id, send a single message, and receive a single message.
 */
 
+#define WARPED_REGISTER_MSG_HANDLER(class, func, msg_type) {\
+    std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> handler = \
+        std::bind(&class::func, this, std::placeholders::_1);\
+    comm_manager_->addRecvMessageHandler(MessageType::msg_type, handler);\
+}
+
 namespace warped {
 
 class TimeWarpCommunicationManager {

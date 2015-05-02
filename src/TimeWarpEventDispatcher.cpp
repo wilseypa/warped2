@@ -375,10 +375,7 @@ void TimeWarpEventDispatcher::initialize(
 
     // Register message handlers
     mattern_gvt_manager_->initialize();
-
-    std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> handler =
-        std::bind(&TimeWarpEventDispatcher::receiveEventMessage, this, std::placeholders::_1);
-    comm_manager_->addRecvMessageHandler(MessageType::EventMessage, handler);
+    WARPED_REGISTER_MSG_HANDLER(TimeWarpEventDispatcher, receiveEventMessage, EventMessage);
 
     // Prepare local min lvt computation
     local_gvt_manager_->initialize(num_worker_threads_);

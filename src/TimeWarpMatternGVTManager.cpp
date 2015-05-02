@@ -14,14 +14,9 @@ WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::GVTUpdateMessage)
 namespace warped {
 
 void TimeWarpMatternGVTManager::initialize() {
-    std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> handler =
-        std::bind(&TimeWarpMatternGVTManager::receiveMatternGVTToken, this,
-        std::placeholders::_1);
-    comm_manager_->addRecvMessageHandler(MessageType::MatternGVTToken, handler);
-
-    handler = std::bind(&TimeWarpMatternGVTManager::receiveGVTUpdate, this,
-        std::placeholders::_1);
-    comm_manager_->addRecvMessageHandler(MessageType::GVTUpdateMessage, handler);
+    WARPED_REGISTER_MSG_HANDLER(TimeWarpMatternGVTManager, receiveMatternGVTToken, MatternGVTToken);
+    WARPED_REGISTER_MSG_HANDLER(TimeWarpMatternGVTManager, receiveGVTUpdate, GVTUpdateMessage);
+    gvt_start = std::chrono::steady_clock::now();
 }
 
 unsigned int TimeWarpMatternGVTManager::infinityVT() {
@@ -95,6 +90,7 @@ void TimeWarpMatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) 
         white_msg_counter_ + msg_count_);
 
     token_iteration_++;
+
     white_msg_counter_ = 0;
 
     comm_manager_->sendMessage(std::move(msg));
