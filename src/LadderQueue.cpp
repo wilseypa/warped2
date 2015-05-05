@@ -136,7 +136,97 @@ void LadderQueue::erase(std::shared_ptr<Event> event) {
 
 void LadderQueue::insert(std::shared_ptr<Event> event) {
 
-    std::cout << event->timestamp();
+    assert(event != nullptr);
+    auto timestamp = event->timestamp();
+
+    /* Insert into top, if valid */
+    if (timestamp > top_start_) {  //deviation from APPENDIX of ladderq
+        if(top_.empty()) {
+            max_ts_ = min_ts_ = timestamp;
+        } else {
+            if (min_ts_ > timestamp) min_ts_ = timestamp;
+            if (max_ts_ < timestamp) max_ts_ = timestamp;
+        }
+        top_.push_front(event);
+        return;
+    }
+
+    /* Step through rungs */
+    unsigned int rung_index = 0;
+    while ((rung_index < n_rung_) && (timestamp < r_current_[rung_index])) {
+        rung_index++;
+    }
+
+    if (rung_index < n_rung_) {  /* found a rung */
+        assert(timestamp >= r_start_[rung_index]);
+        unsigned int bucket_index = std::min(
+            (unsigned int)(timestamp - r_start_[rung_index]) / bucket_width_[rung_index],
+                                                            RUNG_BUCKET_CNT(rung_index)-1);
+
+        /* Adjust rung parameters */
+        if (rung_bucket_cnt_[rung_index] < bucket_index+1) {
+            rung_bucket_cnt_[rung_index] = bucket_index+1;
+        }
+        if (r_current_[rung_index] > 
+                    r_start_[rung_index] + bucket_index*bucket_width_[rung_index]) {
+            r_current_[rung_index] = 
+                    r_start_[rung_index] + bucket_index*bucket_width_[rung_index];
+        }
+
+        rung_[rung_index][bucket_index]->push_front(event);
+        return;
+    }
+
+    /* If bottom exceeds threshold */
+    if (bottom_.size() >= THRESHOLD) {
+        /* If no additional rungs can be created */
+        if (n_rung_ >= MAX_RUNG_CNT) {
+            /* Intentionally let the bottom continue to overflow */
+            //ref sec 2.4 of ladderq + when bucket width becomes static
+            bottom_.insert(event);
+            return;
+        }
+
+        /* Check if new event to be inserted is smaller than what is present in BOTTOM */
+        auto bucket_start_ts = (*bottom_.begin())->timestamp();
+        if (bucket_start_ts > timestamp) bucket_start_ts = timestamp;
+
+        assert(createRungForBottomTransfer(bucket_start_ts));
+
+        /* Transfer bottom to new rung */
+        for (auto iter = bottom_.begin(); iter != bottom_.end(); iter++) {
+            assert( (*iter)->timestamp() >= r_start_[n_rung_-1] );
+            unsigned int bucket_index = std::min( 
+                (unsigned int)(((*iter)->timestamp()-r_start_[n_rung_-1]) / 
+                                                    bucket_width_[n_rung_-1]),
+                                                            RUNG_BUCKET_CNT(n_rung_-1)-1 );
+
+            /* Adjust rung parameters */
+            if (rung_bucket_cnt_[n_rung_-1] < bucket_index+1) {
+                rung_bucket_cnt_[n_rung_-1] = bucket_index+1;
+            }
+            rung_[n_rung_-1][bucket_index]->push_front(*iter);
+        }
+        bottom_.clear();
+
+        /* Insert new element in the new and populated rung */
+        assert(timestamp >= r_start_[n_rung_-1]);
+        unsigned int bucket_index = std::min( 
+                (unsigned int)((timestamp-r_start_[n_rung_-1]) / bucket_width_[n_rung_-1]),
+                                                            RUNG_BUCKET_CNT(n_rung_-1)-1 );
+        if (rung_bucket_cnt_[n_rung_-1] < bucket_index+1) {
+            rung_bucket_cnt_[n_rung_-1] = bucket_index+1;
+        }
+        if (r_current_[n_rung_-1] > 
+                    r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1]) {
+            r_current_[n_rung_-1] = 
+                    r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1];
+        }
+        rung_[n_rung_-1][bucket_index]->push_front(event);
+
+    } else { /* If BOTTOM is within threshold */
+        bottom_.insert(event);
+    }
 }
 
 bool LadderQueue::createNewRung(unsigned int num_events, 
