@@ -1,4 +1,5 @@
-#include "TimeWarpEventSet.hpp"
+#include "LadderQueue.hpp"
+#include <cassert>
 
 namespace warped {
 
@@ -13,14 +14,13 @@ LadderQueue::LadderQueue() {
     /* Create buckets for 2nd rung onwards */
     for (unsigned int rung_index = 1; rung_index < MAX_RUNG_CNT; rung_index++) {
         for (unsigned int bucket_index = 0; bucket_index < MAX_BUCKET_CNT; bucket_index++) {
-            auto bucket = make_unique<std::list<std::shared_ptr<Event>>>();
-            assert(bucket != nullptr);
-            rung_[rung_index].push_back(bucket);
+            rung_[rung_index][bucket_index] = 
+                        std::make_shared<std::list<std::shared_ptr<Event>>>();
         }
     }
 }
 
-std::shared_ptr<Event> begin() {
+std::shared_ptr<Event> LadderQueue::begin() {
 
     /* Remove from bottom if not empty */
     if (!bottom_.empty()) {
@@ -127,6 +127,36 @@ std::shared_ptr<Event> begin() {
 
     if (bottom_.empty()) return nullptr;
     return *bottom_.begin();
+}
+
+void LadderQueue::erase(std::shared_ptr<Event> event) {
+
+    std::cout << event->timestamp();
+}
+
+void LadderQueue::insert(std::shared_ptr<Event> event) {
+
+    std::cout << event->timestamp();
+}
+
+bool LadderQueue::createNewRung(unsigned int num_events, 
+                                unsigned int init_start_and_cur_val, 
+                                bool *is_bucket_width_static) {
+
+    std::cout << num_events << init_start_and_cur_val << *is_bucket_width_static;
+    return true;
+}
+
+bool LadderQueue::createRungForBottomTransfer(unsigned int start_val) {
+
+    std::cout << start_val;
+    return true;
+}
+
+bool LadderQueue::recurseRung( unsigned int *index ) {
+
+    std::cout << *index;
+    return true;
 }
 
 } // namespace warped
