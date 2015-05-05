@@ -18,7 +18,6 @@
 #define MAX_BUCKET_CNT     THRESHOLD  //ref. sec 2.4 of ladderq paper
 #define MIN_BUCKET_WIDTH   1
 
-#define RUNG(x,y) (((x)==0) ? (rung_0_[(y)]) : (rung_1_to_n_[(x)-1][(y)]))
 #define RUNG_BUCKET_CNT(x) (((x)==0) ? (rung_0_length_) : (MAX_BUCKET_NUM))
 
 namespace warped {
@@ -45,15 +44,14 @@ private:
     unsigned int top_start_ = 0;
 
     /* Rungs */
+    std::vector<std::unique_ptr<std::list<std::shared_ptr<Event>>>> rung_[MAX_RUNG_CNT];
+
     //first rung. ref. sec 2.4 of ladderq paper
-    std::vector<std::unique_ptr<std::list<std::shared_ptr<Event>>>> rung_0_;
     unsigned int rung_0_length_ = 0;
 
-    std::unique_ptr<std::list<std::shared_ptr<Event>>> 
-                                rung_1_to_n_[MAX_RUNG_CNT-1][MAX_BUCKET_CNT];
     unsigned int n_rung_ = 0;
     unsigned int bucket_width_[MAX_RUNG_CNT];
-    unsigned int rung_length_in_use_[MAX_RUNG_CNT];
+    unsigned int rung_bucket_cnt_[MAX_RUNG_CNT];
     unsigned int r_start_[MAX_RUNG_CNT];
     unsigned int r_current_[MAX_RUNG_CNT];
 
