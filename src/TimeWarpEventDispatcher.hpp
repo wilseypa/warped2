@@ -18,6 +18,7 @@
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
 #include "TimeWarpCommunicationManager.hpp"
+#include "TimeWarpStatistics.hpp"
 
 namespace warped {
 
@@ -47,7 +48,8 @@ public:
         std::unique_ptr<TimeWarpStateManager> state_manager,
         std::unique_ptr<TimeWarpOutputManager> output_manager,
         std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
-        std::unique_ptr<TimeWarpTerminationManager> termination_manager);
+        std::unique_ptr<TimeWarpTerminationManager> termination_manager,
+        std::unique_ptr<TimeWarpStatistics> tw_stats);
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
@@ -101,6 +103,7 @@ private:
     const std::unique_ptr<TimeWarpOutputManager> output_manager_;
     const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
     const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
+    const std::unique_ptr<TimeWarpStatistics> tw_stats_;
 
     std::unique_ptr<unsigned int []> object_simulation_time_;
 
@@ -113,9 +116,6 @@ private:
 
     unsigned int curr_fc_object_id_ = 0;
     bool fossil_collect_ = false;
-
-    // Rollback counter
-    std::atomic<unsigned long> rollback_count_;
 };
 
 struct EventMessage : public TimeWarpKernelMessage {

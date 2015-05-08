@@ -18,12 +18,12 @@ void TimeWarpTerminationManager::initialize(unsigned int num_worker_threads) {
     WARPED_REGISTER_MSG_HANDLER(TimeWarpTerminationManager, receiveTerminator, Terminator);
 }
 
-void TimeWarpTerminationManager::sendTerminationToken(State state) {
+bool TimeWarpTerminationManager::sendTerminationToken(State state) {
     unsigned int sender_id = comm_manager_->getID();
     unsigned int num_processes = comm_manager_->getNumProcesses();
 
     if (pending_termination_token_)
-        return;
+        return false;
 
     auto msg = make_unique<TerminationToken>(sender_id, (sender_id + 1) % num_processes, state);
 
@@ -32,6 +32,8 @@ void TimeWarpTerminationManager::sendTerminationToken(State state) {
     if (sender_id == 0) {
         pending_termination_token_ = true;
     }
+
+    return true;
 }
 
 void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWarpKernelMessage> kmsg) {

@@ -34,7 +34,7 @@ public:
 
     virtual int waitForAllProcesses() = 0;
 
-    virtual int sumReduceUint(unsigned int* send_local, unsigned int* recv_global) = 0;
+    virtual int sumReduceUint64(uint64_t* send_local, uint64_t* recv_global) = 0;
 
     virtual int gatherUint(unsigned int *send_local, unsigned int* recv_root) = 0;
 

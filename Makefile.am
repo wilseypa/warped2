@@ -45,7 +45,8 @@ WARPED_NOINST_HPP_FILES = \
     src/TimeWarpFileStream.hpp \
     src/TimeWarpEventSet.hpp \
 	src/TimeWarpLocalGVTManager.hpp \
-	src/TimeWarpTerminationManager.hpp
+	src/TimeWarpTerminationManager.hpp \
+	src/TimeWarpStatistics.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -73,7 +74,8 @@ WARPED_CPP_FILES = \
     src/TimeWarpFileStream.cpp \
     src/TimeWarpEventSet.cpp \
 	src/TimeWarpLocalGVTManager.cpp \
-	src/TimeWarpTerminationManager.cpp
+	src/TimeWarpTerminationManager.cpp \
+	src/TimeWarpStatistics.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \

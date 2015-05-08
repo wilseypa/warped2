@@ -6,10 +6,10 @@
 #include <utility>
 #include <vector>
 #include <cmath>
-#include <limits> // for std::numeric_limits<>::max();
+#include <limits>       // for std::numeric_limits<>::max();
 #include <algorithm>    // for std::min
-#include <chrono>   // for std::chrono::steady_clock
-#include <cstring> // for std::memset
+#include <chrono>       // for std::chrono::steady_clock
+#include <cstring>      // for std::memset
 #include <iostream>
 #include <cassert>
 
@@ -47,13 +47,14 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpStateManager> state_manager,
     std::unique_ptr<TimeWarpOutputManager> output_manager,
     std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
-    std::unique_ptr<TimeWarpTerminationManager> termination_manager) :
+    std::unique_ptr<TimeWarpTerminationManager> termination_manager,
+    std::unique_ptr<TimeWarpStatistics> tw_stats) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
         num_schedulers_(num_schedulers), comm_manager_(comm_manager),
         event_set_(std::move(event_set)), mattern_gvt_manager_(std::move(mattern_gvt_manager)),
         local_gvt_manager_(std::move(local_gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
-        termination_manager_(std::move(termination_manager)) {}
+        termination_manager_(std::move(termination_manager)), tw_stats_(std::move(tw_stats)) {}
 
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
@@ -72,10 +73,12 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
 
     // Master thread main loop
     while (!termination_manager_->terminationStatus()) {
-        // Get all received messages, handle messages, and get flags.
-        comm_manager_->dispatchReceivedMessages();
 
-        if (mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT()) {
+        comm_manager_->dispatchReceivedMessages();
+        sendRemoteEvents();
+
+        if ((mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT())
+                && !fossil_collect_) {
             local_gvt_manager_->startGVT();
         }
 
@@ -86,6 +89,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                 gvt = local_gvt_manager_->getGVT();
                 std::cout << "GVT: " << gvt << std::endl;
                 fossil_collect_ = true;
+                tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
             }
         }
 
@@ -95,35 +99,37 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                 std::cout << "GVT: " << gvt << std::endl;
             }
             fossil_collect_ = true;
+            tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
             mattern_gvt_manager_->resetState();
         }
 
+        comm_manager_->dispatchReceivedMessages();
+        sendRemoteEvents();
+
         fossilCollect(gvt);
 
-        if ((comm_manager_->getID() == 0) && termination_manager_->nodePassive()) {
-            termination_manager_->sendTerminationToken(State::PASSIVE);
-        }
-
+        comm_manager_->dispatchReceivedMessages();
         sendRemoteEvents();
+
+        if ((comm_manager_->getID() == 0) && termination_manager_->nodePassive()) {
+            if (termination_manager_->sendTerminationToken(State::PASSIVE)) {
+                tw_stats_->upCount(TERMINATION_CYCLES, num_worker_threads_);
+            }
+        }
     }
 
     comm_manager_->waitForAllProcesses();
     auto sim_stop = std::chrono::steady_clock::now();
 
-    unsigned int global_rollback_count;
-    unsigned int local_rollback_count = rollback_count_.load();
-    comm_manager_->sumReduceUint(&local_rollback_count, &global_rollback_count);
+    double num_seconds = double((sim_stop - sim_start).count()) *
+                std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
 
-    double num_seconds = double((sim_stop - sim_start).count()) * 
-                            std::chrono::steady_clock::period::num / 
-                                std::chrono::steady_clock::period::den;
+    tw_stats_->calculateStats();
 
     if (comm_manager_->getID() == 0) {
-        std::cout << "Simulation completed in " << num_seconds << " second(s) with "
-            << global_rollback_count << " rollback(s)." << std::endl;
+        std::cout << "\nSimulation completed in " << num_seconds << " second(s)" << "\n\n";
+        tw_stats_->printStats();
     }
-
-    comm_manager_->finalize();
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
@@ -155,10 +161,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                         ((*event == *last_processed_event) && 
                          (event->event_type_ == EventType::NEGATIVE)))) {
                 rollback(event);
-                event_set_->acquireInputQueueLock(current_object_id);
-                event_set_->startScheduling(current_object_id);
-                event_set_->releaseInputQueueLock(current_object_id);
-                continue;
             }
 
             // Check to see if event is NEGATIVE
@@ -167,6 +169,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 event_set_->cancelEvent(current_object_id, event);
                 event_set_->startScheduling(current_object_id);
                 event_set_->releaseInputQueueLock(current_object_id);
+
+                tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
                 continue;
             }
 
@@ -181,6 +185,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Save state
             state_manager_->saveState(event, current_object_id, current_object);
+
+            tw_stats_->upCount(EVENTS_PROCESSED, thread_id);
 
             // Send new events
             sendEvents(new_events, current_object_id, current_object);
@@ -215,35 +221,40 @@ void TimeWarpEventDispatcher::sendEvents(std::vector<std::shared_ptr<Event>> new
     unsigned int sender_object_id, SimulationObject *sender_object) {
 
     for (auto& e: new_events) {
-        assert(e->event_type_ == EventType::POSITIVE);
-        e->sender_name_ = sender_object->name_;
-        e->counter_ = event_counter_by_obj_[sender_object_id]++;
-        e->send_time_ = object_simulation_time_[sender_object_id];
 
-        output_manager_->insertEvent(e, sender_object_id);
+        if (e->timestamp() <= max_sim_time_) {
+            e->sender_name_ = sender_object->name_;
+            e->counter_ = event_counter_by_obj_[sender_object_id]++;
+            e->send_time_ = object_simulation_time_[sender_object_id];
 
-        assert(e->timestamp() >= object_simulation_time_[sender_object_id]);
+            output_manager_->insertEvent(e, sender_object_id);
 
-        unsigned int node_id = object_node_id_by_name_[e->receiverName()];
-        if (node_id == comm_manager_->getID()) {
-            // Local event
-            sendLocalEvent(e);
-        } else {
-            // Remote event
-            enqueueRemoteEvent(e, node_id);
+            assert(e->timestamp() >= object_simulation_time_[sender_object_id]);
+
+            unsigned int node_id = object_node_id_by_name_[e->receiverName()];
+            if (node_id == comm_manager_->getID()) {
+                // Local event
+                sendLocalEvent(e);
+                tw_stats_->upCount(LOCAL_POSITIVE_EVENTS_SENT, thread_id);
+            } else {
+                // Remote event
+                enqueueRemoteEvent(e, node_id);
+                tw_stats_->upCount(REMOTE_POSITIVE_EVENTS_SENT, thread_id);
+            }
+
+            local_gvt_manager_->sendEventUpdateState(e->timestamp(), thread_id);
         }
-        local_gvt_manager_->sendEventUpdateState(e->timestamp(), thread_id);
     }
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
 
-    if (event->timestamp() <= max_sim_time_) {
-        event_set_->acquireInputQueueLock(receiver_object_id);
-        event_set_->insertEvent(receiver_object_id, event);
-        event_set_->releaseInputQueueLock(receiver_object_id);
-    }
+    event_set_->acquireInputQueueLock(receiver_object_id);
+    event_set_->insertEvent(receiver_object_id, event);
+    event_set_->releaseInputQueueLock(receiver_object_id);
+
+    tw_stats_->upCount(TOTAL_EVENTS_RECEIVED, thread_id);
 }
 
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
@@ -283,12 +294,17 @@ void TimeWarpEventDispatcher::cancelEvents(
         auto neg_event = std::make_shared<NegativeEvent>(event);
         events_to_cancel->pop_back();
 
-        unsigned int receiver_node_id = object_node_id_by_name_[event->receiverName()];
-        if (receiver_node_id != comm_manager_->getID()) {
-            enqueueRemoteEvent(neg_event, receiver_node_id);
-        } else {
-            sendLocalEvent(neg_event);
+        if (event->timestamp() <= max_sim_time_) {
+            unsigned int receiver_node_id = object_node_id_by_name_[event->receiverName()];
+            if (receiver_node_id == comm_manager_->getID()) {
+                sendLocalEvent(neg_event);
+                tw_stats_->upCount(LOCAL_NEGATIVE_EVENTS_SENT, thread_id);
+            } else {
+                enqueueRemoteEvent(neg_event, receiver_node_id);
+                tw_stats_->upCount(REMOTE_NEGATIVE_EVENTS_SENT, thread_id);
+            }
         }
+
     } while (!events_to_cancel->empty());
 }
 
@@ -316,9 +332,13 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
     assert(*restored_state_event < *straggler_event);
     object_simulation_time_[local_object_id] = restored_state_event->timestamp();
 
-    coastForward(straggler_event, restored_state_event);
+    if (straggler_event->event_type_ == EventType::POSITIVE) {
+        tw_stats_->upCount(PRIMARY_ROLLBACKS, thread_id);
+    } else {
+        tw_stats_->upCount(SECONDARY_ROLLBACKS, thread_id);
+    }
 
-    rollback_count_++;
+    coastForward(straggler_event, restored_state_event);
 }
 
 void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_event, 
@@ -351,7 +371,6 @@ void TimeWarpEventDispatcher::initialize(
     std::memset(object_simulation_time_.get(), 0, num_local_objects_*sizeof(unsigned int));
 
     event_counter_by_obj_ = make_unique<std::atomic<unsigned long> []>(num_local_objects_);
-    rollback_count_ = 0;
 
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
@@ -382,6 +401,8 @@ void TimeWarpEventDispatcher::initialize(
 
     termination_manager_->initialize(num_worker_threads_);
 
+    tw_stats_->initialize(num_worker_threads_, num_local_objects_);
+
     // Send local initial events and enqueue remote initial events
     partition_id = 0;
     for (auto& partition : objects) {
@@ -397,6 +418,9 @@ void TimeWarpEventDispatcher::initialize(
     // Send and receive remote initial events
     sendRemoteEvents();
     comm_manager_->waitForAllProcesses();
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
     comm_manager_->dispatchReceivedMessages();
     comm_manager_->waitForAllProcesses();
 }

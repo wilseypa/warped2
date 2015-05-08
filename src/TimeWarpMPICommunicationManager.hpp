@@ -30,7 +30,7 @@ public:
 
     bool isInitiatingThread();
 
-    int sumReduceUint(unsigned int* send_local, unsigned int* recv_global);
+    int sumReduceUint64(uint64_t* send_local, uint64_t* recv_global);
     int gatherUint(unsigned int *send_local, unsigned int* recv_root);
 
 private:

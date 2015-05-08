@@ -18,7 +18,7 @@ public:
 
     void initialize(unsigned int num_worker_threads);
 
-    void sendTerminationToken(State state);
+    bool sendTerminationToken(State state);
 
     void receiveTerminationToken(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
