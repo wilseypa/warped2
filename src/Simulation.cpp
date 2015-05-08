@@ -8,6 +8,7 @@
 #include "EventDispatcher.hpp"
 #include "Partitioner.hpp"
 #include "SimulationObject.hpp"
+#include "TimeWarpMPICommunicationManager.hpp"
 
 extern "C" {
     void warped_is_present(void) {
@@ -30,25 +31,32 @@ Simulation::Simulation(const std::string& config_file_name, unsigned int max_sim
     : config_(config_file_name, max_sim_time) {}
 
 void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
-    unsigned int num_partitions;
+    std::shared_ptr<TimeWarpCommunicationManager> comm_manager;
+    comm_manager = std::make_shared<TimeWarpMPICommunicationManager>();
 
-    std::tie(event_dispatcher_, num_partitions) = config_.makeDispatcher();
+    unsigned int num_partitions = comm_manager->initialize();
 
+    event_dispatcher_ = config_.makeDispatcher(comm_manager);
     auto partitioned_objects = config_.makePartitioner()->partition(objects, num_partitions);
     event_dispatcher_->startSimulation(partitioned_objects);
+
+    comm_manager->finalize();
 }
 
 void Simulation::simulate(const std::vector<SimulationObject*>& objects,
     std::unique_ptr<Partitioner> partitioner) {
 
-    unsigned int num_partitions;
+    std::shared_ptr<TimeWarpCommunicationManager> comm_manager;
+    comm_manager = std::make_shared<TimeWarpMPICommunicationManager>();
 
-    std::tie(event_dispatcher_, num_partitions) = config_.makeDispatcher();
+    unsigned int num_partitions = comm_manager->initialize();
 
+    event_dispatcher_ = config_.makeDispatcher(comm_manager);
     auto partitioned_objects =
         config_.makePartitioner(std::move(partitioner))->partition(objects, num_partitions);
-
     event_dispatcher_->startSimulation(partitioned_objects);
+
+    comm_manager->finalize();
 }
 
 FileStream& Simulation::getFileStream(SimulationObject* object, const std::string& filename,

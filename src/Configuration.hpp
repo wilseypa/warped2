@@ -30,7 +30,8 @@ public:
     ~Configuration();
 
     // Create a fully configured EventDispatcher
-    std::tuple<std::unique_ptr<EventDispatcher>, unsigned int> makeDispatcher();
+    std::unique_ptr<EventDispatcher>
+    makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm_manager);
 
     // Create a partitioner based on the chosen configuration.
     std::unique_ptr<Partitioner> makePartitioner();

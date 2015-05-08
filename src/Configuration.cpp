@@ -34,6 +34,7 @@
 #include "TimeWarpFileStreamManager.hpp"
 #include "TimeWarpEventSet.hpp"
 #include "TimeWarpTerminationManager.hpp"
+#include "TimeWarpStatistics.hpp"
 
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
@@ -179,12 +180,8 @@ bool Configuration::checkTimeWarpConfigs(unsigned int local_config_id, unsigned 
     return true;
 }
 
-std::tuple<std::unique_ptr<EventDispatcher>, unsigned int>
-Configuration::makeDispatcher() {
-    std::shared_ptr<TimeWarpCommunicationManager> comm_manager =
-                std::make_shared<TimeWarpMPICommunicationManager>();
-    int num_partitions = comm_manager->initialize();
-
+std::unique_ptr<EventDispatcher>
+Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm_manager) {
     unsigned int local_config_id;
     unsigned int *all_config_ids = new unsigned int[comm_manager->getNumProcesses()];
     std::string invalid_string;
@@ -267,6 +264,10 @@ Configuration::makeDispatcher() {
         std::unique_ptr<TimeWarpFileStreamManager> twfs_manager =
             make_unique<TimeWarpFileStreamManager>();
 
+        // STATISTICS
+        std::unique_ptr<TimeWarpStatistics> tw_stats =
+            make_unique<TimeWarpStatistics>(comm_manager);
+
         if (!invalid_string.empty()) {
             throw std::runtime_error(std::string("Configuration files do not match, \
 check the following configurations:\n") + invalid_string);
@@ -274,28 +275,28 @@ check the following configurations:\n") + invalid_string);
 
         if (comm_manager->getID() == 0) {
 #ifdef NDEBUG
-            std::cout << "OPTIMIZED" << std::endl;
+            std::cout << "\nOPTIMIZED BUILD\n" << std::endl;
 #else
-            std::cout << "DEBUG" << std::endl;
+            std::cout << "\nDEBUG BUILD\n" << std::endl;
 #endif
             std::cout << "Simulation type: " << simulation_type << std::endl;
-            std::cout << "Number of processes: " << num_partitions << std::endl;
+            std::cout << "Number of processes: " << comm_manager->getNumProcesses() << std::endl;
             std::cout << "Number of worker threads: " << num_worker_threads << std::endl;
             std::cout << "Number of Schedule queues: " << num_schedulers << std::endl;
             std::cout << "State-saving type: " << state_saving_type << std::endl;
-            std::cout << "Cancellation type: " << cancellation_type << std::endl;
             if (state_saving_type == "periodic")
-                std::cout << "\tPeriod: " << state_period << " events" << std::endl;
+                std::cout << "State-saving period: " << state_period << " events" << std::endl;
+            std::cout << "Cancellation type: " << cancellation_type << std::endl;
             std::cout << "GVT Period: " << gvt_period << " ms" << std::endl;
             std::cout << "Max simulation time: " \
-                << (max_sim_time_ ? std::to_string(max_sim_time_) : "infinity") << std::endl;
+                << (max_sim_time_ ? std::to_string(max_sim_time_) : "infinity") << std::endl << std::endl;
         }
 
-        return std::make_tuple(make_unique<TimeWarpEventDispatcher>(max_sim_time_,
+        return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
             num_worker_threads, num_schedulers, comm_manager, std::move(event_set),
             std::move(mattern_gvt_manager), std::move(local_gvt_manager), std::move(state_manager),
-            std::move(output_manager), std::move(twfs_manager), std::move(termination_manager)),
-            num_partitions);
+            std::move(output_manager), std::move(twfs_manager), std::move(termination_manager),
+            std::move(tw_stats));
     }
 
     if (comm_manager->getNumProcesses() > 1) {
@@ -325,8 +326,7 @@ check the following configurations:\n") + invalid_string);
     } else {
         stats = make_unique<NullEventStatistics>();
     }
-    return std::make_tuple(make_unique<SequentialEventDispatcher>(max_sim_time_,
-        std::move(stats)), 1);
+    return make_unique<SequentialEventDispatcher>(max_sim_time_, std::move(stats));
 }
 
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
