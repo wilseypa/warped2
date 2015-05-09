@@ -49,7 +49,8 @@ public:
         std::unique_ptr<TimeWarpOutputManager> output_manager,
         std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
         std::unique_ptr<TimeWarpTerminationManager> termination_manager,
-        std::unique_ptr<TimeWarpStatistics> tw_stats);
+        std::unique_ptr<TimeWarpStatistics> tw_stats,
+        unsigned int fc_objects_per_cycle);
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
@@ -104,6 +105,8 @@ private:
     const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
     const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
     const std::unique_ptr<TimeWarpStatistics> tw_stats_;
+
+    unsigned int fc_objects_per_cycle_;
 
     std::unique_ptr<unsigned int []> object_simulation_time_;
 

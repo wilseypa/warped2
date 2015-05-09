@@ -67,7 +67,11 @@ const static std::string DEFAULT_CONFIG = R"x({
 
     "worker-threads": 3,
 
-    "scheduler-count": 1
+    "scheduler-count": 1,
+
+    "fossil-collection" : {
+        "objects-per-cycle": 100
+    }
 },
 
 "partitioning": {
@@ -247,7 +251,7 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
         }
 
         // GVT
-        int gvt_period = (*root_)["time-warp"]["gvt-calculation"]["period"].asInt();
+        unsigned int gvt_period = (*root_)["time-warp"]["gvt-calculation"]["period"].asUInt();
         if (!checkTimeWarpConfigs(gvt_period, all_config_ids, comm_manager)) {
             invalid_string += std::string("\tGVT period\n");
         }
@@ -268,6 +272,13 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
         std::unique_ptr<TimeWarpStatistics> tw_stats =
             make_unique<TimeWarpStatistics>(comm_manager);
 
+        // FOSSIL COLLECTION
+        unsigned int fc_objects_per_cycle =
+            (*root_)["time-warp"]["fossil-collection"]["objects-per-cycle"].asUInt();
+        if (!checkTimeWarpConfigs(fc_objects_per_cycle, all_config_ids, comm_manager)) {
+            invalid_string += std::string("\tFossil collection objects per cycle\n");
+        }
+
         if (!invalid_string.empty()) {
             throw std::runtime_error(std::string("Configuration files do not match, \
 check the following configurations:\n") + invalid_string);
@@ -279,24 +290,25 @@ check the following configurations:\n") + invalid_string);
 #else
             std::cout << "\nDEBUG BUILD\n" << std::endl;
 #endif
-            std::cout << "Simulation type: " << simulation_type << std::endl;
-            std::cout << "Number of processes: " << comm_manager->getNumProcesses() << std::endl;
-            std::cout << "Number of worker threads: " << num_worker_threads << std::endl;
-            std::cout << "Number of Schedule queues: " << num_schedulers << std::endl;
-            std::cout << "State-saving type: " << state_saving_type << std::endl;
+            std::cout << "Simulation type:           " << simulation_type << "\n"
+                      << "Number of processes:       " << comm_manager->getNumProcesses() << "\n"
+                      << "Number of worker threads:  " << num_worker_threads << "\n"
+                      << "Number of Schedule queues: " << num_schedulers << "\n"
+                      << "State-saving type:         " << state_saving_type << "\n";
             if (state_saving_type == "periodic")
-                std::cout << "State-saving period: " << state_period << " events" << std::endl;
-            std::cout << "Cancellation type: " << cancellation_type << std::endl;
-            std::cout << "GVT Period: " << gvt_period << " ms" << std::endl;
-            std::cout << "Max simulation time: " \
-                << (max_sim_time_ ? std::to_string(max_sim_time_) : "infinity") << std::endl << std::endl;
+            std::cout << "State-saving period:       " << state_period << " events" << "\n";
+            std::cout << "Cancellation type:         " << cancellation_type << "\n"
+                      << "GVT Period:                " << gvt_period << " ms" << "\n"
+                      << "FC objects per cycle:      " << fc_objects_per_cycle << "\n"
+                      << "Max simulation time:       " \
+                        << (max_sim_time_ ? std::to_string(max_sim_time_) : "infinity") << std::endl << std::endl;
         }
 
         return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
             num_worker_threads, num_schedulers, comm_manager, std::move(event_set),
             std::move(mattern_gvt_manager), std::move(local_gvt_manager), std::move(state_manager),
             std::move(output_manager), std::move(twfs_manager), std::move(termination_manager),
-            std::move(tw_stats));
+            std::move(tw_stats), fc_objects_per_cycle);
     }
 
     if (comm_manager->getNumProcesses() > 1) {

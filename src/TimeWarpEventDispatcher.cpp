@@ -48,13 +48,15 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpOutputManager> output_manager,
     std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
     std::unique_ptr<TimeWarpTerminationManager> termination_manager,
-    std::unique_ptr<TimeWarpStatistics> tw_stats) :
+    std::unique_ptr<TimeWarpStatistics> tw_stats,
+    unsigned int fc_objects_per_cycle) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
         num_schedulers_(num_schedulers), comm_manager_(comm_manager),
         event_set_(std::move(event_set)), mattern_gvt_manager_(std::move(mattern_gvt_manager)),
         local_gvt_manager_(std::move(local_gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
-        termination_manager_(std::move(termination_manager)), tw_stats_(std::move(tw_stats)) {}
+        termination_manager_(std::move(termination_manager)), tw_stats_(std::move(tw_stats)),
+        fc_objects_per_cycle_(fc_objects_per_cycle) {}
 
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
@@ -111,10 +113,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         comm_manager_->dispatchReceivedMessages();
         sendRemoteEvents();
 
-        if ((comm_manager_->getID() == 0) && termination_manager_->nodePassive()) {
-            if (termination_manager_->sendTerminationToken(State::PASSIVE)) {
-                tw_stats_->upCount(TERMINATION_CYCLES, num_worker_threads_);
-            }
+        if (termination_manager_->nodePassive()) {
+            termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID());
         }
     }
 
@@ -264,7 +264,7 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
         return;
     }
 
-    for (unsigned int i = 0; i < 100; i++) {
+    for (unsigned int i = 0; i < fc_objects_per_cycle_; i++) {
 
         if (curr_fc_object_id_ >= num_local_objects_) {
             curr_fc_object_id_ = 0;
