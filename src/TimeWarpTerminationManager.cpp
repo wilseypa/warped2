@@ -14,24 +14,27 @@ void TimeWarpTerminationManager::initialize(unsigned int num_worker_threads) {
 
     active_thread_count_ = num_worker_threads;
 
+    if (comm_manager_->getID() == 0) {
+        is_master_ = true;
+    }
+
     WARPED_REGISTER_MSG_HANDLER(TimeWarpTerminationManager, receiveTerminationToken, TerminationToken);
     WARPED_REGISTER_MSG_HANDLER(TimeWarpTerminationManager, receiveTerminator, Terminator);
 }
 
-bool TimeWarpTerminationManager::sendTerminationToken(State state) {
+bool TimeWarpTerminationManager::sendTerminationToken(State state, unsigned int initiator) {
     unsigned int sender_id = comm_manager_->getID();
     unsigned int num_processes = comm_manager_->getNumProcesses();
 
-    if (pending_termination_token_)
+    if (!is_master_) {
         return false;
+    }
 
-    auto msg = make_unique<TerminationToken>(sender_id, (sender_id + 1) % num_processes, state);
+    is_master_ = false;
+
+    auto msg = make_unique<TerminationToken>(sender_id, (sender_id + 1) % num_processes, state, initiator);
 
     comm_manager_->sendMessage(std::move(msg));
-
-    if (sender_id == 0) {
-        pending_termination_token_ = true;
-    }
 
     return true;
 }
@@ -39,22 +42,15 @@ bool TimeWarpTerminationManager::sendTerminationToken(State state) {
 void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
     auto msg = unique_cast<TimeWarpKernelMessage, TerminationToken>(std::move(kmsg));
 
-    if (sticky_state_ == State::ACTIVE) {
-        msg->state_ = State::ACTIVE;
-    }
+    is_master_ = true;
 
-    if (msg->receiver_id == 0) {
-
-        pending_termination_token_ = false;
-
+    if ((sticky_state_ == State::PASSIVE) && (msg->receiver_id == msg->initiator_)) {
         if (msg->state_ == State::PASSIVE) {
             // Signal termination to all nodes including self
             sendTerminator();
         }
-
-    } else {
-
-        sendTerminationToken(msg->state_);
+    } else if (sticky_state_ == State::PASSIVE) {
+        sendTerminationToken(msg->state_, msg->initiator_);
     }
 
     sticky_state_ = state_;
@@ -96,6 +92,7 @@ void TimeWarpTerminationManager::setThreadActive(unsigned int thread_id) {
         active_thread_count_++;
 
         state_ = State::ACTIVE;
+        sticky_state_ = State::ACTIVE;
     }
 
     state_lock_.unlock();

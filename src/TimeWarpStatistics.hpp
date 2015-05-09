@@ -30,10 +30,9 @@ struct Stats {
         uint64_t,                   // Events processed             10
         uint64_t,                   // Total negative events sent   11
         uint64_t,                   // Cancelled events             12
-        uint64_t,                   // Termination cycles           13
-        uint64_t,                   // GVT cycles                   14
-        uint64_t,                   // Number of objects            15
-        uint64_t                    // dummy/number of elements     16
+        uint64_t,                   // GVT cycles                   13
+        uint64_t,                   // Number of objects            14
+        uint64_t                    // dummy/number of elements     15
     > stats_;
 
     template<unsigned I>
@@ -56,10 +55,9 @@ const stats_index<9> TOTAL_EVENTS_RECEIVED;
 const stats_index<10> EVENTS_PROCESSED;
 const stats_index<11> TOTAL_NEGATIVE_EVENTS;
 const stats_index<12> CANCELLED_EVENTS;
-const stats_index<13> TERMINATION_CYCLES;
-const stats_index<14> GVT_CYCLES;
-const stats_index<15> NUM_OBJECTS;
-const stats_index<16> NUM_STATISTICS;
+const stats_index<13> GVT_CYCLES;
+const stats_index<14> NUM_OBJECTS;
+const stats_index<15> NUM_STATISTICS;
 
 class TimeWarpStatistics {
 public:

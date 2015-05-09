@@ -65,9 +65,6 @@ void TimeWarpStatistics::calculateStats() {
             case CANCELLED_EVENTS.value:
                 sumReduceUint64(CANCELLED_EVENTS);
                 break;
-            case TERMINATION_CYCLES.value:
-                sumReduceUint64(TERMINATION_CYCLES);
-                break;
             case GVT_CYCLES.value:
                 global_stats_[GVT_CYCLES] = local_stats_[num_worker_threads_][GVT_CYCLES];
                 break;
@@ -101,7 +98,7 @@ void TimeWarpStatistics::printStats() {
               << "Total events processed:    " << global_stats_[EVENTS_PROCESSED] << "\n\n"
 
               << "GVT cycles:                " << global_stats_[GVT_CYCLES] << "\n"
-              << "Termination cycles:        " << global_stats_[TERMINATION_CYCLES] << std::endl << std::endl;
+              << std::endl;
 }
 
 } // namespace warped
