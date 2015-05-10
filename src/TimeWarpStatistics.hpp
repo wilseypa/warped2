@@ -11,6 +11,7 @@ namespace warped {
 
 template <unsigned I>
 struct stats_index{
+    stats_index(){}
     static unsigned const value = I;
 };
 
