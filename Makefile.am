@@ -31,6 +31,7 @@ WARPED_NOINST_HPP_FILES = \
     src/RoundRobinPartitioner.hpp \
     src/SequentialEventDispatcher.hpp \
     src/STLLTSFQueue.hpp \
+    src/LadderQueue.hpp \
     src/TimeWarpEventDispatcher.hpp \
     src/utility/strings.hpp \
     src/TimeWarpMatternGVTManager.hpp \
@@ -61,6 +62,7 @@ WARPED_CPP_FILES = \
     src/Simulation.cpp \
     src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
+    src/LadderQueue.cpp \
     src/TimeWarpEventDispatcher.cpp \
     src/TimeWarpMatternGVTManager.cpp \
     src/TimeWarpCommunicationManager.cpp \

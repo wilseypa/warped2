@@ -111,11 +111,13 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, std::shared_ptr<Event> str
     }
 }
 
-std::unique_ptr<std::vector<std::shared_ptr<Event>>> TimeWarpEventSet::getEventsForCoastForward (
-        unsigned int obj_id, std::shared_ptr<Event> straggler_event, 
+std::unique_ptr<std::vector<std::shared_ptr<Event>>> 
+    TimeWarpEventSet::getEventsForCoastForward (
+                                unsigned int obj_id, 
+                                std::shared_ptr<Event> straggler_event, 
                                 std::shared_ptr<Event> restored_state_event) {
-    unused(straggler_event);
 
+    unused(straggler_event);
     auto events = make_unique<std::vector<std::shared_ptr<Event>>>();
     auto event_riterator = processed_queue_[obj_id]->rbegin();
     while (event_riterator != processed_queue_[obj_id]->rend()) {

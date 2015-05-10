@@ -21,8 +21,9 @@ location) is recommended.
 
 To build from a source tarball, first download and extract [the latest release from
 GitHub](https://github.com/wilseypa/warped/releases). `cd` into the directory you
-extracted the tarball to, and run the following command:
+extracted the tarball to, and run the following commands:
 
+    export CXX=mpicxx
 	./configure --prefix=$HOME/lib/warped2 && make && make install
 
 This will build and install the warped library to the path specified by the `--prefix`
@@ -32,10 +33,10 @@ configuration option. If you omit the prefix, the library will be installed to `
 
 If you get a linker error telling you that the MPI library could not be found, you may need
 to specify the path to the MPI headers and libraries manually in the configuration
-step. You can specify the path to the library file with the `--with-mpi` configure option,
-and the header location with the `--with-mpiheader` option.
+step. You can specify the path to the library file with the `--with-mpi-libdir` configure option,
+and the header location with the `--with-mpi-includedir` option.
 
- 	./configure --with-mpiheader=/usr/include/mpich --with-mpi=/usr/lib/mpich2
+ 	./configure --with-mpi-includedir=/usr/include/mpich --with-mpi-libdir=/usr/lib/mpich2
 
 Replace the paths in the above example with the locations of the MPI libraries and headers
 on your machine.   
