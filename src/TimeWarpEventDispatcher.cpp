@@ -76,8 +76,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     // Master thread main loop
     while (!termination_manager_->terminationStatus()) {
 
-        comm_manager_->dispatchReceivedMessages();
-        sendRemoteEvents();
+        comm_manager_->deliverReceivedMessages();
+        comm_manager_->sendMessages();
 
         if (mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT()) {
             local_gvt_manager_->startGVT();
@@ -102,13 +102,13 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             mattern_gvt_manager_->resetState();
         }
 
-        comm_manager_->dispatchReceivedMessages();
-        sendRemoteEvents();
+        comm_manager_->deliverReceivedMessages();
+        comm_manager_->sendMessages();
 
         fossilCollect(gvt);
 
-        comm_manager_->dispatchReceivedMessages();
-        sendRemoteEvents();
+        comm_manager_->deliverReceivedMessages();
+        comm_manager_->sendMessages();
 
         if (termination_manager_->nodePassive()) {
             termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID());
@@ -409,12 +409,12 @@ void TimeWarpEventDispatcher::initialize(
     }
 
     // Send and receive remote initial events
-    sendRemoteEvents();
+    comm_manager_->sendMessages();
     comm_manager_->waitForAllProcesses();
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    comm_manager_->dispatchReceivedMessages();
+    comm_manager_->deliverReceivedMessages();
     comm_manager_->waitForAllProcesses();
 }
 
@@ -429,31 +429,12 @@ FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,
 void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
     unsigned int receiver_id) {
 
-    remote_event_queue_lock_.lock();
-    // NOTE: sendEventUpdateState must be called with remote_event_queue_lock_
-    MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event->timestamp());
     if (event->timestamp() <= max_sim_time_) {
-        remote_event_queue_.push_back(std::make_tuple(event, receiver_id, color));
+        MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event->timestamp());
+        auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id, event,
+                                                   color);
+        comm_manager_->insertMessage(std::move(event_msg));
     }
-    remote_event_queue_lock_.unlock();
-}
-
-void TimeWarpEventDispatcher::sendRemoteEvents() {
-    remote_event_queue_lock_.lock();
-    while (!remote_event_queue_.empty()) {
-        auto event_tuple = std::move(remote_event_queue_.front());
-        remote_event_queue_.pop_front();
-
-        auto event = std::get<0>(event_tuple);
-        unsigned int receiver_id = std::get<1>(event_tuple);
-        MatternColor color = std::get<2>(event_tuple);
-
-        auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id,
-            event, color);
-
-        comm_manager_->sendMessage(std::move(event_msg));
-    }
-    remote_event_queue_lock_.unlock();
 }
 
 } // namespace warped

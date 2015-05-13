@@ -32,7 +32,7 @@ Simulation::Simulation(const std::string& config_file_name, unsigned int max_sim
 
 void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager;
-    comm_manager = std::make_shared<TimeWarpMPICommunicationManager>();
+    comm_manager = std::make_shared<TimeWarpMPICommunicationManager>(1000, 1000);
 
     unsigned int num_partitions = comm_manager->initialize();
 
@@ -47,7 +47,7 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects,
     std::unique_ptr<Partitioner> partitioner) {
 
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager;
-    comm_manager = std::make_shared<TimeWarpMPICommunicationManager>();
+    comm_manager = std::make_shared<TimeWarpMPICommunicationManager>(1000, 1000);
 
     unsigned int num_partitions = comm_manager->initialize();
 

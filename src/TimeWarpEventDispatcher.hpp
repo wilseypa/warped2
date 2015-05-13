@@ -80,16 +80,12 @@ private:
 
     void receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
-    void sendRemoteEvents();
-
     void fossilCollect(unsigned int gvt);
 
 /* ============================================================================ */
 
     unsigned int num_worker_threads_;
-
     unsigned int num_schedulers_;
-
     unsigned int num_local_objects_;
 
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;
@@ -111,9 +107,6 @@ private:
     std::unique_ptr<unsigned int []> object_simulation_time_;
 
     std::unique_ptr<std::atomic<unsigned long> []> event_counter_by_obj_;
-
-    std::deque<std::tuple <std::shared_ptr<Event>, unsigned int, MatternColor>> remote_event_queue_;
-    std::mutex remote_event_queue_lock_;
 
     static thread_local unsigned int thread_id;
 

@@ -45,6 +45,12 @@ namespace warped {
 
 enum class MatternColor { WHITE, RED };
 
+struct MatternNodeState {
+    MatternColor color_ = MatternColor::WHITE;
+    int white_msg_counter_ = 0;
+    std::mutex lock_;
+};
+
 class TimeWarpMatternGVTManager {
 public:
     TimeWarpMatternGVTManager(std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
@@ -85,8 +91,7 @@ private:
 
     unsigned int token_iteration_ = 0;
 
-    MatternColor color_ = MatternColor::WHITE;
-    int white_msg_counter_ = 0;
+    MatternNodeState state_;
 
     unsigned int min_red_msg_timestamp_ = infinityVT();
     unsigned int global_min_;

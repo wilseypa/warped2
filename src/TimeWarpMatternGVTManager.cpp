@@ -24,18 +24,29 @@ unsigned int TimeWarpMatternGVTManager::infinityVT() {
 }
 
 void TimeWarpMatternGVTManager::receiveEventUpdateState(MatternColor color) {
+    state_.lock_.lock();
     if (color == MatternColor::WHITE) {
-        white_msg_counter_--;
+        state_.white_msg_counter_--;
     }
+    state_.lock_.unlock();
 }
 
 MatternColor TimeWarpMatternGVTManager::sendEventUpdateState(unsigned int timestamp) {
-    if (color_ == MatternColor::WHITE) {
-        white_msg_counter_++;
+
+    MatternColor color;
+
+    state_.lock_.lock();
+
+    if (state_.color_ == MatternColor::WHITE) {
+        state_.white_msg_counter_++;
     } else {
         min_red_msg_timestamp_ = std::min(min_red_msg_timestamp_, timestamp);
     }
-    return color_;
+    color = state_.color_;
+
+    state_.lock_.unlock();
+
+    return color;
 }
 
 bool TimeWarpMatternGVTManager::startGVT() {
@@ -50,7 +61,10 @@ bool TimeWarpMatternGVTManager::startGVT() {
     if (gVT_token_pending_ == false && elapsed >= gvt_period_) {
 
         if (comm_manager_->getNumProcesses() > 1) {
-            color_ = MatternColor::RED;
+            state_.lock_.lock();
+            state_.color_ = MatternColor::RED;
+            state_.lock_.unlock();
+
             min_red_msg_timestamp_ = infinityVT();
             global_min_ = infinityVT();
 
@@ -84,15 +98,16 @@ void TimeWarpMatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) 
         global_min_ = infinityVT();  // Reset global min clock
     }
 
+    state_.lock_.lock();
     auto msg = make_unique<MatternGVTToken>(sender_id, (sender_id + 1) % num_processes,
         std::min(local_minimum, global_min_), min_red_msg_timestamp_,
-        white_msg_counter_ + msg_count_);
+        state_.white_msg_counter_ + msg_count_);
+    state_.white_msg_counter_ = 0;
+    state_.lock_.unlock();
 
     token_iteration_++;
 
-    white_msg_counter_ = 0;
-
-    comm_manager_->sendMessage(std::move(msg));
+    comm_manager_->insertMessage(std::move(msg));
 }
 
 void TimeWarpMatternGVTManager::receiveMatternGVTToken(
@@ -101,9 +116,11 @@ void TimeWarpMatternGVTManager::receiveMatternGVTToken(
     auto msg = unique_cast<TimeWarpKernelMessage, MatternGVTToken>(std::move(kmsg));
     unsigned int process_id = comm_manager_->getID();
 
+    state_.lock_.lock();
+
     if (process_id == 0) {
         // Initiator received the message
-        if ((white_msg_counter_ + msg->count == 0) && (token_iteration_ > 1)) {
+        if ((state_.white_msg_counter_ + msg->count == 0) && (token_iteration_ > 1)) {
             // At this point all white messages are accounted for so we can
             // calculate the GVT now
             gVT_token_pending_ = false;
@@ -125,9 +142,9 @@ void TimeWarpMatternGVTManager::receiveMatternGVTToken(
 
     } else {
         // A node other than the initiator is now receiving a control message
-        if (color_ == MatternColor::WHITE) {
+        if (state_.color_ == MatternColor::WHITE) {
             min_red_msg_timestamp_ = infinityVT();
-            color_ = MatternColor::RED;
+            state_.color_ = MatternColor::RED;
         }
 
         // Accumulations
@@ -139,11 +156,16 @@ void TimeWarpMatternGVTManager::receiveMatternGVTToken(
         need_local_gvt_ = true;
         gVT_token_pending_ = true;
     }
+
+    state_.lock_.unlock();
 }
 
 void TimeWarpMatternGVTManager::resetState() {
+    state_.lock_.lock();
+    state_.color_ = MatternColor::WHITE;
+    state_.lock_.unlock();
+
     token_iteration_ = 0;
-    color_ = MatternColor::WHITE;
     global_min_ = infinityVT();
     gVT_token_pending_ = false;
 }
@@ -165,7 +187,7 @@ bool TimeWarpMatternGVTManager::gvtUpdated() {
 void TimeWarpMatternGVTManager::sendGVTUpdate(unsigned int gvt) {
     for (unsigned int i = 0; i < comm_manager_->getNumProcesses(); i++) {
         auto update_msg = make_unique<GVTUpdateMessage>(0, i, gvt);
-        comm_manager_->sendMessage(std::move(update_msg));
+        comm_manager_->insertMessage(std::move(update_msg));
     }
 }
 

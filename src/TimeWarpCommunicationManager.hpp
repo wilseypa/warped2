@@ -38,18 +38,26 @@ public:
 
     virtual int gatherUint(unsigned int *send_local, unsigned int* recv_root) = 0;
 
-    // Sends a single message
-    virtual void sendMessage(std::unique_ptr<TimeWarpKernelMessage> msg) = 0;
+    virtual void insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg) = 0;
 
-    // Receives a single message
-    virtual std::unique_ptr<TimeWarpKernelMessage> recvMessage() = 0;
+    // Gets next message if there is one
+    virtual std::unique_ptr<TimeWarpKernelMessage> getMessage() = 0;
 
-    // Passes messages to the correct message handler
-    void dispatchReceivedMessages();
+    // Sends all messages inserted into queue
+    virtual void sendMessages() = 0;
+
+    // Gets all messages and passes messages to the correct message handler
+    void deliverReceivedMessages();
 
     // Adds a MessageType/Message handler pair for dispatching messages
     void addRecvMessageHandler(MessageType msg_type,
         std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> msg_handler);
+
+protected:
+
+    std::vector<std::unique_ptr<TimeWarpKernelMessage>> send_queue_;
+
+    std::vector<std::unique_ptr<TimeWarpKernelMessage>> recv_queue_;
 
 private:
     // Map to lookup message handler given a message type
