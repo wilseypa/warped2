@@ -314,10 +314,8 @@ bool LadderQueue::recurseRung(unsigned int *index) {
     /* Find_bucket label */
     while(1) {
 
-        if (!n_rung_) {
-            status = false;
-            break;
-        }
+        if (!n_rung_) break;
+
         if (n_rung_ > MAX_RUNG_CNT) assert(0);
 
         unsigned int bucket_index = 0;
@@ -325,8 +323,8 @@ bool LadderQueue::recurseRung(unsigned int *index) {
         while ((bucket_index < RUNG_BUCKET_CNT(n_rung_-1)) && 
                             rung_[n_rung_-1][bucket_index]->empty()) {
             bucket_index++;
-            r_current_[n_rung_-1] += bucket_width_[n_rung_-1];
         }
+        r_current_[n_rung_-1] += bucket_index*bucket_width_[n_rung_-1];
 
         if (bucket_index == RUNG_BUCKET_CNT(n_rung_-1)) {
             r_start_[n_rung_-1]         = 0;
@@ -336,18 +334,55 @@ bool LadderQueue::recurseRung(unsigned int *index) {
             n_rung_--;
 
         } else {
-            if (rung_[n_rung_-1][bucket_index]->size() > THRESHOLD) {
-                bool is_bucket_width_static = false;
-                if (!createNewRung( rung_[n_rung_-1][bucket_index]->size(),
-                                    r_current_[n_rung_-1], 
-                                    &is_bucket_width_static )) {
-                    if (is_bucket_width_static) {
-                        status = true;
-                    }
-                    break;
+            if (rung_[n_rung_-1][bucket_index]->size() <= THRESHOLD) {
+                *index = bucket_index;
+                status = true;
+                break;
+            }
+
+            // If there is a bucket overflow
+            bool is_bucket_width_static = false;
+            if (!createNewRung( rung_[n_rung_-1][bucket_index]->size(),
+                                r_current_[n_rung_-1], 
+                                &is_bucket_width_static )) {
+                if (is_bucket_width_static) {
+                    *index = bucket_index;
+                    status = true;
+                }
+                break;
+            }
+            for (auto iter = rung_[n_rung_-2][bucket_index]->begin(); 
+                        iter != rung_[n_rung_-2][bucket_index]->end(); iter++) {
+                assert((*iter)->timestamp() >= r_start_[n_rung_-1] );
+                unsigned int new_bucket_index = std::min( 
+                    (unsigned int) ((*iter)->timestamp() - r_start_[n_rung_-1]) / 
+                                    bucket_width_[n_rung_-1], RUNG_BUCKET_CNT(n_rung_-1)-1);
+                rung_[n_rung_-1][new_bucket_index]->push_front(*iter);
+
+                /* Calculate bucket count for new rung */
+                if (rung_bucket_cnt_[n_rung_-1] < new_bucket_index+1) {
+                    rung_bucket_cnt_[n_rung_-1] = new_bucket_index+1;
                 }
             }
-            //TODO
+            rung_[n_rung_-2][bucket_index]->clear();
+
+            /* Re-calculate r_current and rung_bucket_cnt_ of old rung */
+            bool bucket_found = false;
+            for (unsigned int index = bucket_index+1; 
+                            index < RUNG_BUCKET_CNT(n_rung_-2); index++) {
+                if (!rung_[n_rung_-2][index]->empty()) {
+                    if (!bucket_found) {
+                        bucket_found = true;
+                        r_current_[n_rung_-2] = 
+                            r_start_[n_rung_-2] + index*bucket_width_[n_rung_-2];
+                    }
+                    rung_bucket_cnt_[n_rung_-2] = index+1;
+                }
+            }
+            if (!bucket_found) {
+                rung_bucket_cnt_[n_rung_-2] = 0;
+                r_current_[n_rung_-2] = r_start_[n_rung_-2];
+            }
         }
     }
 
