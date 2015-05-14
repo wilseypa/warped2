@@ -33,7 +33,7 @@ private:
     bool createNewRung(unsigned int num_events, 
                         unsigned int init_start_and_cur_val, 
                         bool *is_bucket_width_static);
-    bool createRungForBottomTransfer(unsigned int start_val);
+    void createRungForBottomTransfer(unsigned int start_val);
     bool recurseRung(unsigned int *index);
 
 

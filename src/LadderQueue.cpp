@@ -252,9 +252,10 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
 
         /* Check if new event to be inserted is smaller than what is present in BOTTOM */
         auto bucket_start_ts = (*bottom_.begin())->timestamp();
-        if (bucket_start_ts > timestamp) bucket_start_ts = timestamp;
-
-        assert(createRungForBottomTransfer(bucket_start_ts));
+        if (bucket_start_ts > timestamp) {
+            bucket_start_ts = timestamp;
+        }
+        createRungForBottomTransfer(bucket_start_ts);
 
         /* Transfer bottom to new rung */
         for (auto iter = bottom_.begin(); iter != bottom_.end(); iter++) {
@@ -300,10 +301,30 @@ bool LadderQueue::createNewRung(unsigned int num_events,
     return true;
 }
 
-bool LadderQueue::createRungForBottomTransfer(unsigned int start_val) {
+void LadderQueue::createRungForBottomTransfer(unsigned int start_val) {
 
-    std::cout << start_val;
-    return true;
+    n_rung_++;
+    r_start_[n_rung_-1] = r_current_[n_rung_-1] = start_val;
+    rung_bucket_cnt_[n_rung_-1] = 0;
+    if(n_rung_ == 1) {
+        assert(top_start_ >= start_val);
+        bucket_width_[0] = std::max(
+                (unsigned int) ((top_start_ - start_val)/bottom_.size()), 
+                (unsigned int) MIN_BUCKET_WIDTH);
+
+        //create double of required no of buckets. ref sec 2.4 of ladderq
+        unsigned int bucket_index = 0;
+        for (bucket_index = rung_0_length_; bucket_index < 2*bottom_.size(); bucket_index++) {
+            rung_[0].push_back(std::make_shared<std::list<std::shared_ptr<Event>>>());
+        }
+        rung_0_length_ = bucket_index;
+
+    } else { /* When not the top rung */
+        assert(r_current_[n_rung_-2] >= start_val);
+        bucket_width_[n_rung_-1] = std::max(
+                (unsigned int) ((r_current_[n_rung_-2] - start_val)/THRESHOLD), 
+                (unsigned int) MIN_BUCKET_WIDTH);
+    }
 }
 
 bool LadderQueue::recurseRung(unsigned int *index) {
