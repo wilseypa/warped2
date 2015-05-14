@@ -297,7 +297,43 @@ bool LadderQueue::createNewRung(unsigned int num_events,
                                 unsigned int init_start_and_cur_val, 
                                 bool *is_bucket_width_static) {
 
-    std::cout << num_events << init_start_and_cur_val << *is_bucket_width_static;
+    assert(is_bucket_width_static);
+    assert(num_events);
+
+    *is_bucket_width_static = false;
+
+    /* Check if this is the first rung creation */
+    if (!n_rung_) {
+        assert(max_ts_ >= min_ts_);
+        bucket_width_[0] = (min_ts_ == max_ts_) ? MIN_BUCKET_WIDTH : 
+                                    (max_ts_ - min_ts_ + num_events -1) / num_events;
+        top_start_          = max_ts_;
+        r_start_[0]         = min_ts_;
+        r_current_[0]       = min_ts_;
+        rung_bucket_cnt_[0] = 0;
+        n_rung_++;
+
+        /* Create the actual rungs */
+        //create double of required no of buckets. ref sec 2.4 of ladderq
+        unsigned int bucket_index = 0;
+        for (bucket_index = rung_0_length_; bucket_index < 2*num_events; bucket_index++) {
+            rung_[0].push_back(std::make_shared<std::list<std::shared_ptr<Event>>>());
+        }
+        rung_0_length_ = bucket_index;
+
+    } else { // When rungs already exist
+        /* Check if bucket width has reached the min limit */
+        if (bucket_width_[n_rung_-1] <= MIN_BUCKET_WIDTH) {
+            *is_bucket_width_static = true;
+            return false;
+        }
+        /* Check whether new rungs can be created */
+        assert(n_rung_ < MAX_RUNG_NUM);
+        n_rung_++;
+        bucket_width_[n_rung_-1] = (bucket_width_[n_rung_-2] + num_events - 1) / num_events;
+        r_start_[n_rung_-1] = r_current_[n_rung_-1] = init_start_and_cur_val;
+        rung_bucket_cnt_[n_rung_-1] = 0;
+    }
     return true;
 }
 
@@ -334,9 +370,7 @@ bool LadderQueue::recurseRung(unsigned int *index) {
 
     /* Find_bucket label */
     while(1) {
-
         if (!n_rung_) break;
-
         if (n_rung_ > MAX_RUNG_CNT) assert(0);
 
         unsigned int bucket_index = 0;
@@ -406,7 +440,6 @@ bool LadderQueue::recurseRung(unsigned int *index) {
             }
         }
     }
-
     return status;
 }
 
