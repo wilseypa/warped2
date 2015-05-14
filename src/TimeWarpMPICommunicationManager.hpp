@@ -4,6 +4,7 @@
 #include <mpi.h>
 #include <vector>
 #include <cstdint>
+#include <mutex>
 
 #include "TimeWarpCommunicationManager.hpp"
 #include "TimeWarpKernelMessage.hpp"
@@ -37,8 +38,16 @@ public:
     int sumReduceUint64(uint64_t* send_local, uint64_t* recv_global);
     int gatherUint(unsigned int *send_local, unsigned int* recv_root);
 
+    void printStats();
+
 private:
-    void testQueue(std::shared_ptr<MessageQueue> msg_queue);
+    int testQueue(std::shared_ptr<MessageQueue> msg_queue);
+
+    unsigned int recv_requests_ = 0;
+    unsigned int send_requests_ = 0;
+    unsigned int completed_sends_ = 0;
+    unsigned int completed_recvs_ = 0;
+    unsigned int send_queue_inserts_ = 0;
 
     unsigned int send_queue_size_;
     unsigned int recv_queue_size_;
@@ -52,8 +61,8 @@ struct MessageQueue {
 
     void initialize();
 
-    virtual void startRequest() = 0;
-    virtual void completeRequest(std::unique_ptr<uint8_t []> buffer, unsigned int index) = 0;
+    virtual unsigned int startRequests() = 0;
+    virtual void completeRequest(uint8_t *buffer) = 0;
 
     unsigned int max_queue_size_;
 
@@ -64,6 +73,8 @@ struct MessageQueue {
     unsigned int next_msg_pos_ = 0;
 
     std::unique_ptr<std::unique_ptr<TimeWarpKernelMessage> []>  msg_list_;
+    std::mutex msg_list_lock_;
+
     std::unique_ptr<std::unique_ptr<uint8_t []> []>             buffer_list_;
     std::unique_ptr<MPI_Request []>                             request_list_;
     std::unique_ptr<int []>                                     index_list_;
@@ -73,14 +84,14 @@ struct MessageQueue {
 
 struct MPISendQueue : public MessageQueue {
     MPISendQueue(unsigned int send_queue_size) : MessageQueue(send_queue_size) {}
-    void startRequest();
-    void completeRequest(std::unique_ptr<uint8_t []> buffer, unsigned int index);
+    unsigned int startRequests();
+    void completeRequest(uint8_t *buffer);
 };
 
 struct MPIRecvQueue : public MessageQueue {
     MPIRecvQueue(unsigned int recv_queue_size) : MessageQueue(recv_queue_size) {}
-    void startRequest();
-    void completeRequest(std::unique_ptr<uint8_t []> buffer, unsigned int index);
+    unsigned int startRequests();
+    void completeRequest(uint8_t *buffer);
 };
 
 } // namespace warped

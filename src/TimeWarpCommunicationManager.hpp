@@ -46,6 +46,9 @@ public:
     // Sends all messages inserted into queue
     virtual void sendMessages() = 0;
 
+    // TODO remove this
+    virtual void printStats() = 0;
+
     // Gets all messages and passes messages to the correct message handler
     void deliverReceivedMessages();
 
