@@ -118,7 +118,6 @@ private:
     static thread_local unsigned int thread_id;
 
     unsigned int curr_fc_object_id_ = 0;
-    bool fossil_collect_ = false;
 };
 
 struct EventMessage : public TimeWarpKernelMessage {

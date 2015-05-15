@@ -79,8 +79,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         comm_manager_->dispatchReceivedMessages();
         sendRemoteEvents();
 
-        if ((mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT())
-                && !fossil_collect_) {
+        if (mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT()) {
             local_gvt_manager_->startGVT();
         }
 
@@ -90,7 +89,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             } else {
                 gvt = local_gvt_manager_->getGVT();
                 std::cout << "GVT: " << gvt << std::endl;
-                fossil_collect_ = true;
                 tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
             }
         }
@@ -100,7 +98,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             if (comm_manager_->getID() == 0) {
                 std::cout << "GVT: " << gvt << std::endl;
             }
-            fossil_collect_ = true;
             tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
             mattern_gvt_manager_->resetState();
         }
@@ -260,16 +257,10 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     unsigned int event_fossil_collect_time;
 
-    if (!fossil_collect_) {
-        return;
-    }
-
     for (unsigned int i = 0; i < fc_objects_per_cycle_; i++) {
 
         if (curr_fc_object_id_ >= num_local_objects_) {
             curr_fc_object_id_ = 0;
-            fossil_collect_ = false;
-            break;
         }
 
         twfs_manager_->fossilCollect(gvt, curr_fc_object_id_);
@@ -363,6 +354,8 @@ void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_even
 
 void TimeWarpEventDispatcher::initialize(
         const std::vector<std::vector<SimulationObject*>>& objects) {
+
+    thread_id = num_worker_threads_;
 
     num_local_objects_ = objects[comm_manager_->getID()].size();
     event_set_->initialize(num_local_objects_, num_schedulers_, num_worker_threads_);
