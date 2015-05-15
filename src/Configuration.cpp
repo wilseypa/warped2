@@ -71,6 +71,12 @@ const static std::string DEFAULT_CONFIG = R"x({
 
     "fossil-collection" : {
         "objects-per-cycle": 100
+    },
+
+    "communication" : {
+        "send-queue-size" : 10000,
+        "recv-queue-size" : 10000,
+        "max-buffer-size" : 512
     }
 },
 
@@ -361,4 +367,14 @@ Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
     return makePartitioner();
 }
 
+std::shared_ptr<TimeWarpCommunicationManager> Configuration::makeCommunicationManager() {
+    unsigned int max_send_size = (*root_)["time-warp"]["communication"]["send-queue-size"].asUInt();
+    unsigned int max_recv_size = (*root_)["time-warp"]["communication"]["recv-queue-size"].asUInt();
+    unsigned int max_buffer_size = (*root_)["time-warp"]["communication"]["max-buffer-size"].asUInt();
+
+    return std::make_shared<TimeWarpMPICommunicationManager>(max_send_size, max_recv_size,
+                                                             max_buffer_size);
+}
+
 } // namespace warped
+

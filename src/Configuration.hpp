@@ -40,7 +40,10 @@ public:
     // partitioner.
     std::unique_ptr<Partitioner> makePartitioner(std::unique_ptr<Partitioner> user_partitioner);
 
-     bool checkTimeWarpConfigs(unsigned int local_config_id, unsigned int *all_config_ids,
+    // Create a communcation manager based on configurations
+    std::shared_ptr<TimeWarpCommunicationManager> makeCommunicationManager();
+
+    bool checkTimeWarpConfigs(unsigned int local_config_id, unsigned int *all_config_ids,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager);
 
 private:

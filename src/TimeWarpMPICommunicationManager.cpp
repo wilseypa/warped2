@@ -27,10 +27,10 @@ unsigned int TimeWarpMPICommunicationManager::initialize() {
                   << std::endl;
     }
 
-    send_queue_ = std::make_shared<MPISendQueue>(send_queue_size_);
+    send_queue_ = std::make_shared<MPISendQueue>(send_queue_size_, max_buffer_size_);
     send_queue_->initialize();
 
-    recv_queue_ = std::make_shared<MPIRecvQueue>(recv_queue_size_);
+    recv_queue_ = std::make_shared<MPIRecvQueue>(recv_queue_size_, max_buffer_size_);
     recv_queue_->initialize();
 
     return getNumProcesses();
@@ -77,9 +77,15 @@ TimeWarpMPICommunicationManager::gatherUint(unsigned int *send_local, unsigned i
 }
 
 void TimeWarpMPICommunicationManager::insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg) {
-    send_queue_inserts_++;
     send_queue_->msg_list_lock_.lock();
+
+    send_queue_inserts_++;
+    if (send_queue_->next_msg_pos_ >= send_queue_->max_queue_size_) {
+        std::cout << "Send queue message position too high: " << send_queue_->next_msg_pos_ << std::endl;
+        abort();
+    }
     send_queue_->msg_list_[send_queue_->next_msg_pos_++] = std::move(msg);
+
     send_queue_->msg_list_lock_.unlock();
 }
 
@@ -99,7 +105,9 @@ void TimeWarpMPICommunicationManager::sendMessages() {
 }
 
 void TimeWarpMPICommunicationManager::printStats() {
-    std::cout << "Send Requests:        " << send_requests_ << "\n"
+    std::cout << "Node " << getID() << "\n"
+              << "====================  " << "\n"
+              << "Send Requests:        " << send_requests_ << "\n"
               << "Recv Requests:        " << recv_requests_ << "\n"
               << "Completed Sends:      " << completed_sends_ << "\n"
               << "Completed Recvs:      " << completed_recvs_ << "\n"
@@ -114,6 +122,8 @@ std::unique_ptr<TimeWarpKernelMessage> TimeWarpMPICommunicationManager::getMessa
     }
 
     recv_queue_->next_msg_pos_--;
+
+    assert(recv_queue_->msg_list_[recv_queue_->next_msg_pos_]);
 
     auto msg = std::move(recv_queue_->msg_list_[recv_queue_->next_msg_pos_]);
     recv_queue_->msg_list_[recv_queue_->next_msg_pos_].reset(nullptr);
@@ -131,7 +141,8 @@ void MessageQueue::initialize() {
 
     for (unsigned int i = 0; i < max_queue_size_; i++) {
         msg_list_[i] = nullptr;
-        buffer_list_[i] = make_unique<uint8_t []>(MAX_BUFFER_SIZE);
+        buffer_list_[i] = make_unique<uint8_t []>(max_buffer_size_);
+        std::memset(buffer_list_[i].get(), 0, max_buffer_size_*sizeof(uint8_t));
     }
 
     std::memset(request_list_.get(), 0, max_queue_size_*sizeof(MPI_Request));
@@ -182,7 +193,10 @@ unsigned int MPISendQueue::startRequests() {
         curr_msg_pos++;
     }
 
+    assert(next_msg_pos_ >= requests);
+
     next_msg_pos_ -= requests;
+
     msg_list_lock_.unlock();
 
     return requests;
@@ -204,9 +218,11 @@ unsigned int MPIRecvQueue::startRequests() {
 
         if (flag) {
 
+            assert(buffer_list_[next_buffer_pos_][0] == '\0');
+
             if (MPI_Irecv(
                     buffer_list_[next_buffer_pos_].get(),
-                    MAX_BUFFER_SIZE,
+                    max_buffer_size_,
                     MPI_BYTE,
                     MPI_ANY_SOURCE,
                     MPI_DATA_TAG,
@@ -272,6 +288,8 @@ int TimeWarpMPICommunicationManager::testQueue(std::shared_ptr<MessageQueue> msg
         }
     }
 
+    assert(msg_queue->next_buffer_pos_ >= (unsigned int)ready);
+
     msg_queue->next_buffer_pos_ -= ready;
 
     return ready;
@@ -280,18 +298,18 @@ int TimeWarpMPICommunicationManager::testQueue(std::shared_ptr<MessageQueue> msg
 void MPIRecvQueue::completeRequest(uint8_t *buffer) {
 
     // Deserialize message
-    std::istringstream iss(std::string(reinterpret_cast<char*>(buffer), MAX_BUFFER_SIZE));
+    std::istringstream iss(std::string(reinterpret_cast<char*>(buffer), max_buffer_size_));
     {
         cereal::PortableBinaryInputArchive iarchive(iss);
         iarchive(msg_list_[next_msg_pos_]);
     }
 
     next_msg_pos_++;
-    std::memset(buffer, 0, MAX_BUFFER_SIZE*sizeof(uint8_t));
+    std::memset(buffer, 0, max_buffer_size_*sizeof(uint8_t));
 }
 
 void MPISendQueue::completeRequest(uint8_t *buffer) {
-    std::memset(buffer, 0, MAX_BUFFER_SIZE*sizeof(uint8_t));
+    std::memset(buffer, 0, max_buffer_size_*sizeof(uint8_t));
 }
 
 } // namespace warped
