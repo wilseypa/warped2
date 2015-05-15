@@ -328,7 +328,7 @@ bool LadderQueue::createNewRung(unsigned int num_events,
             return false;
         }
         /* Check whether new rungs can be created */
-        assert(n_rung_ < MAX_RUNG_NUM);
+        assert(n_rung_ < MAX_RUNG_CNT);
         n_rung_++;
         bucket_width_[n_rung_-1] = (bucket_width_[n_rung_-2] + num_events - 1) / num_events;
         r_start_[n_rung_-1] = r_current_[n_rung_-1] = init_start_and_cur_val;
