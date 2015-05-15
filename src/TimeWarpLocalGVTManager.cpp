@@ -12,16 +12,16 @@ void TimeWarpLocalGVTManager::initialize(unsigned int num_worker_threads) {
     num_worker_threads_ = num_worker_threads;
 
     // Prepare local min lvt computation
-    local_min_ = make_unique<unsigned int []>(num_worker_threads_);
-    send_min_ = make_unique<unsigned int []>(num_worker_threads_);
-    calculated_min_flag_ = make_unique<bool []>(num_worker_threads_);
+    local_min_ = make_unique<unsigned int []>(num_worker_threads_+1);
+    send_min_ = make_unique<unsigned int []>(num_worker_threads_+1);
+    calculated_min_flag_ = make_unique<bool []>(num_worker_threads_+1);
 
     resetState();
 }
 
 unsigned int TimeWarpLocalGVTManager::getMinimumLVT() {
     unsigned int min = std::numeric_limits<unsigned int>::max();
-    for (unsigned int i = 0; i < num_worker_threads_; i++) {
+    for (unsigned int i = 0; i <= num_worker_threads_; i++) {
         min = std::min(min, local_min_[i]);
     }
     return min;
@@ -66,12 +66,14 @@ void TimeWarpLocalGVTManager::sendEventUpdateState(unsigned int timestamp,
 }
 
 void TimeWarpLocalGVTManager::resetState() {
-    for (unsigned int i = 0; i < num_worker_threads_; i++) {
+    for (unsigned int i = 0; i < num_worker_threads_+1; i++) {
         // Reset send_min back to very large number for next calculation
         send_min_[i] = std::numeric_limits<unsigned int>::max();
         calculated_min_flag_[i] = false;
         local_min_[i] = std::numeric_limits<unsigned int>::max();
     }
+
+    calculated_min_flag_[num_worker_threads_] = true;
 }
 
 unsigned int TimeWarpLocalGVTManager::getLocalGVTFlag() {

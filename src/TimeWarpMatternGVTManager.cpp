@@ -53,7 +53,6 @@ bool TimeWarpMatternGVTManager::startGVT() {
             color_ = MatternColor::RED;
             min_red_msg_timestamp_ = infinityVT();
             global_min_ = infinityVT();
-            white_msg_counter_ = 0;
 
             gVT_token_pending_ = true;
         }
