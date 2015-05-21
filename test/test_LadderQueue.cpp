@@ -11,19 +11,20 @@
 TEST_CASE("Ladder Queue operations") {
 
     warped::LadderQueue q;
-    //std::shared_ptr<warped::Event> e;
+    std::shared_ptr<warped::Event> e;
     REQUIRE(q.begin() == nullptr);
 
     SECTION("Adding events individually") {
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"1", 10}));
-        REQUIRE(q.begin() != nullptr);
+        e = q.begin();
+        REQUIRE(e != nullptr);
+        CHECK(e->receiverName() == "1");
+        CHECK(e->timestamp() == 10);
+        q.erase(e);
+        e = q.begin();
+        REQUIRE(e == nullptr);
 
 #if 0
-        spe = q.peek();
-        REQUIRE(spe != nullptr);
-        CHECK(spe->receiverName() == "1");
-        CHECK(spe->timestamp() == 10);
-
         // Add a second event with a smaller timestamp
         q.push(std::shared_ptr<warped::Event>(new test_Event {"2", 5}));
         CHECK(q.size() == 2);
