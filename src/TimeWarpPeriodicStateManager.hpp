@@ -5,7 +5,7 @@
 
 #include "TimeWarpStateManager.hpp"
 
-/* Sub class of TimeWarpStateManager which implements a periodic state saving. In this
+/* Subclass of TimeWarpStateManager which implements a periodic state saving. In this
  * implementation, the period is fixed and is a number of events. The save state method
  * should be called for each event processed so that the period count can be decremented. When
  * period count reaches 0, the state is saved.

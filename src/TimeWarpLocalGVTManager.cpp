@@ -29,8 +29,8 @@ unsigned int TimeWarpLocalGVTManager::getMinimumLVT() {
 
 bool TimeWarpLocalGVTManager::startGVT() {
     if ((local_gvt_flag_.load() == 0) && !started_local_gvt_) {
-        local_gvt_flag_.store(num_worker_threads_);
         resetState();
+        local_gvt_flag_.store(num_worker_threads_);
         started_local_gvt_ = true;
         return true;
     }
@@ -50,6 +50,7 @@ bool TimeWarpLocalGVTManager::completeGVT() {
 void TimeWarpLocalGVTManager::receiveEventUpdateState(unsigned int timestamp,
     unsigned int thread_id, unsigned int local_gvt_flag) {
 
+    // If this thread has not yet reported a minimum, then report it.
     if (local_gvt_flag > 0 && !calculated_min_flag_[thread_id]) {
         local_min_[thread_id] = std::min(send_min_[thread_id], timestamp);
         calculated_min_flag_[thread_id] = true;
@@ -60,6 +61,8 @@ void TimeWarpLocalGVTManager::receiveEventUpdateState(unsigned int timestamp,
 void TimeWarpLocalGVTManager::sendEventUpdateState(unsigned int timestamp,
     unsigned int thread_id) {
 
+    // If this thread has not yet reported a minimum, make sure to report
+    //  any sends to avoid the "simultaneous reporting problem"
     if (local_gvt_flag_.load() > 0 && !calculated_min_flag_[thread_id]) {
         send_min_[thread_id] = std::min(send_min_[thread_id], timestamp);
     }
@@ -73,6 +76,7 @@ void TimeWarpLocalGVTManager::resetState() {
         local_min_[i] = std::numeric_limits<unsigned int>::max();
     }
 
+    // Manager thread will not receive any events
     calculated_min_flag_[num_worker_threads_] = true;
 }
 

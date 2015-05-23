@@ -26,10 +26,12 @@ bool TimeWarpTerminationManager::sendTerminationToken(State state, unsigned int 
     unsigned int sender_id = comm_manager_->getID();
     unsigned int num_processes = comm_manager_->getNumProcesses();
 
+    // Only the current master can send a token
     if (!is_master_) {
         return false;
     }
 
+    // When we send a token, we are not master any more.
     is_master_ = false;
 
     auto msg = make_unique<TerminationToken>(sender_id, (sender_id + 1) % num_processes, state, initiator);
@@ -42,21 +44,30 @@ bool TimeWarpTerminationManager::sendTerminationToken(State state, unsigned int 
 void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
     auto msg = unique_cast<TimeWarpKernelMessage, TerminationToken>(std::move(kmsg));
 
+    // We received a token, which means we are master
     is_master_ = true;
 
+    // If sticky state is passive, and the token has reached it's originator, then the token
+    //  has circulated twice with no change state and we must terminate.
     if ((sticky_state_ == State::PASSIVE) && (msg->receiver_id == msg->initiator_)) {
         if (msg->state_ == State::PASSIVE) {
             // Signal termination to all nodes including self
             sendTerminator();
         }
+        // else {
+        //     remain master until this node becomes passive
+        // }
+
     } else if (sticky_state_ == State::PASSIVE) {
         sendTerminationToken(msg->state_, msg->initiator_);
     }
 
+    // Set sticky_state AFTER sending token
     sticky_state_ = state_;
 }
 
 void TimeWarpTerminationManager::sendTerminator() {
+    // Send terminator to all nodes including self, it is now time to terminate
     for (unsigned int i = 0; i < comm_manager_->getNumProcesses(); i++) {
         auto terminator_msg = make_unique<Terminator>(0, i);
         comm_manager_->sendMessage(std::move(terminator_msg));
