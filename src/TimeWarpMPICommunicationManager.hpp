@@ -30,6 +30,7 @@ public:
     unsigned int getID();
     int waitForAllProcesses();
 
+    void cancelRemoteEvents(std::unique_ptr<std::vector<std::shared_ptr<Event>>> &events_to_cancel);
     void insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
     void sendMessages();
     std::unique_ptr<TimeWarpKernelMessage> getMessage();
@@ -53,6 +54,8 @@ private:
     unsigned int send_queue_size_;
     unsigned int recv_queue_size_;
     unsigned int max_buffer_size_;
+
+    unsigned int consumer_pos_ = 0;
 
     std::shared_ptr<MPISendQueue> send_queue_;
     std::shared_ptr<MPIRecvQueue> recv_queue_;

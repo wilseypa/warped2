@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include "TimeWarpMPICommunicationManager.hpp"
+#include "TimeWarpEventDispatcher.hpp"          // for EventMessage
 #include "utility/memory.hpp"
 #include "utility/warnings.hpp"
 
@@ -80,11 +81,25 @@ void TimeWarpMPICommunicationManager::insertMessage(std::unique_ptr<TimeWarpKern
     send_queue_->msg_list_lock_.lock();
 
     send_queue_inserts_++;
-    if (send_queue_->next_msg_pos_ >= send_queue_->max_queue_size_) {
-        std::cout << "Send queue message position too high: " << send_queue_->next_msg_pos_ << std::endl;
+    if (send_queue_->next_msg_pos_ > send_queue_->max_queue_size_) {
+        std::cout << "Send queue too small: " << send_queue_->next_msg_pos_ << std::endl;
         abort();
     }
     send_queue_->msg_list_[send_queue_->next_msg_pos_++] = std::move(msg);
+
+    send_queue_->msg_list_lock_.unlock();
+}
+
+void TimeWarpMPICommunicationManager::cancelRemoteEvents(
+    std::unique_ptr<std::vector<std::shared_ptr<Event>>> &events_to_cancel) {
+
+    send_queue_->msg_list_lock_.lock();
+
+    for (auto event = events_to_cancel->begin(); event != events_to_cancel->end(); event++) {
+        if (event->use_count() > 2) {
+            (*event)->remote_cancelled_ = true;
+        }
+    }
 
     send_queue_->msg_list_lock_.unlock();
 }
@@ -95,7 +110,9 @@ void TimeWarpMPICommunicationManager::sendMessages() {
     completed_recvs_ += testQueue(recv_queue_);
 
     // Complete pending sends
+    send_queue_->msg_list_lock_.lock();
     completed_sends_ += testQueue(send_queue_);
+    send_queue_->msg_list_lock_.unlock();
 
     // Start recvs
     recv_requests_ += recv_queue_->startRequests();
@@ -115,18 +132,17 @@ void TimeWarpMPICommunicationManager::printStats() {
 }
 
 std::unique_ptr<TimeWarpKernelMessage> TimeWarpMPICommunicationManager::getMessage() {
-
     // If empty
-    if (recv_queue_->next_msg_pos_ == 0) {
+    if (consumer_pos_ == recv_queue_->next_msg_pos_) {
         return nullptr;
     }
 
-    recv_queue_->next_msg_pos_--;
+    assert(recv_queue_->msg_list_[consumer_pos_]);
 
-    assert(recv_queue_->msg_list_[recv_queue_->next_msg_pos_]);
+    auto msg = std::move(recv_queue_->msg_list_[consumer_pos_]);
+    recv_queue_->msg_list_[consumer_pos_].reset(nullptr);
 
-    auto msg = std::move(recv_queue_->msg_list_[recv_queue_->next_msg_pos_]);
-    recv_queue_->msg_list_[recv_queue_->next_msg_pos_].reset(nullptr);
+    consumer_pos_ = (consumer_pos_ + 1) % recv_queue_->max_queue_size_;
 
     return std::move(msg);
 }
@@ -160,6 +176,27 @@ unsigned int MPISendQueue::startRequests() {
 
     while ((curr_msg_pos < next_msg_pos_) && (next_buffer_pos_ < max_queue_size_)) {
 
+        if (msg_list_[curr_msg_pos] == nullptr) {
+            std::cout << curr_msg_pos << std::endl;
+            std::cout << next_msg_pos_ << std::endl;
+        }
+
+        assert(msg_list_[curr_msg_pos]);
+
+        if (msg_list_[curr_msg_pos]->get_type() == MessageType::EventMessage) {
+            auto event_msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(msg_list_[curr_msg_pos]));
+
+            if (event_msg->event->remote_cancelled_) {
+                // Event has been cancelled already, so don't send
+                msg_list_[curr_msg_pos].reset(nullptr);
+                curr_msg_pos++;
+                continue;
+            } else {
+                // Hasn't been cancelled, so set pointer back to msg and send it...
+                msg_list_[curr_msg_pos] = std::move(event_msg);
+            }
+        }
+
         // Serialize message
         std::ostringstream oss;
         {
@@ -190,6 +227,8 @@ unsigned int MPISendQueue::startRequests() {
 
         requests++;
         next_buffer_pos_++;
+
+        msg_list_[curr_msg_pos].reset(nullptr);
         curr_msg_pos++;
     }
 
@@ -304,7 +343,13 @@ void MPIRecvQueue::completeRequest(uint8_t *buffer) {
         iarchive(msg_list_[next_msg_pos_]);
     }
 
-    next_msg_pos_++;
+    next_msg_pos_ = (next_msg_pos_ + 1) % max_queue_size_;
+
+    if (next_msg_pos_ == max_queue_size_) {
+        std::cout << "Recv queue too small: " << max_queue_size_ << std::endl;
+        abort();
+    }
+
     std::memset(buffer, 0, max_buffer_size_*sizeof(uint8_t));
 }
 
