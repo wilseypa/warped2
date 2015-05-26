@@ -30,7 +30,6 @@ public:
     unsigned int getID();
     int waitForAllProcesses();
 
-    void cancelRemoteEvents(std::unique_ptr<std::vector<std::shared_ptr<Event>>> &events_to_cancel);
     void insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
     void sendMessages();
     std::unique_ptr<TimeWarpKernelMessage> getMessage();

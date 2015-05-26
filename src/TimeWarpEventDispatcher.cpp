@@ -330,17 +330,9 @@ void TimeWarpEventDispatcher::cancelEvents(
 
     if (events_to_cancel->empty()) return;
 
-    // All event pointers in the output queue point to the same events that are waiting in remote
-    //  event queue. We can check reference counts and set flag to avoid sending.
-    // comm_manager_->cancelRemoteEvents(events_to_cancel);
-
     // NOTE: events to cancel are in order from LARGEST to SMALLEST so we send from the back
     do {
         auto event = events_to_cancel->back();
-        if (event->remote_cancelled_) {
-            tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
-            continue;
-        }
 
         // NOTE: this is a copy the positive event
         auto neg_event = std::make_shared<NegativeEvent>(event);

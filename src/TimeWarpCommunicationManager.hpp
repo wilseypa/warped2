@@ -56,12 +56,6 @@ public:
     void addRecvMessageHandler(MessageType msg_type,
         std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> msg_handler);
 
-protected:
-
-    std::vector<std::unique_ptr<TimeWarpKernelMessage>> send_queue_;
-
-    std::vector<std::unique_ptr<TimeWarpKernelMessage>> recv_queue_;
-
 private:
     // Map to lookup message handler given a message type
     std::unordered_map<int, std::function<void(std::unique_ptr<TimeWarpKernelMessage>)>>
