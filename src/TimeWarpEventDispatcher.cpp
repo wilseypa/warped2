@@ -79,10 +79,16 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         comm_manager_->deliverReceivedMessages();
         comm_manager_->sendMessages();
 
+        // We can start a "local GVT calculation" two different ways
+        //      1. We are the master node and it is time to start a new "global GVT calculation"
+        //      2. We have received a Mattern token and a local minimum time is needed so the
+        //          token can be forwarded to next node.
         if (mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT()) {
             local_gvt_manager_->startGVT();
         }
 
+        // Check to see if a "local GVT calculation" has completed so we can forward a Mattern
+        //  token or updated GVT if this is just a single node simulation.
         if (local_gvt_manager_->completeGVT()) {
             if (comm_manager_->getNumProcesses() > 1) {
                 mattern_gvt_manager_->sendMatternGVTToken(local_gvt_manager_->getGVT());
@@ -93,6 +99,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             }
         }
 
+        // Check to see if we have received a GVT update message so we can print the GVT and reset
+        //  the Mattern state and a new GVT calculation can be done.
         if (mattern_gvt_manager_->gvtUpdated()) {
             gvt = mattern_gvt_manager_->getGVT();
             if (comm_manager_->getID() == 0) {
@@ -110,6 +118,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         comm_manager_->deliverReceivedMessages();
         comm_manager_->sendMessages();
 
+        // Check to see if we should start/continue the termination process
         if (termination_manager_->nodePassive()) {
             termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID());
         }
@@ -136,12 +145,15 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     unsigned int local_gvt_flag;
 
     while (!termination_manager_->terminationStatus()) {
-        // local_gvt_flag must be obtained before getting the next event
+        // NOTE: local_gvt_flag must be obtained before getting the next event to avoid the
+        //  "simultaneous reporting problem"
         local_gvt_flag = local_gvt_manager_->getLocalGVTFlag();
 
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
 
+            // Make sure that if this thread is currently seen as passive, we update it's state
+            //  so we don't terminate early.
             if (termination_manager_->threadPassive(thread_id)) {
                 termination_manager_->setThreadActive(thread_id);
             }
@@ -150,18 +162,35 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
-            // Check to see if object needs a rollback
+            // Get the last processed event so we can check for a rollback
             event_set_->acquireInputQueueLock(current_object_id);
             auto last_processed_event = event_set_->lastProcessedEvent(current_object_id);
             event_set_->releaseInputQueueLock(current_object_id);
-            if (last_processed_event && 
-                    ((*event < *last_processed_event) || 
-                        ((*event == *last_processed_event) && 
+
+            // The rules with event processing
+            //      1. Negative events are given priority over positive events if they both exist
+            //          in the objects input queue
+            //      2. We assume that if we have a negative message, then we also have the positive
+            //          message either in the input queue or in the processed queue. If the positive
+            //          event is in the processed queue, then a rollback will occur and both events
+            //          will end up in the input queue.
+            //      3. When a negative event is taken from the schedule queue, it will be cancelled
+            //          with it's corresponding negative message in the input queue. A rollback
+            //          may occur first.
+            //      4. When a positive event is taken from the schedule queue, it will always be
+            //          processed. A rollback may occur first if it is a straggler.
+
+            // A rollback can occur in two situations:
+            //      1. We get an event that is strictly less than the last processed event.
+            //      2. We get an event that is equal to the last processed event and is negative.
+            if (last_processed_event &&
+                    ((*event < *last_processed_event) ||
+                        ((*event == *last_processed_event) &&
                          (event->event_type_ == EventType::NEGATIVE)))) {
                 rollback(event);
             }
 
-            // Check to see if event is NEGATIVE
+            // Check to see if event is NEGATIVE and cancel
             if (event->event_type_ == EventType::NEGATIVE) {
                 event_set_->acquireInputQueueLock(current_object_id);
                 event_set_->cancelEvent(current_object_id, event);
@@ -172,10 +201,11 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 continue;
             }
 
+            // If needed, report event for this thread so GVT can be calculated
             local_gvt_manager_->receiveEventUpdateState(
                     event->timestamp(), thread_id, local_gvt_flag);
 
-            // Update simulation time
+            // Update local simulation time for this object
             object_simulation_time_[current_object_id] = event->timestamp();
 
             // process event and get new events
@@ -196,9 +226,13 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             event_set_->releaseInputQueueLock(current_object_id);
 
         } else {
+            // This thread no longer has anything to do because it's schedule queue is empty.
             if (!termination_manager_->threadPassive(thread_id)) {
                 termination_manager_->setThreadPassive(thread_id);
             }
+
+            // We must have this so that the GVT calculations can continue with passive threads.
+            // Just report infinite for a time.
             local_gvt_manager_->receiveEventUpdateState((unsigned int)-1,
                 thread_id, local_gvt_flag);
         }
@@ -208,6 +242,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
 
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
+
+    // Update mattern state which includes white message counter and minimum red message timestamp.
     mattern_gvt_manager_->receiveEventUpdateState(msg->gvt_mattern_color);
 
     assert(msg->event != nullptr);
@@ -220,13 +256,17 @@ void TimeWarpEventDispatcher::sendEvents(std::vector<std::shared_ptr<Event>> new
 
     for (auto& e: new_events) {
 
+        // Make sure not to send any events past max time so we can terminate simulation
         if (e->timestamp() <= max_sim_time_) {
             e->sender_name_ = sender_object->name_;
             e->counter_ = event_counter_by_obj_[sender_object_id]++;
             e->send_time_ = object_simulation_time_[sender_object_id];
 
+            // Save sent events so that they can be sent as anti-messages in the case of a rollback
             output_manager_->insertEvent(e, sender_object_id);
 
+            // We will have problems if we are creating events in the past. There must be an issue
+            //  with the model being run.
             assert(e->timestamp() >= object_simulation_time_[sender_object_id]);
 
             unsigned int node_id = object_node_id_by_name_[e->receiverName()];
@@ -240,6 +280,9 @@ void TimeWarpEventDispatcher::sendEvents(std::vector<std::shared_ptr<Event>> new
                 tw_stats_->upCount(REMOTE_POSITIVE_EVENTS_SENT, thread_id);
             }
 
+            // Make sure to track sends if we are in the middle of a GVT calculation.
+            // NOTE: this must come AFTER sending the events in order to avoid the
+            //  "simultaneous reporting problem"
             local_gvt_manager_->sendEventUpdateState(e->timestamp(), thread_id);
         }
     }
@@ -247,6 +290,8 @@ void TimeWarpEventDispatcher::sendEvents(std::vector<std::shared_ptr<Event>> new
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
+
+    // NOTE: Event is assumed to be less than the maximum simulation time.
 
     event_set_->acquireInputQueueLock(receiver_object_id);
     event_set_->insertEvent(receiver_object_id, event);
@@ -258,6 +303,7 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
     unsigned int event_fossil_collect_time;
 
+    // NOTE: fc_objects_per_cycle is a configurable parameter
     for (unsigned int i = 0; i < fc_objects_per_cycle_; i++) {
 
         if (curr_fc_object_id_ >= num_local_objects_) {
@@ -266,8 +312,14 @@ void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
 
         twfs_manager_->fossilCollect(gvt, curr_fc_object_id_);
         output_manager_->fossilCollect(gvt, curr_fc_object_id_);
+
+        // event_fossil_collect_time may be less than GVT depending on whate states exist in the
+        //  state queue.
+        // There is always one state that is kept before GVT in case.
         event_fossil_collect_time = state_manager_->fossilCollect(gvt, curr_fc_object_id_);
 
+        // event_fossil_collect_time must be used so that "coast forward events" do not get
+        //  fossil collected which could have timestamps less than GVT.
         event_set_->acquireInputQueueLock(curr_fc_object_id_);
         event_set_->fossilCollect(event_fossil_collect_time, curr_fc_object_id_);
         event_set_->releaseInputQueueLock(curr_fc_object_id_);
@@ -281,11 +333,15 @@ void TimeWarpEventDispatcher::cancelEvents(
 
     if (events_to_cancel->empty()) return;
 
+    // NOTE: events to cancel are in order from LARGEST to SMALLEST so we send from the back
     do {
         auto event = events_to_cancel->back();
+        // NOTE: this is a copy the positive event
         auto neg_event = std::make_shared<NegativeEvent>(event);
         events_to_cancel->pop_back();
 
+        // Make sure not to send any events past max time so that events can be exhausted and we
+        // can terminate the simulation.
         if (event->timestamp() <= max_sim_time_) {
             unsigned int receiver_node_id = object_node_id_by_name_[event->receiverName()];
             if (receiver_node_id == comm_manager_->getID()) {
@@ -305,31 +361,36 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
     unsigned int local_object_id = local_object_id_by_name_[straggler_event->receiverName()];
     SimulationObject* current_object = objects_by_name_[straggler_event->receiverName()];
 
-    twfs_manager_->rollback(straggler_event, local_object_id);
-
-    assert(straggler_event->timestamp() >= mattern_gvt_manager_->getGVT());
-
-    event_set_->acquireInputQueueLock(local_object_id);
-    event_set_->rollback(local_object_id, straggler_event);
-    event_set_->releaseInputQueueLock(local_object_id);
-
-    auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
-    if (events_to_cancel != nullptr) {
-        cancelEvents(std::move(events_to_cancel));
-    }
-
-    auto restored_state_event = state_manager_->restoreState(
-                                            straggler_event, local_object_id, current_object);
-    assert(restored_state_event);
-    assert(*restored_state_event < *straggler_event);
-    object_simulation_time_[local_object_id] = restored_state_event->timestamp();
-
+    // Statistics count
     if (straggler_event->event_type_ == EventType::POSITIVE) {
         tw_stats_->upCount(PRIMARY_ROLLBACKS, thread_id);
     } else {
         tw_stats_->upCount(SECONDARY_ROLLBACKS, thread_id);
     }
 
+    // Rollback output file stream. XXX so far this is not used by any models
+    twfs_manager_->rollback(straggler_event, local_object_id);
+
+    // We have major problems if we are rolling back past the GVT
+    assert(straggler_event->timestamp() >= mattern_gvt_manager_->getGVT());
+
+    // Move processed events larger  than straggler back to input queue.
+    event_set_->acquireInputQueueLock(local_object_id);
+    event_set_->rollback(local_object_id, straggler_event);
+    event_set_->releaseInputQueueLock(local_object_id);
+
+    // Send anti-messages
+    auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
+    if (events_to_cancel != nullptr) {
+        cancelEvents(std::move(events_to_cancel));
+    }
+
+    // Restore state by getting most recent saved state before the straggler and coast forwarding.
+    auto restored_state_event = state_manager_->restoreState(straggler_event, local_object_id,
+        current_object);
+    assert(restored_state_event);
+    assert(*restored_state_event < *straggler_event);
+    object_simulation_time_[local_object_id] = restored_state_event->timestamp();
     coastForward(straggler_event, restored_state_event);
 }
 
@@ -343,18 +404,29 @@ void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_even
     auto events = event_set_->getEventsForCoastForward(
                                     current_object_id, straggler_event, restored_state_event);
     event_set_->releaseInputQueueLock(current_object_id);
+
+    // NOTE: events are in order from LARGEST to SMALLEST, so reprocess backwards
     for (auto event_riterator = events->rbegin();
                     event_riterator != events->rend(); event_riterator++) {
-        assert((*event_riterator)->timestamp() <= straggler_event->timestamp());
+
+        assert(**event_riterator <= *straggler_event);
         assert((*event_riterator)->timestamp() >= object_simulation_time_[current_object_id]);
+
+        // Update this objects local simulation time
         object_simulation_time_[current_object_id] = (*event_riterator)->timestamp();
+
+        // This just updates state, ignore new events
         object->receiveEvent(**event_riterator);
+
         state_manager_->saveState(*event_riterator, current_object_id, object);
+
+        // NOTE: Do not send any new events
+        // NOTE: All coast forward events are already in processed queue, they were never removed.
     }
 }
 
-void TimeWarpEventDispatcher::initialize(
-        const std::vector<std::vector<SimulationObject*>>& objects) {
+void
+TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>& objects) {
 
     thread_id = num_worker_threads_;
 
@@ -388,13 +460,13 @@ void TimeWarpEventDispatcher::initialize(
 
     // Register message handlers
     mattern_gvt_manager_->initialize();
+    termination_manager_->initialize(num_worker_threads_);
     WARPED_REGISTER_MSG_HANDLER(TimeWarpEventDispatcher, receiveEventMessage, EventMessage);
 
     // Prepare local min lvt computation
     local_gvt_manager_->initialize(num_worker_threads_);
 
-    termination_manager_->initialize(num_worker_threads_);
-
+    // Initialize statistics data structures
     tw_stats_->initialize(num_worker_threads_, num_local_objects_);
 
     // Send local initial events and enqueue remote initial events
@@ -413,12 +485,14 @@ void TimeWarpEventDispatcher::initialize(
     comm_manager_->sendMessages();
     comm_manager_->waitForAllProcesses();
 
+    // Give some time for messages to be sent and received.
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
     comm_manager_->deliverReceivedMessages();
     comm_manager_->waitForAllProcesses();
 }
 
+// XXX This is never used by any models
 FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,
     const std::string& filename, std::ios_base::openmode mode, std::shared_ptr<Event> this_event) {
 
@@ -430,6 +504,13 @@ FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,
 void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
     unsigned int receiver_id) {
 
+    // Update Mattern state, white message counters in this case.
+    // NOTE: this must be done here because the message becomes "transient" at this point even
+    //  though the manager thread does the sending.
+    MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event->timestamp());
+
+    remote_event_queue_lock_.lock();
+    // NOTE: sendEventUpdateState must be called with remote_event_queue_lock_
     if (event->timestamp() <= max_sim_time_) {
         MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event->timestamp());
         auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id, event,

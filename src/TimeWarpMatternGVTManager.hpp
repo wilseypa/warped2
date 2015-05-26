@@ -2,6 +2,7 @@
 #define MATTERN_GVT_MANAGER_HPP
 
 #include <memory> // for unique_ptr
+#include <mutex>
 
 #include "TimeWarpEventDispatcher.hpp"
 #include "serialization.hpp"
@@ -57,28 +58,40 @@ public:
         unsigned int period) :
         comm_manager_(comm_manager), gvt_period_(period) {}
 
+    // Registers message handlers and initializes data
     void initialize();
 
+    // Start a new GVT calculation
     bool startGVT();
 
+    // Reset the state so a new GVT calculation can be done
     void resetState();
 
+    // Update state after receiving a Mattern token
     void receiveEventUpdateState(MatternColor color);
 
+    // Update state after sending a Mattern token
     MatternColor sendEventUpdateState(unsigned int timestamp);
 
+    // Send a Mattern token to the next node
     void sendMatternGVTToken(unsigned int local_minimum);
 
+    // Message handler for a Mattern token
     void receiveMatternGVTToken(std::unique_ptr<TimeWarpKernelMessage> msg);
 
+    // Message handler for GVT update message
     void receiveGVTUpdate(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
+    // Get the GVT
     unsigned int getGVT() { return gVT_; }
 
+    // Set the GVT
     void setGVT(unsigned int gvt) { gVT_ = gvt; }
 
+    // Test if we have received a Mattern token and need to send another
     bool needLocalGVT();
 
+    // Test if we have received a GVT update message since check
     bool gvtUpdated();
 
 protected:
@@ -87,27 +100,39 @@ protected:
     void sendGVTUpdate(unsigned int gvt);
 
 private:
+    // The current GVT
     unsigned int gVT_ = 0;
 
+    // Current round token is on
     unsigned int token_iteration_ = 0;
 
+    // State of this node
     MatternNodeState state_;
 
+    // Accumulated values
     unsigned int min_red_msg_timestamp_ = infinityVT();
     unsigned int global_min_;
     int msg_count_ = 0;
 
+    // Flag to indicate to that a token needs to be sent
     bool gVT_token_pending_ = false;
 
+    // The time at which a GVT calculation was last started
     std::chrono::time_point<std::chrono::steady_clock> gvt_start;
 
+    // Our communication manager
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
 
+    // How often we should start a new GVT calculation
     unsigned int gvt_period_;
 
+    // Flag to indicate a token has been received and another needs to be sent
     bool need_local_gvt_ = false;
 
+    // Flag to indicate that GVT has been updated
     bool gvt_updated_ = false;
+
+    bool master_can_start_ = true;
 
 };
 

@@ -33,6 +33,9 @@ void SequentialEventDispatcher::startSimulation(
 
     for (auto& ob : objects[0]) {
         auto new_events = ob->createInitialEvents();
+        for (auto& e : new_events) {
+            e->sender_name_ = ob->name_;
+        }
         stats_->record(ob->name_, current_sim_time_, new_events);
         events.push(std::move(new_events));
         objects_by_name[ob->name_] = ob;
@@ -43,6 +46,9 @@ void SequentialEventDispatcher::startSimulation(
         current_sim_time_ = event->timestamp();
         auto receiver = objects_by_name[event->receiverName()];
         auto new_events = receiver->receiveEvent(*event.get());
+        for (auto& e : new_events) {
+            e->sender_name_ = receiver->name_;
+        }
         stats_->record(event->receiverName(), current_sim_time_, new_events);
         events.push(std::move(new_events));
     }

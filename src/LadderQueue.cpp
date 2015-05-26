@@ -14,8 +14,7 @@ LadderQueue::LadderQueue() {
     /* Create buckets for 2nd rung onwards */
     for (unsigned int rung_index = 1; rung_index < MAX_RUNG_CNT; rung_index++) {
         for (unsigned int bucket_index = 0; bucket_index < MAX_BUCKET_CNT; bucket_index++) {
-            rung_[rung_index][bucket_index] = 
-                        std::make_shared<std::list<std::shared_ptr<Event>>>();
+            rung_[rung_index].push_back(std::make_shared<std::list<std::shared_ptr<Event>>>());
         }
     }
 }

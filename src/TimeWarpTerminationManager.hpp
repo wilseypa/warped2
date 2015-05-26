@@ -18,22 +18,31 @@ public:
 
     void initialize(unsigned int num_worker_threads);
 
+    // Send termination token
     bool sendTerminationToken(State state, unsigned int initiator);
 
+    // Message handler for a termination token
     void receiveTerminationToken(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
+    // Notify all nodes to terminate, including self
     void sendTerminator();
 
+    // Message handler for the terminator
     void receiveTerminator(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
+    // Report thread passive
     void setThreadPassive(unsigned int thread_id);
 
+    // Report thread active
     void setThreadActive(unsigned int thread_id);
 
+    // Check to see if thread is passive
     bool threadPassive(unsigned int thread_id);
 
+    // Check to see if all threads are passive
     bool nodePassive();
 
+    // Check to see if we should terminate
     bool terminationStatus();
 
 private:
