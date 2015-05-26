@@ -47,9 +47,10 @@ namespace warped {
 enum class MatternColor { WHITE, RED };
 
 struct MatternNodeState {
-    MatternColor color_ = MatternColor::WHITE;
-    int white_msg_counter_ = 0;
-    std::mutex lock_;
+    static MatternColor color_;
+    static int white_msg_counter_;
+    static unsigned int min_red_msg_timestamp_;
+    static std::mutex lock_;
 };
 
 class TimeWarpMatternGVTManager {
@@ -106,13 +107,11 @@ private:
     // Current round token is on
     unsigned int token_iteration_ = 0;
 
-    // State of this node
-    MatternNodeState state_;
+    // Accumulated clock minimum
+    unsigned int global_min_clock_;
 
-    // Accumulated values
-    unsigned int min_red_msg_timestamp_ = infinityVT();
-    unsigned int global_min_;
-    int msg_count_ = 0;
+    // Used to hold accumulated white msg count from last token received
+    unsigned int msg_count_;
 
     // Flag to indicate to that a token needs to be sent
     bool gVT_token_pending_ = false;
