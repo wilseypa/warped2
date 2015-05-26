@@ -5,6 +5,7 @@
 
 #include "TimeWarpMPICommunicationManager.hpp"
 #include "TimeWarpEventDispatcher.hpp"          // for EventMessage
+#include "TimeWarpMatternGVTManager.hpp"
 #include "utility/memory.hpp"
 #include "utility/warnings.hpp"
 
@@ -176,15 +177,19 @@ unsigned int MPISendQueue::startRequests() {
 
     while ((curr_msg_pos < next_msg_pos_) && (next_buffer_pos_ < max_queue_size_)) {
 
-        if (msg_list_[curr_msg_pos] == nullptr) {
-            std::cout << curr_msg_pos << std::endl;
-            std::cout << next_msg_pos_ << std::endl;
-        }
-
         assert(msg_list_[curr_msg_pos]);
 
         if (msg_list_[curr_msg_pos]->get_type() == MessageType::EventMessage) {
             auto event_msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(msg_list_[curr_msg_pos]));
+
+            MatternNodeState::lock_.lock();
+            if (MatternNodeState::color_ == MatternColor::WHITE) {
+                MatternNodeState::white_msg_counter_++;
+            } else {
+                MatternNodeState::min_red_msg_timestamp_ =
+                    std::min(MatternNodeState::min_red_msg_timestamp_, event_msg->event->timestamp());
+            }
+            MatternNodeState::lock_.unlock();
 
             if (event_msg->event->remote_cancelled_) {
                 // Event has been cancelled already, so don't send
@@ -341,6 +346,17 @@ void MPIRecvQueue::completeRequest(uint8_t *buffer) {
     {
         cereal::PortableBinaryInputArchive iarchive(iss);
         iarchive(msg_list_[next_msg_pos_]);
+    }
+
+    if (msg_list_[next_msg_pos_]->get_type() == MessageType::EventMessage) {
+        auto event_msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(msg_list_[next_msg_pos_]));
+        MatternNodeState::lock_.lock();
+        if (event_msg->gvt_mattern_color == MatternColor::WHITE) {
+            MatternNodeState::white_msg_counter_--;
+        }
+        MatternNodeState::lock_.unlock();
+
+        msg_list_[next_msg_pos_] = std::move(event_msg);
     }
 
     next_msg_pos_ = (next_msg_pos_ + 1) % max_queue_size_;

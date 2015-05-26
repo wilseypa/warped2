@@ -243,9 +243,6 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
 
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
 
-    // Update mattern state which includes white message counter and minimum red message timestamp.
-    mattern_gvt_manager_->receiveEventUpdateState(msg->gvt_mattern_color);
-
     assert(msg->event != nullptr);
 
     sendLocalEvent(msg->event);
@@ -333,9 +330,18 @@ void TimeWarpEventDispatcher::cancelEvents(
 
     if (events_to_cancel->empty()) return;
 
+    // All event pointers in the output queue point to the same events that are waiting in remote
+    //  event queue. We can check reference counts and set flag to avoid sending.
+    // comm_manager_->cancelRemoteEvents(events_to_cancel);
+
     // NOTE: events to cancel are in order from LARGEST to SMALLEST so we send from the back
     do {
         auto event = events_to_cancel->back();
+        if (event->remote_cancelled_) {
+            tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
+            continue;
+        }
+
         // NOTE: this is a copy the positive event
         auto neg_event = std::make_shared<NegativeEvent>(event);
         events_to_cancel->pop_back();
@@ -504,17 +510,11 @@ FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,
 void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
     unsigned int receiver_id) {
 
-    // Update Mattern state, white message counters in this case.
-    // NOTE: this must be done here because the message becomes "transient" at this point even
-    //  though the manager thread does the sending.
-    MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event->timestamp());
-
-    remote_event_queue_lock_.lock();
-    // NOTE: sendEventUpdateState must be called with remote_event_queue_lock_
     if (event->timestamp() <= max_sim_time_) {
-        MatternColor color = mattern_gvt_manager_->sendEventUpdateState(event->timestamp());
+        MatternNodeState::lock_.lock();
         auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id, event,
-                                                   color);
+                                                   MatternNodeState::color_);
+        MatternNodeState::lock_.unlock();
         comm_manager_->insertMessage(std::move(event_msg));
     }
 }
