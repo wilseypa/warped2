@@ -68,12 +68,6 @@ public:
     // Reset the state so a new GVT calculation can be done
     void resetState();
 
-    // Update state after receiving a Mattern token
-    void receiveEventUpdateState(MatternColor color);
-
-    // Update state after sending a Mattern token
-    MatternColor sendEventUpdateState(unsigned int timestamp);
-
     // Send a Mattern token to the next node
     void sendMatternGVTToken(unsigned int local_minimum);
 

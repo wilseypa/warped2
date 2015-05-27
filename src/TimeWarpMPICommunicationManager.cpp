@@ -165,6 +165,21 @@ unsigned int MPISendQueue::startRequests() {
 
         assert(msg_list_[curr_msg_pos]);
 
+        if (msg_list_[curr_msg_pos]->get_type() == MessageType::EventMessage) {
+            auto event_msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(msg_list_[curr_msg_pos]));
+
+            MatternNodeState::lock_.lock();
+            if (MatternNodeState::color_ == MatternColor::WHITE) {
+                MatternNodeState::white_msg_counter_++;
+            } else {
+                MatternNodeState::min_red_msg_timestamp_ =
+                    std::min(MatternNodeState::min_red_msg_timestamp_, event_msg->event->timestamp());
+            }
+            MatternNodeState::lock_.unlock();
+
+            msg_list_[curr_msg_pos] = std::move(event_msg);
+        }
+
         // Serialize message
         std::ostringstream oss;
         {
@@ -309,6 +324,18 @@ void MPIRecvQueue::completeRequest(uint8_t *buffer) {
     {
         cereal::PortableBinaryInputArchive iarchive(iss);
         iarchive(msg_list_[next_msg_pos_]);
+    }
+
+    if (msg_list_[next_msg_pos_]->get_type() == MessageType::EventMessage) {
+        auto event_msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(msg_list_[next_msg_pos_]));
+
+        MatternNodeState::lock_.lock();
+        if (event_msg->gvt_mattern_color == MatternColor::WHITE) {
+            MatternNodeState::white_msg_counter_--;
+        }
+        MatternNodeState::lock_.unlock();
+
+        msg_list_[next_msg_pos_] = std::move(event_msg);
     }
 
     next_msg_pos_ = (next_msg_pos_ + 1) % max_queue_size_;

@@ -29,31 +29,6 @@ unsigned int TimeWarpMatternGVTManager::infinityVT() {
     return std::numeric_limits<unsigned int>::max();
 }
 
-void TimeWarpMatternGVTManager::receiveEventUpdateState(MatternColor color) {
-    MatternNodeState::lock_.lock();
-    if (color == MatternColor::WHITE) {
-        MatternNodeState::white_msg_counter_--;
-    }
-    MatternNodeState::lock_.unlock();
-}
-
-MatternColor TimeWarpMatternGVTManager::sendEventUpdateState(unsigned int timestamp) {
-    MatternNodeState::lock_.lock();
-
-    if (MatternNodeState::color_ == MatternColor::WHITE) {
-        MatternNodeState::white_msg_counter_++;
-    } else {
-        MatternNodeState::min_red_msg_timestamp_ =
-            std::min(MatternNodeState::min_red_msg_timestamp_, timestamp);
-    }
-
-    MatternColor color = MatternNodeState::color_;
-
-    MatternNodeState::lock_.unlock();
-
-    return color;
-}
-
 bool TimeWarpMatternGVTManager::startGVT() {
 
     // Only node 0 can start a new GVT calculation
