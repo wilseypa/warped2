@@ -96,6 +96,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                 gvt = local_gvt_manager_->getGVT();
                 std::cout << "GVT: " << gvt << std::endl;
                 tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
+                mattern_gvt_manager_->resetState();
             }
         }
 

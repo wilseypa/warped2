@@ -88,6 +88,7 @@ void TimeWarpEventSet::insertEvent (unsigned int obj_id, std::shared_ptr<Event> 
                 // not then the event is already being processed and a rollback will have to occur.
 
                 assert(num_erased == 1);
+                unused(num_erased);
 
                 schedule_queue_[scheduler_id]->insert(smallest_event);
                 scheduled_event_pointer_[obj_id] = smallest_event;
@@ -242,6 +243,7 @@ void TimeWarpEventSet::replenishScheduler (unsigned int obj_id) {
     // Move the just processed event to the processed queue
     auto num_erased = input_queue_[obj_id]->erase(scheduled_event_pointer_[obj_id]);
     assert(num_erased == 1);
+    unused(num_erased);
     processed_queue_[obj_id]->push_back(scheduled_event_pointer_[obj_id]);
 
     // Update scheduler with new event for the object the previous event was executed for
