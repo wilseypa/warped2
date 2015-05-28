@@ -69,6 +69,9 @@ const static std::string DEFAULT_CONFIG = R"x({
 
     "scheduler-count": 1,
 
+    // LP Migration valid options are "on" and "off"
+    "lp-migration": "off",
+
     "fossil-collection" : {
         "objects-per-cycle": 100
     },
@@ -225,6 +228,16 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
             invalid_string += std::string("\tNumber of schedule queues\n");
         }
 
+        // LP MIGRATION
+        auto lp_migration_status = (*root_)["time-warp"]["lp-migration"].asString();
+        if (lp_migration_status == "off") {
+            local_config_id = 1;
+            if(!checkTimeWarpConfigs(local_config_id, all_config_ids, comm_manager)) {
+                invalid_string += std::string("\tLP Migration\n");
+            }
+        }
+        bool is_lp_migration_on = (lp_migration_status == "on") ? true : false;
+
         // STATE MANAGER
         std::unique_ptr<TimeWarpStateManager> state_manager;
         int state_period = 0;
@@ -300,6 +313,7 @@ check the following configurations:\n") + invalid_string);
                       << "Number of processes:       " << comm_manager->getNumProcesses() << "\n"
                       << "Number of worker threads:  " << num_worker_threads << "\n"
                       << "Number of Schedule queues: " << num_schedulers << "\n"
+                      << "LP Migration:              " << lp_migration_status << "\n"
                       << "State-saving type:         " << state_saving_type << "\n";
             if (state_saving_type == "periodic")
             std::cout << "State-saving period:       " << state_period << " events" << "\n";
@@ -311,10 +325,10 @@ check the following configurations:\n") + invalid_string);
         }
 
         return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
-            num_worker_threads, num_schedulers, comm_manager, std::move(event_set),
-            std::move(mattern_gvt_manager), std::move(local_gvt_manager), std::move(state_manager),
-            std::move(output_manager), std::move(twfs_manager), std::move(termination_manager),
-            std::move(tw_stats), fc_objects_per_cycle);
+            num_worker_threads, num_schedulers, is_lp_migration_on, comm_manager, 
+            std::move(event_set), std::move(mattern_gvt_manager), std::move(local_gvt_manager), 
+            std::move(state_manager), std::move(output_manager), std::move(twfs_manager), 
+            std::move(termination_manager),std::move(tw_stats), fc_objects_per_cycle);
     }
 
     if (comm_manager->getNumProcesses() > 1) {

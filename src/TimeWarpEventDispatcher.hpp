@@ -41,6 +41,7 @@ public:
     TimeWarpEventDispatcher(unsigned int max_sim_time,
         unsigned int num_worker_threads,
         unsigned int num_schedulers,
+        bool is_lp_migration_on,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
         std::unique_ptr<TimeWarpEventSet> event_set,
         std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager,
@@ -86,6 +87,7 @@ private:
 
     unsigned int num_worker_threads_;
     unsigned int num_schedulers_;
+    bool is_lp_migration_on_;
     unsigned int num_local_objects_;
 
     std::unordered_map<std::string, SimulationObject*> objects_by_name_;

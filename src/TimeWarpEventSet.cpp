@@ -9,10 +9,12 @@ namespace warped {
 
 void TimeWarpEventSet::initialize (unsigned int num_of_objects, 
                                    unsigned int num_of_schedulers,
+                                   bool is_lp_migration_on,
                                    unsigned int num_of_worker_threads) {
 
-    num_of_objects_ = num_of_objects;
-    num_of_schedulers_ = num_of_schedulers;
+    num_of_objects_     = num_of_objects;
+    num_of_schedulers_  = num_of_schedulers;
+    is_lp_migration_on_ = is_lp_migration_on;
 
     /* Create the input and processed queues and their locks.
        Also create the input queue-scheduler map and scheduled event pointer. */
@@ -246,11 +248,19 @@ void TimeWarpEventSet::replenishScheduler (unsigned int obj_id) {
     unused(num_erased);
     processed_queue_[obj_id]->push_back(scheduled_event_pointer_[obj_id]);
 
+    // Map the object to the next schedule queue (cyclic order)
+    // This is supposed to balance the load across all the schedule queues
+    // Input queue lock is sufficient to ensure consistency
+    unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
+    if (is_lp_migration_on_) {
+        scheduler_id = (scheduler_id + 1) % num_of_schedulers_;
+        input_queue_scheduler_map_[obj_id] = scheduler_id;
+    }
+
     // Update scheduler with new event for the object the previous event was executed for
     // NOTE: A pointer to the scheduled event will remain in the input queue
     if (!input_queue_[obj_id]->empty()) {
         scheduled_event_pointer_[obj_id] = *input_queue_[obj_id]->begin();
-        unsigned int scheduler_id = input_queue_scheduler_map_[obj_id];
         schedule_queue_lock_[scheduler_id].lock();
         schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[obj_id]);
         schedule_queue_lock_[scheduler_id].unlock();
