@@ -43,7 +43,7 @@ const static std::string DEFAULT_CONFIG = R"x({
 "max-sim-time": 0,
 
 // Valid options are "sequential" and "time-warp"
-"simulation-type": "sequential",
+"simulation-type": "time-warp",
 
 "statistics": {
     // Valid options are "none", "json", "csv", "graphviz", and "metis".
