@@ -88,15 +88,24 @@ void TimeWarpMatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) 
     }
 
     MatternNodeState::lock_.lock();
-    auto msg = make_unique<MatternGVTToken>(sender_id, (sender_id + 1) % num_processes,
-        std::min(local_minimum, global_min_clock_), MatternNodeState::min_red_msg_timestamp_,
-        MatternNodeState::white_msg_counter_ + msg_count_);
+
+    auto msg = make_unique<MatternGVTToken>(
+        sender_id,                                      // Sender
+        (sender_id + 1) % num_processes,                // Receiver
+        std::min(local_minimum, global_min_clock_),     // Accumulated minimum clock nodes
+        MatternNodeState::min_red_msg_timestamp_,       // Accumulated Minimum red messages
+        MatternNodeState::white_msg_counter_ + msg_count_); // Accumulated white msg count
+
+    // White message count always gets reset 'after' send
     MatternNodeState::white_msg_counter_ = 0;
+
     MatternNodeState::lock_.unlock();
 
+    // XXX is this needed?
     token_iteration_++;
 
     comm_manager_->insertMessage(std::move(msg));
+
     gVT_token_pending_ = false;
 
 }
@@ -111,19 +120,19 @@ void TimeWarpMatternGVTManager::receiveMatternGVTToken(
 
     if (process_id == 0) {
         // Initiator received the message
-        if ((MatternNodeState::white_msg_counter_ + msg->count == 0) && (token_iteration_ > 1)) {
+        // XXX
+        if (((MatternNodeState::white_msg_counter_ + msg->count) == 0) && (token_iteration_ > 1)) {
             // At this point all white messages are accounted for so we can
             // calculate the GVT now
             sendGVTUpdate(std::min(msg->m_clock, msg->m_send));
 
-            // Reset
-            MatternNodeState::white_msg_counter_ = 0;
-
         } else {
-            // Accumulations
-            MatternNodeState::min_red_msg_timestamp_ = std::min(msg->m_send, MatternNodeState::min_red_msg_timestamp_);
-            global_min_clock_ = infinityVT();
-            MatternNodeState::white_msg_counter_ = 0;
+            // Account for minumum red msg timestamp from nodes that the token has visited so far
+            MatternNodeState::min_red_msg_timestamp_ =
+                std::min(msg->m_send, MatternNodeState::min_red_msg_timestamp_);
+
+            // Hold the white message count so it can be used when the token is sent
+            msg_count_ = msg->count;
 
             // Set flags
             need_local_gvt_ = true;
@@ -153,14 +162,21 @@ void TimeWarpMatternGVTManager::receiveMatternGVTToken(
 }
 
 void TimeWarpMatternGVTManager::resetState() {
+
     MatternNodeState::lock_.lock();
+    // All nodes must be reset back to white when were done
     MatternNodeState::color_ = MatternColor::WHITE;
-    MatternNodeState::white_msg_counter_ = 0;
+    // Initiator node (0) starts by setting minimum red message timestamp to infinity
     MatternNodeState::min_red_msg_timestamp_ = infinityVT();
     MatternNodeState::lock_.unlock();
 
-    token_iteration_ = 0;
+    // This must always be reset so that old values are not always minimum
     global_min_clock_ = infinityVT();
+
+    // XXX
+    token_iteration_ = 0;
+
+    msg_count_ = 0;
 
     master_can_start_ = true;
 }
