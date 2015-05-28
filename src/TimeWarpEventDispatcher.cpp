@@ -137,7 +137,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
         std::cout << "\nSimulation completed in " << num_seconds << " second(s)" << "\n\n";
         tw_stats_->printStats();
     }
-    comm_manager_->printStats();
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {

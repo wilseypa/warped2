@@ -81,7 +81,6 @@ TimeWarpMPICommunicationManager::gatherUint(unsigned int *send_local, unsigned i
 void TimeWarpMPICommunicationManager::insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg) {
     send_queue_->msg_list_lock_.lock();
 
-    send_queue_inserts_++;
     if (send_queue_->next_msg_pos_ > send_queue_->max_queue_size_) {
         std::cout << "Send queue too small: " << send_queue_->next_msg_pos_ << std::endl;
         abort();
@@ -94,28 +93,18 @@ void TimeWarpMPICommunicationManager::insertMessage(std::unique_ptr<TimeWarpKern
 void TimeWarpMPICommunicationManager::sendMessages() {
 
     // Get pending recvs
-    completed_recvs_ += testQueue(recv_queue_);
+    testQueue(recv_queue_);
 
     // Complete pending sends
     send_queue_->msg_list_lock_.lock();
-    completed_sends_ += testQueue(send_queue_);
+    testQueue(send_queue_);
     send_queue_->msg_list_lock_.unlock();
 
     // Start recvs
-    recv_requests_ += recv_queue_->startRequests();
+    recv_queue_->startRequests();
 
     // Start more sends
-    send_requests_ += send_queue_->startRequests();
-}
-
-void TimeWarpMPICommunicationManager::printStats() {
-    std::cout << "Node " << getID() << "\n"
-              << "====================  " << "\n"
-              << "Send Requests:        " << send_requests_ << "\n"
-              << "Recv Requests:        " << recv_requests_ << "\n"
-              << "Completed Sends:      " << completed_sends_ << "\n"
-              << "Completed Recvs:      " << completed_recvs_ << "\n"
-              << "Send queue inserts:   " << send_queue_inserts_ << std::endl;
+    send_queue_->startRequests();
 }
 
 std::unique_ptr<TimeWarpKernelMessage> TimeWarpMPICommunicationManager::getMessage() {

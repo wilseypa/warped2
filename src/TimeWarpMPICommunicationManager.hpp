@@ -39,16 +39,8 @@ public:
     int sumReduceUint64(uint64_t* send_local, uint64_t* recv_global);
     int gatherUint(unsigned int *send_local, unsigned int* recv_root);
 
-    void printStats();
-
 private:
     int testQueue(std::shared_ptr<MessageQueue> msg_queue);
-
-    unsigned int recv_requests_ = 0;
-    unsigned int send_requests_ = 0;
-    unsigned int completed_sends_ = 0;
-    unsigned int completed_recvs_ = 0;
-    unsigned int send_queue_inserts_ = 0;
 
     unsigned int send_queue_size_;
     unsigned int recv_queue_size_;
