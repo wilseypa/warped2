@@ -13,7 +13,7 @@ TEST_CASE("Test the event set operations") {
 
     unsigned int num_objects = 4, num_schedulers = 1, num_threads = 1;
     warped::TimeWarpEventSet twes;
-    twes.initialize(num_objects, num_schedulers, num_threads);
+    twes.initialize(num_objects, num_schedulers, num_threads, false);
     std::shared_ptr<warped::Event> spe, restored_event;
     REQUIRE(twes.getEvent(0) == nullptr);
 

@@ -8,7 +8,7 @@
 #include "TimeWarpMatternGVTManager.hpp"
 
 TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialized","[mpi]"){
-    auto mpi_manager = std::make_shared<warped::TimeWarpMPICommunicationManager>();
+    auto mpi_manager = std::make_shared<warped::TimeWarpMPICommunicationManager>(100, 100, 512);
 
     SECTION("Basic management routines return correct values", "[mpi]") {
         mpi_manager->initialize();
@@ -25,12 +25,17 @@ TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialize
 
         // Sends an MPI message to itself
         SECTION("Can serialize and send a message", "[mpi][serialize][send]") {
-            mpi_manager->sendMessage(warped::make_unique<warped::MatternGVTToken>
+            mpi_manager->insertMessage(warped::make_unique<warped::MatternGVTToken>
                 (0, 0, 1, 10, 12));
+
+            mpi_manager->sendMessages();
+            mpi_manager->sendMessages();
+            mpi_manager->sendMessages();
+            mpi_manager->sendMessages();
 
             SECTION("Can receive message, deserialize, and determine type and data correctly",
                     "[mpi][deserialize][receive]") {
-                auto msg = mpi_manager->recvMessage();
+                auto msg = mpi_manager->getMessage();
                 REQUIRE(msg.get() != nullptr);
                 REQUIRE(msg->get_type() == warped::MessageType::MatternGVTToken);
 
@@ -53,10 +58,10 @@ TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialize
                     // This registers the message handlers for mattern class
                     mattern_gvt_manager->initialize();
 
-                    mpi_manager->sendMessage(warped::make_unique<warped::MatternGVTToken>
+                    mpi_manager->insertMessage(warped::make_unique<warped::MatternGVTToken>
                         (0, 0, 1, 10, 12));
 
-                    mpi_manager->sendMessage(warped::make_unique<warped::GVTUpdateMessage>
+                    mpi_manager->insertMessage(warped::make_unique<warped::GVTUpdateMessage>
                         (0, 0, 1234));
 
                 }
