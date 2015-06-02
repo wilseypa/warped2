@@ -23,6 +23,7 @@ public:
 
     void initialize (unsigned int num_of_objects, 
                      unsigned int num_of_schedulers,
+                     bool is_lp_migration_on,
                      unsigned int num_of_worker_threads);
 
     void acquireInputQueueLock (unsigned int obj_id);
@@ -79,6 +80,9 @@ private:
 
     // Map unprocessed queue to a schedule queue
     std::vector<unsigned int> input_queue_scheduler_map_;
+
+    // LP Migration flag
+    bool is_lp_migration_on_;
 
     // Map worker thread to a schedule queue
     std::vector<unsigned int> worker_thread_scheduler_map_;

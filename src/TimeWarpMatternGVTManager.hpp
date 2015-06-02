@@ -105,7 +105,7 @@ private:
     unsigned int global_min_clock_;
 
     // Used to hold accumulated white msg count from last token received
-    unsigned int msg_count_;
+    unsigned int msg_count_ = 0;
 
     // Flag to indicate to that a token needs to be sent
     bool gVT_token_pending_ = false;

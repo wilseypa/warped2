@@ -36,7 +36,7 @@ to specify the path to the MPI headers and libraries manually in the configurati
 step. You can specify the path to the library file with the `--with-mpi-libdir` configure option,
 and the header location with the `--with-mpi-includedir` option.
 
- 	./configure --with-mpi-includedir=/usr/include/mpich --with-mpi-libdir=/usr/lib/mpich2
+ 	./configure --with-mpi-includedir=/usr/include/mpich --with-mpi-libdir=/usr/lib/mpich --prefix=$HOME/lib/warped2
 
 Replace the paths in the above example with the locations of the MPI libraries and headers
 on your machine.   
@@ -52,6 +52,12 @@ build rules by default. To disable silent rules, pass the `--disable-silent-rule
 or
 
     make V=1
+
+#### Debug Build Rules
+
+WARPED can be configured to build in debug mode using the `--enable-debug` flag.
+
+    ./configure --prefix=$HOME/lib/warped2 --enable-debug
 
 # Prerequisites
 

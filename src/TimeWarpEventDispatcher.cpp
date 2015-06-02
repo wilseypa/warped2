@@ -13,6 +13,11 @@
 #include <iostream>
 #include <cassert>
 
+#include <pthread.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
 #include "LTSFQueue.hpp"
@@ -40,6 +45,7 @@ thread_local unsigned int TimeWarpEventDispatcher::thread_id;
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_worker_threads,
     unsigned int num_schedulers,
+    bool is_lp_migration_on,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<TimeWarpEventSet> event_set,
     std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager,
@@ -48,15 +54,14 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpOutputManager> output_manager,
     std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
     std::unique_ptr<TimeWarpTerminationManager> termination_manager,
-    std::unique_ptr<TimeWarpStatistics> tw_stats,
-    unsigned int fc_objects_per_cycle) :
+    std::unique_ptr<TimeWarpStatistics> tw_stats) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
-        num_schedulers_(num_schedulers), comm_manager_(comm_manager),
-        event_set_(std::move(event_set)), mattern_gvt_manager_(std::move(mattern_gvt_manager)),
+        num_schedulers_(num_schedulers), is_lp_migration_on_(is_lp_migration_on), 
+        comm_manager_(comm_manager), event_set_(std::move(event_set)), 
+        mattern_gvt_manager_(std::move(mattern_gvt_manager)),
         local_gvt_manager_(std::move(local_gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
-        termination_manager_(std::move(termination_manager)), tw_stats_(std::move(tw_stats)),
-        fc_objects_per_cycle_(fc_objects_per_cycle) {}
+        termination_manager_(std::move(termination_manager)), tw_stats_(std::move(tw_stats)) {}
 
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
                                               objects) {
@@ -110,14 +115,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
             tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
             mattern_gvt_manager_->resetState();
         }
-
-        comm_manager_->deliverReceivedMessages();
-        comm_manager_->sendMessages();
-
-        fossilCollect(gvt);
-
-        comm_manager_->deliverReceivedMessages();
-        comm_manager_->sendMessages();
 
         // Check to see if we should start/continue the termination process
         if (termination_manager_->nodePassive()) {
@@ -219,6 +216,28 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Send new events
             sendEvents(new_events, current_object_id, current_object);
 
+            unsigned int gvt;
+            if (comm_manager_->getNumProcesses() > 1) {
+                gvt = mattern_gvt_manager_->getGVT();
+            } else {
+                gvt = local_gvt_manager_->getGVT();
+            }
+
+            if (gvt > current_object->last_fossil_collect_gvt_) {
+                current_object->last_fossil_collect_gvt_ = gvt;
+
+                // Fossil collect all queues for this object
+                twfs_manager_->fossilCollect(gvt, current_object_id);
+                output_manager_->fossilCollect(gvt, current_object_id);
+
+                unsigned int event_fossil_collect_time =
+                    state_manager_->fossilCollect(gvt, current_object_id);
+
+                event_set_->acquireInputQueueLock(current_object_id);
+                event_set_->fossilCollect(event_fossil_collect_time, current_object_id);
+                event_set_->releaseInputQueueLock(current_object_id);
+            }
+
             // Move the next event from object into the schedule queue
             // Also transfer old event to processed queue
             event_set_->acquireInputQueueLock(current_object_id);
@@ -295,34 +314,6 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     event_set_->releaseInputQueueLock(receiver_object_id);
 
     tw_stats_->upCount(TOTAL_EVENTS_RECEIVED, thread_id);
-}
-
-void TimeWarpEventDispatcher::fossilCollect(unsigned int gvt) {
-    unsigned int event_fossil_collect_time;
-
-    // NOTE: fc_objects_per_cycle is a configurable parameter
-    for (unsigned int i = 0; i < fc_objects_per_cycle_; i++) {
-
-        if (curr_fc_object_id_ >= num_local_objects_) {
-            curr_fc_object_id_ = 0;
-        }
-
-        twfs_manager_->fossilCollect(gvt, curr_fc_object_id_);
-        output_manager_->fossilCollect(gvt, curr_fc_object_id_);
-
-        // event_fossil_collect_time may be less than GVT depending on whate states exist in the
-        //  state queue.
-        // There is always one state that is kept before GVT in case.
-        event_fossil_collect_time = state_manager_->fossilCollect(gvt, curr_fc_object_id_);
-
-        // event_fossil_collect_time must be used so that "coast forward events" do not get
-        //  fossil collected which could have timestamps less than GVT.
-        event_set_->acquireInputQueueLock(curr_fc_object_id_);
-        event_set_->fossilCollect(event_fossil_collect_time, curr_fc_object_id_);
-        event_set_->releaseInputQueueLock(curr_fc_object_id_);
-
-        curr_fc_object_id_++;
-    }
 }
 
 void TimeWarpEventDispatcher::cancelEvents(
@@ -429,7 +420,8 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObje
     thread_id = num_worker_threads_;
 
     num_local_objects_ = objects[comm_manager_->getID()].size();
-    event_set_->initialize(num_local_objects_, num_schedulers_, num_worker_threads_);
+    event_set_->initialize(num_local_objects_, num_schedulers_, 
+                                    is_lp_migration_on_, num_worker_threads_);
 
     object_simulation_time_ = make_unique<unsigned int []>(num_local_objects_);
     std::memset(object_simulation_time_.get(), 0, num_local_objects_*sizeof(unsigned int));

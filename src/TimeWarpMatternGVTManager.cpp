@@ -23,6 +23,12 @@ void TimeWarpMatternGVTManager::initialize() {
     WARPED_REGISTER_MSG_HANDLER(TimeWarpMatternGVTManager, receiveMatternGVTToken, MatternGVTToken);
     WARPED_REGISTER_MSG_HANDLER(TimeWarpMatternGVTManager, receiveGVTUpdate, GVTUpdateMessage);
     gvt_start = std::chrono::steady_clock::now();
+
+    MatternNodeState::lock_.lock();
+    MatternNodeState::color_ = MatternColor::WHITE;
+    MatternNodeState::white_msg_counter_ = 0;
+    MatternNodeState::min_red_msg_timestamp_ = infinityVT();
+    MatternNodeState::lock_.unlock();
 }
 
 unsigned int TimeWarpMatternGVTManager::infinityVT() {
@@ -96,7 +102,8 @@ void TimeWarpMatternGVTManager::sendMatternGVTToken(unsigned int local_minimum) 
         MatternNodeState::min_red_msg_timestamp_,       // Accumulated Minimum red messages
         MatternNodeState::white_msg_counter_ + msg_count_); // Accumulated white msg count
 
-    // White message count always gets reset 'after' send
+
+    // White message count always gets reset
     MatternNodeState::white_msg_counter_ = 0;
 
     MatternNodeState::lock_.unlock();
@@ -120,7 +127,6 @@ void TimeWarpMatternGVTManager::receiveMatternGVTToken(
 
     if (process_id == 0) {
         // Initiator received the message
-        // XXX
         if (((MatternNodeState::white_msg_counter_ + msg->count) == 0) && (token_iteration_ > 1)) {
             // At this point all white messages are accounted for so we can
             // calculate the GVT now
