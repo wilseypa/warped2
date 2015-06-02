@@ -13,15 +13,11 @@ void TimeWarpStateManager::initialize(unsigned int num_local_objects) {
    state_queue_ = make_unique<std::vector<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>>[]>
         (num_local_objects);
 
-    state_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
-
     num_local_objects_ = num_local_objects;
 }
 
 std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event> rollback_event,
     unsigned int local_object_id, SimulationObject *object) {
-
-    state_queue_lock_[local_object_id].lock();
 
     assert(!state_queue_[local_object_id].empty());
 
@@ -44,8 +40,6 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
     // We must have a state that we can go back to.
     assert(max != state_queue_[local_object_id].rend());
 
-    state_queue_lock_[local_object_id].unlock();
-
     object->getState().restoreState(*max->second);
 
     // Return the state
@@ -54,10 +48,8 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
 
 // NOTE: Returns the time at which events should be fossil collected before
 unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
-    state_queue_lock_[local_object_id].lock();
 
     if (state_queue_[local_object_id].empty()) {
-        state_queue_lock_[local_object_id].unlock();
         // Return zero so that no events are fossil collected.
         return 0;
     }
@@ -73,8 +65,6 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
         min = state_queue_[local_object_id].erase(min);
         next = std::next(min);
     }
-
-    state_queue_lock_[local_object_id].unlock();
 
     return min->first->timestamp();
 }

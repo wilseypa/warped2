@@ -50,6 +50,8 @@ public:
 
     const std::string name_;
 
+    unsigned int last_fossil_collect_gvt_ = 0;
+
 };
 
 } // namespace warped

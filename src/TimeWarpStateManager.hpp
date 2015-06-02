@@ -43,10 +43,6 @@ protected:
     std::unique_ptr<std::vector<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>> []>
         state_queue_;
 
-    // Array of state queue locks, this is needed so that the manager thread can do
-    // fossil collection and the worker threads can save and restore state when needed.
-    std::unique_ptr<std::mutex []> state_queue_lock_;
-
     unsigned int num_local_objects_;
 };
 

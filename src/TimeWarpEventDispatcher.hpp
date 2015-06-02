@@ -50,8 +50,7 @@ public:
         std::unique_ptr<TimeWarpOutputManager> output_manager,
         std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
         std::unique_ptr<TimeWarpTerminationManager> termination_manager,
-        std::unique_ptr<TimeWarpStatistics> tw_stats,
-        unsigned int fc_objects_per_cycle);
+        std::unique_ptr<TimeWarpStatistics> tw_stats);
 
     void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
 
@@ -81,8 +80,6 @@ private:
 
     void receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
-    void fossilCollect(unsigned int gvt);
-
 /* ============================================================================ */
 
     unsigned int num_worker_threads_;
@@ -104,15 +101,11 @@ private:
     const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
     const std::unique_ptr<TimeWarpStatistics> tw_stats_;
 
-    unsigned int fc_objects_per_cycle_;
-
     std::unique_ptr<unsigned int []> object_simulation_time_;
 
     std::unique_ptr<std::atomic<unsigned long> []> event_counter_by_obj_;
 
     static thread_local unsigned int thread_id;
-
-    unsigned int curr_fc_object_id_ = 0;
 };
 
 struct EventMessage : public TimeWarpKernelMessage {

@@ -72,10 +72,6 @@ const static std::string DEFAULT_CONFIG = R"x({
     // LP Migration valid options are "on" and "off"
     "lp-migration": "off",
 
-    "fossil-collection" : {
-        "objects-per-cycle": 100
-    },
-
     "communication" : {
         "send-queue-size" : 10000,
         "recv-queue-size" : 10000,
@@ -291,13 +287,6 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
         std::unique_ptr<TimeWarpStatistics> tw_stats =
             make_unique<TimeWarpStatistics>(comm_manager);
 
-        // FOSSIL COLLECTION
-        unsigned int fc_objects_per_cycle =
-            (*root_)["time-warp"]["fossil-collection"]["objects-per-cycle"].asUInt();
-        if (!checkTimeWarpConfigs(fc_objects_per_cycle, all_config_ids, comm_manager)) {
-            invalid_string += std::string("\tFossil collection objects per cycle\n");
-        }
-
         if (!invalid_string.empty()) {
             throw std::runtime_error(std::string("Configuration files do not match, \
 check the following configurations:\n") + invalid_string);
@@ -319,16 +308,15 @@ check the following configurations:\n") + invalid_string);
             std::cout << "State-saving period:       " << state_period << " events" << "\n";
             std::cout << "Cancellation type:         " << cancellation_type << "\n"
                       << "GVT Period:                " << gvt_period << " ms" << "\n"
-                      << "FC objects per cycle:      " << fc_objects_per_cycle << "\n"
                       << "Max simulation time:       " \
                         << (max_sim_time_ ? std::to_string(max_sim_time_) : "infinity") << std::endl << std::endl;
         }
 
         return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
-            num_worker_threads, num_schedulers, is_lp_migration_on, comm_manager, 
-            std::move(event_set), std::move(mattern_gvt_manager), std::move(local_gvt_manager), 
-            std::move(state_manager), std::move(output_manager), std::move(twfs_manager), 
-            std::move(termination_manager),std::move(tw_stats), fc_objects_per_cycle);
+            num_worker_threads, num_schedulers, is_lp_migration_on, comm_manager,
+            std::move(event_set), std::move(mattern_gvt_manager), std::move(local_gvt_manager),
+            std::move(state_manager),std::move(output_manager), std::move(twfs_manager),
+            std::move(termination_manager), std::move(tw_stats));
     }
 
     if (comm_manager->getNumProcesses() > 1) {

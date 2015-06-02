@@ -7,24 +7,19 @@ namespace warped {
 
 void TimeWarpOutputManager::initialize(unsigned int num_local_objects) {
     output_queue_ = make_unique<std::vector<std::shared_ptr<Event>> []>(num_local_objects);
-    output_queue_lock_ = make_unique<std::mutex []>(num_local_objects);
     num_local_objects_ = num_local_objects;
 }
 
 void TimeWarpOutputManager::insertEvent(std::shared_ptr<Event> event,
     unsigned int local_object_id) {
-    output_queue_lock_[local_object_id].lock();
     output_queue_[local_object_id].push_back(event);
-    output_queue_lock_[local_object_id].unlock();
 }
 
 unsigned int TimeWarpOutputManager::fossilCollect(unsigned int gvt, unsigned int local_object_id) {
 
     unsigned int retval = std::numeric_limits<unsigned int>::max();
 
-    output_queue_lock_[local_object_id].lock();
     if (output_queue_[local_object_id].empty()) {
-        output_queue_lock_[local_object_id].unlock();
         return retval;
     }
 
@@ -37,8 +32,6 @@ unsigned int TimeWarpOutputManager::fossilCollect(unsigned int gvt, unsigned int
         retval = min->get()->timestamp();
     }
 
-    output_queue_lock_[local_object_id].unlock();
-
     return retval;
 }
 
@@ -50,8 +43,6 @@ TimeWarpOutputManager::removeEventsSentAfter(std::shared_ptr<Event> straggler_ev
 
     // Empty vector of events
     auto events_to_cancel = make_unique<std::vector<std::shared_ptr<Event>>>();
-
-    output_queue_lock_[local_object_id].lock();
 
     auto max = output_queue_[local_object_id].rbegin(); // Start at the largest event
 
@@ -68,8 +59,6 @@ TimeWarpOutputManager::removeEventsSentAfter(std::shared_ptr<Event> straggler_ev
             events_to_cancel->push_back(event);
         }
     }
-
-    output_queue_lock_[local_object_id].unlock();
 
     return std::move(events_to_cancel);
 }
