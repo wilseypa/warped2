@@ -290,7 +290,9 @@ void TimeWarpEventSet::printEvent(std::shared_ptr<Event> event) {
               << "\tType:       " << (unsigned int)event->event_type_     << "\n";
 }
 
-void TimeWarpEventSet::fossilCollect (unsigned int fossil_collect_time, unsigned int obj_id) {
+unsigned int TimeWarpEventSet::fossilCollect (unsigned int fossil_collect_time, unsigned int obj_id) {
+
+    unsigned int count = 0;
 
     auto event_iterator = processed_queue_[obj_id]->begin();
     while (event_iterator != processed_queue_[obj_id]->end()) {
@@ -298,8 +300,11 @@ void TimeWarpEventSet::fossilCollect (unsigned int fossil_collect_time, unsigned
             break;
         }
         processed_queue_[obj_id]->erase(event_iterator);
+        count++;
         event_iterator = processed_queue_[obj_id]->begin();
     }
+
+    return count;
 }
 
 } // namespace warped

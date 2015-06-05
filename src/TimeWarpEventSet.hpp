@@ -51,7 +51,7 @@ public:
 
     void printEvent (std::shared_ptr<Event> event);
 
-    void fossilCollect (unsigned int fossil_collect_time, unsigned int obj_id);
+    unsigned int fossilCollect (unsigned int fossil_collect_time, unsigned int obj_id);
 
 private:
     // Number of simulation objects

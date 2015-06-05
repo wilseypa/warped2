@@ -57,6 +57,9 @@ void TimeWarpStatistics::calculateStats() {
             case EVENTS_PROCESSED.value:
                 sumReduceUint64(EVENTS_PROCESSED);
                 break;
+            case EVENTS_COMMITTED.value:
+                sumReduceUint64(EVENTS_COMMITTED);
+                break;
             case TOTAL_NEGATIVE_EVENTS.value:
                 global_stats_[TOTAL_NEGATIVE_EVENTS] =
                     global_stats_[LOCAL_NEGATIVE_EVENTS_SENT] +
@@ -95,7 +98,8 @@ void TimeWarpStatistics::printStats() {
               << "Total events sent:         " << global_stats_[TOTAL_EVENTS_SENT] << "\n"
               << "Total events recevied:     " << global_stats_[TOTAL_EVENTS_RECEIVED] << "\n\n"
 
-              << "Total events processed:    " << global_stats_[EVENTS_PROCESSED] << "\n\n"
+              << "Total events processed:    " << global_stats_[EVENTS_PROCESSED] << "\n"
+              << "Total events committed:    " << global_stats_[EVENTS_COMMITTED] << "\n\n"
 
               << "GVT cycles:                " << global_stats_[GVT_CYCLES] << "\n"
               << std::endl;

@@ -292,6 +292,8 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
 check the following configurations:\n") + invalid_string);
         }
 
+        delete [] all_config_ids;
+
         if (comm_manager->getID() == 0) {
 #ifdef NDEBUG
             std::cout << "\nOPTIMIZED BUILD\n" << std::endl;

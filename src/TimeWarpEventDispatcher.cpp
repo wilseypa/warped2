@@ -128,6 +128,22 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     double num_seconds = double((sim_stop - sim_start).count()) *
                 std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
 
+    gvt = (unsigned int)-1;
+    for (unsigned int current_object_id = 0; current_object_id < num_local_objects_; current_object_id++) {
+        twfs_manager_->fossilCollect(gvt, current_object_id);
+        output_manager_->fossilCollect(gvt, current_object_id);
+
+        unsigned int event_fossil_collect_time =
+            state_manager_->fossilCollect(gvt, current_object_id);
+
+        event_set_->acquireInputQueueLock(current_object_id);
+        unsigned int num_committed =
+            event_set_->fossilCollect(event_fossil_collect_time, current_object_id);
+        event_set_->releaseInputQueueLock(current_object_id);
+
+        tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
+    }
+
     tw_stats_->calculateStats();
 
     if (comm_manager_->getID() == 0) {
@@ -234,8 +250,11 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                     state_manager_->fossilCollect(gvt, current_object_id);
 
                 event_set_->acquireInputQueueLock(current_object_id);
-                event_set_->fossilCollect(event_fossil_collect_time, current_object_id);
+                unsigned int num_committed =
+                    event_set_->fossilCollect(event_fossil_collect_time, current_object_id);
                 event_set_->releaseInputQueueLock(current_object_id);
+
+                tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
             }
 
             // Move the next event from object into the schedule queue

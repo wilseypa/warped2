@@ -66,6 +66,11 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
         next = std::next(min);
     }
 
+    if (gvt == (unsigned int)-1) {
+        state_queue_[local_object_id].erase(min);
+        return gvt;
+    }
+
     return min->first->timestamp();
 }
 
