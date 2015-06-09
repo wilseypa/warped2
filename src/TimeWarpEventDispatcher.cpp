@@ -136,7 +136,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     for (unsigned int current_object_id = 0; current_object_id < num_local_objects_; current_object_id++) {
 
         event_set_->acquireInputQueueLock(current_object_id);
-        unsigned int num_committed = event_set_->fossilCollect(event_fossil_collect_time, current_object_id);
+        unsigned int num_committed = event_set_->fossilCollect(gvt, current_object_id);
         event_set_->releaseInputQueueLock(current_object_id);
 
         tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
@@ -324,12 +324,9 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
 
     // NOTE: Event is assumed to be less than the maximum simulation time.
-
     event_set_->acquireInputQueueLock(receiver_object_id);
     event_set_->insertEvent(receiver_object_id, event);
     event_set_->releaseInputQueueLock(receiver_object_id);
-
-    tw_stats_->upCount(TOTAL_EVENTS_RECEIVED, thread_id);
 }
 
 void TimeWarpEventDispatcher::cancelEvents(

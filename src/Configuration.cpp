@@ -175,10 +175,10 @@ void Configuration::init(const std::string& model_description, int argc, const c
     }
 }
 
-bool Configuration::checkTimeWarpConfigs(unsigned int local_config_id, unsigned int *all_config_ids,
+bool Configuration::checkTimeWarpConfigs(uint64_t local_config_id, uint64_t *all_config_ids,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager) {
 
-    comm_manager->gatherUint(&local_config_id, all_config_ids);
+    comm_manager->gatherUint64(&local_config_id, all_config_ids);
     if (comm_manager->getID() == 0) {
         for (unsigned int i = 0; i < comm_manager->getNumProcesses(); i++) {
             if (all_config_ids[i] != local_config_id) {
@@ -191,8 +191,8 @@ bool Configuration::checkTimeWarpConfigs(unsigned int local_config_id, unsigned 
 
 std::unique_ptr<EventDispatcher>
 Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm_manager) {
-    unsigned int local_config_id;
-    unsigned int *all_config_ids = new unsigned int[comm_manager->getNumProcesses()];
+    uint64_t local_config_id;
+    uint64_t *all_config_ids = new uint64_t[comm_manager->getNumProcesses()];
     std::string invalid_string;
 
     // MAX SIMULATION_TIME

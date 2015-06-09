@@ -16,16 +16,16 @@ void TimeWarpStatistics::calculateStats() {
     for (unsigned int i = LOCAL_POSITIVE_EVENTS_SENT.value; i < NUM_STATISTICS.value; i++) {
         switch (i) {
             case LOCAL_POSITIVE_EVENTS_SENT.value:
-                sumReduceUint64(LOCAL_POSITIVE_EVENTS_SENT);
+                sumReduceLocal(LOCAL_POSITIVE_EVENTS_SENT, local_pos_sent_by_node_);
                 break;
             case REMOTE_POSITIVE_EVENTS_SENT.value:
-                sumReduceUint64(REMOTE_POSITIVE_EVENTS_SENT);
+                sumReduceLocal(REMOTE_POSITIVE_EVENTS_SENT, remote_pos_sent_by_node_);
                 break;
             case LOCAL_NEGATIVE_EVENTS_SENT.value:
-                sumReduceUint64(LOCAL_NEGATIVE_EVENTS_SENT);
+                sumReduceLocal(LOCAL_NEGATIVE_EVENTS_SENT, local_neg_sent_by_node_);
                 break;
             case REMOTE_NEGATIVE_EVENTS_SENT.value:
-                sumReduceUint64(REMOTE_NEGATIVE_EVENTS_SENT);
+                sumReduceLocal(REMOTE_NEGATIVE_EVENTS_SENT, remote_neg_sent_by_node_);
                 break;
             case TOTAL_EVENTS_SENT.value:
                 global_stats_[TOTAL_EVENTS_SENT] =
@@ -41,24 +41,21 @@ void TimeWarpStatistics::calculateStats() {
                     static_cast<double>(global_stats_[TOTAL_EVENTS_SENT]);
                 break;
             case PRIMARY_ROLLBACKS.value:
-                sumReduceUint64(PRIMARY_ROLLBACKS);
+                sumReduceLocal(PRIMARY_ROLLBACKS, primary_rollbacks_by_node_);
                 break;
             case SECONDARY_ROLLBACKS.value:
-                sumReduceUint64(SECONDARY_ROLLBACKS);
+                sumReduceLocal(SECONDARY_ROLLBACKS, secondary_rollbacks_by_node_);
                 break;
             case TOTAL_ROLLBACKS.value:
                 global_stats_[TOTAL_ROLLBACKS] =
                     global_stats_[PRIMARY_ROLLBACKS] +
                     global_stats_[SECONDARY_ROLLBACKS];
                 break;
-            case TOTAL_EVENTS_RECEIVED.value:
-                sumReduceUint64(TOTAL_EVENTS_RECEIVED);
-                break;
             case EVENTS_PROCESSED.value:
-                sumReduceUint64(EVENTS_PROCESSED);
+                sumReduceLocal(EVENTS_PROCESSED, processed_events_by_node_);
                 break;
             case EVENTS_COMMITTED.value:
-                sumReduceUint64(EVENTS_COMMITTED);
+                sumReduceLocal(EVENTS_COMMITTED, committed_events_by_node_);
                 break;
             case TOTAL_NEGATIVE_EVENTS.value:
                 global_stats_[TOTAL_NEGATIVE_EVENTS] =
@@ -66,13 +63,13 @@ void TimeWarpStatistics::calculateStats() {
                     global_stats_[REMOTE_NEGATIVE_EVENTS_SENT];
                 break;
             case CANCELLED_EVENTS.value:
-                sumReduceUint64(CANCELLED_EVENTS);
+                sumReduceLocal(CANCELLED_EVENTS, cancelled_events_by_node_);
                 break;
             case GVT_CYCLES.value:
                 global_stats_[GVT_CYCLES] = local_stats_[num_worker_threads_][GVT_CYCLES];
                 break;
             case NUM_OBJECTS.value:
-                sumReduceUint64(NUM_OBJECTS);
+                sumReduceLocal(NUM_OBJECTS, num_objects_by_node_);
             default:
                 break;
         }
@@ -80,30 +77,60 @@ void TimeWarpStatistics::calculateStats() {
 }
 
 void TimeWarpStatistics::printStats() {
-    std::cout << "Number of objects:         " << global_stats_[NUM_OBJECTS] << "\n\n"
 
-              << "Local events sent:         " << global_stats_[LOCAL_POSITIVE_EVENTS_SENT] << "\n"
-              << "Remote events sent:        " << global_stats_[REMOTE_POSITIVE_EVENTS_SENT] << "\n"
-              << "Local anti-messages sent:  " << global_stats_[LOCAL_NEGATIVE_EVENTS_SENT] << "\n"
-              << "Remote anti-messages sent: " << global_stats_[REMOTE_NEGATIVE_EVENTS_SENT] << "\n"
-              << "Percent remote:            " << global_stats_[PERCENT_REMOTE]*100.0 << "%\n\n"
+    for (unsigned int i = 0; i < comm_manager_->getNumProcesses(); i++) {
+        std::cout << "Node "                      << i                              << "\n"
+                  << "\tNumber of objects:        " << num_objects_by_node_[i]        << "\n\n"
 
-              << "Primary rollbacks:         " << global_stats_[PRIMARY_ROLLBACKS] << "\n"
-              << "Secondary rollbacks:       " << global_stats_[SECONDARY_ROLLBACKS] << "\n"
-              << "Total Rollbacks:           " << global_stats_[TOTAL_ROLLBACKS] << "\n\n"
+                  << "\tLocal events sent:        " << local_pos_sent_by_node_[i]     << "\n"
+                  << "\tRemote events sent:       " << remote_pos_sent_by_node_[i]    << "\n"
+                  << "\tLocal anti-messages sent: " << local_neg_sent_by_node_[i]     << "\n"
+                  << "\tRemote anti-messages sent:" << remote_neg_sent_by_node_[i]   << "\n\n"
 
-              << "Total anti-messages sent:  " << global_stats_[TOTAL_NEGATIVE_EVENTS] << "\n"
-              << "Cancelled events:          " << global_stats_[CANCELLED_EVENTS] << "\n\n"
+                  << "\tPrimary rollbacks:        " << primary_rollbacks_by_node_[i]  << "\n"
+                  << "\tSecondary rollbacks:      " << secondary_rollbacks_by_node_[i] << "\n\n"
 
-              << "Total events sent:         " << global_stats_[TOTAL_EVENTS_SENT] << "\n"
-              << "Total events recevied:     " << global_stats_[TOTAL_EVENTS_RECEIVED] << "\n\n"
+                  << "\tCancelled events:         " << cancelled_events_by_node_[i]    << "\n\n"
 
-              << "Total events processed:    " << global_stats_[EVENTS_PROCESSED] << "\n"
-              << "Total events committed:    " << global_stats_[EVENTS_COMMITTED] << "\n\n"
+                  << "\tEvents processed:         " << processed_events_by_node_[i]   << "\n"
+                  << "\tEvents committed:         " << committed_events_by_node_[i]   << std::endl << std::endl;
+    }
 
-              << "GVT cycles:                " << global_stats_[GVT_CYCLES] << "\n"
-              << std::endl;
+    std::cout << "Totals"                      << "\n"
+              << "\tNumber of objects:         " << global_stats_[NUM_OBJECTS] << "\n"
+              << "\tLocal events sent:         " << global_stats_[LOCAL_POSITIVE_EVENTS_SENT] << "\n"
+              << "\tRemote events sent:        " << global_stats_[REMOTE_POSITIVE_EVENTS_SENT] << "\n"
+              << "\tLocal anti-messages sent:  " << global_stats_[LOCAL_NEGATIVE_EVENTS_SENT] << "\n"
+              << "\tRemote anti-messages sent: " << global_stats_[REMOTE_NEGATIVE_EVENTS_SENT] << "\n"
+              << "\tPercent remote:            " << global_stats_[PERCENT_REMOTE]*100.0 << "%\n\n"
+
+              << "\tPrimary rollbacks:         " << global_stats_[PRIMARY_ROLLBACKS] << "\n"
+              << "\tSecondary rollbacks:       " << global_stats_[SECONDARY_ROLLBACKS] << "\n"
+              << "\tTotal Rollbacks:           " << global_stats_[TOTAL_ROLLBACKS] << "\n\n"
+
+              << "\tTotal anti-messages sent:  " << global_stats_[TOTAL_NEGATIVE_EVENTS] << "\n"
+              << "\tCancelled events:          " << global_stats_[CANCELLED_EVENTS] << "\n\n"
+
+              << "\tTotal events sent:         " << global_stats_[TOTAL_EVENTS_SENT] << "\n"
+
+              << "\tTotal events processed:    " << global_stats_[EVENTS_PROCESSED] << "\n"
+              << "\tTotal events committed:    " << global_stats_[EVENTS_COMMITTED] << "\n\n"
+
+              << "\tGVT cycles:                " << global_stats_[GVT_CYCLES] << std::endl << std::endl;
+
+
+    delete [] local_pos_sent_by_node_;
+    delete [] local_neg_sent_by_node_;
+    delete [] remote_pos_sent_by_node_;
+    delete [] remote_neg_sent_by_node_;
+    delete [] primary_rollbacks_by_node_;
+    delete [] secondary_rollbacks_by_node_;
+    delete [] cancelled_events_by_node_;
+    delete [] num_objects_by_node_;
+    delete [] processed_events_by_node_;
+    delete [] committed_events_by_node_;
 }
 
 } // namespace warped
+
 

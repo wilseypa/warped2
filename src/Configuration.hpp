@@ -43,7 +43,7 @@ public:
     // Create a communcation manager based on configurations
     std::shared_ptr<TimeWarpCommunicationManager> makeCommunicationManager();
 
-    bool checkTimeWarpConfigs(unsigned int local_config_id, unsigned int *all_config_ids,
+    bool checkTimeWarpConfigs(uint64_t local_config_id, uint64_t *all_config_ids,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager);
 
 private:

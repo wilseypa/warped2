@@ -73,9 +73,9 @@ TimeWarpMPICommunicationManager::sumReduceUint64(uint64_t *send_local, uint64_t 
 }
 
 int
-TimeWarpMPICommunicationManager::gatherUint(unsigned int *send_local, unsigned int* recv_root) {
+TimeWarpMPICommunicationManager::gatherUint64(uint64_t *send_local, uint64_t *recv_root) {
     assert(isInitiatingThread());
-    return MPI_Gather(send_local, 1, MPI_UNSIGNED, recv_root, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+    return MPI_Gather(send_local, 1, MPI_UINT64_T, recv_root, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 }
 
 void TimeWarpMPICommunicationManager::insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg) {
