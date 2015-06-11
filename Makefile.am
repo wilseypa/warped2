@@ -34,6 +34,7 @@ WARPED_NOINST_HPP_FILES = \
     src/LadderQueue.hpp \
     src/TimeWarpEventDispatcher.hpp \
     src/utility/strings.hpp \
+	src/TicketLock.hpp \
     src/TimeWarpMatternGVTManager.hpp \
     src/TimeWarpKernelMessage.hpp \
     src/TimeWarpCommunicationManager.hpp \

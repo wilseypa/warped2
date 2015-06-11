@@ -34,7 +34,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
         schedule_queue_.push_back(
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
     }
-    schedule_queue_lock_ = make_unique<std::mutex []>(num_of_schedulers);
+    schedule_queue_lock_ = make_unique<TicketLock []>(num_of_schedulers);
 
     /* Map worker threads to schedule queues. */
     for (unsigned int thread_id = 0; 

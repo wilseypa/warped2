@@ -14,6 +14,7 @@
 
 #include "Event.hpp"
 #include "utility/memory.hpp"
+#include "TicketLock.hpp"
 
 namespace warped {
 
@@ -72,7 +73,7 @@ private:
     unsigned int num_of_schedulers_ = 0;
 
     // Lock to protect the schedule queues
-    std::unique_ptr<std::mutex []> schedule_queue_lock_;
+    std::unique_ptr<TicketLock []> schedule_queue_lock_;
 
     // Queues to hold the scheduled events
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
