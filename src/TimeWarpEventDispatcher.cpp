@@ -145,6 +145,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     tw_stats_->calculateStats();
 
     if (comm_manager_->getID() == 0) {
+        tw_stats_->writeToFile(num_seconds);
         tw_stats_->printStats();
     }
 }

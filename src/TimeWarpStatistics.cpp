@@ -1,4 +1,5 @@
 #include <cstring>  // for std::memset
+#include <fstream>
 
 #include "TimeWarpStatistics.hpp"
 #include "utility/memory.hpp"
@@ -74,6 +75,44 @@ void TimeWarpStatistics::calculateStats() {
                 break;
         }
     }
+}
+
+void TimeWarpStatistics::writeToFile(double num_seconds) {
+    if (stats_file_ == "none") {
+        return;
+    }
+
+    std::ofstream ofs(stats_file_, std::ios::out | std::ios::app);
+
+    for (unsigned int i = 0; i < comm_manager_->getNumProcesses(); i++) {
+        ofs << i                                << ",\t"
+                                                << ",\t"
+            << num_objects_by_node_[i]          << ",\t"
+            << local_pos_sent_by_node_[i]       << ",\t"
+            << remote_pos_sent_by_node_[i]      << ",\t"
+            << local_neg_sent_by_node_[i]       << ",\t"
+            << remote_neg_sent_by_node_[i]      << ",\t"
+            << primary_rollbacks_by_node_[i]    << ",\t"
+            << secondary_rollbacks_by_node_[i]  << ",\t"
+            << cancelled_events_by_node_[i]     << ",\t"
+            << processed_events_by_node_[i]     << ",\t"
+            << committed_events_by_node_[i]     << std::endl;
+    }
+
+    ofs << "Total"                                    << ",\t"
+        << num_seconds                                << ",\t"
+        << global_stats_[NUM_OBJECTS]                 << ",\t"
+        << global_stats_[LOCAL_POSITIVE_EVENTS_SENT]  << ",\t"
+        << global_stats_[REMOTE_POSITIVE_EVENTS_SENT] << ",\t"
+        << global_stats_[LOCAL_NEGATIVE_EVENTS_SENT]  << ",\t"
+        << global_stats_[REMOTE_NEGATIVE_EVENTS_SENT] << ",\t"
+        << global_stats_[PRIMARY_ROLLBACKS]           << ",\t"
+        << global_stats_[SECONDARY_ROLLBACKS]         << ",\t"
+        << global_stats_[CANCELLED_EVENTS]            << ",\t"
+        << global_stats_[EVENTS_PROCESSED]            << ",\t"
+        << global_stats_[EVENTS_COMMITTED]            << std::endl;
+
+    ofs.close();
 }
 
 void TimeWarpStatistics::printStats() {

@@ -72,6 +72,9 @@ const static std::string DEFAULT_CONFIG = R"x({
     // LP Migration valid options are "on" and "off"
     "lp-migration": "off",
 
+    // Name of file to dump stats, "none" to disable
+    "statistics-file" : "none",
+
     "communication" : {
         "send-queue-size" : 10000,
         "recv-queue-size" : 10000,
@@ -284,8 +287,9 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
             make_unique<TimeWarpFileStreamManager>();
 
         // STATISTICS
+        auto stats_file = (*root_)["time-warp"]["statistics-file"].asString();
         std::unique_ptr<TimeWarpStatistics> tw_stats =
-            make_unique<TimeWarpStatistics>(comm_manager);
+            make_unique<TimeWarpStatistics>(comm_manager, stats_file);
 
         if (!invalid_string.empty()) {
             throw std::runtime_error(std::string("Configuration files do not match, \

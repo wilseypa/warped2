@@ -62,8 +62,9 @@ const stats_index<15> NUM_STATISTICS;
 
 class TimeWarpStatistics {
 public:
-    TimeWarpStatistics(std::shared_ptr<TimeWarpCommunicationManager> comm_manager) :
-        comm_manager_(comm_manager) {}
+    TimeWarpStatistics(std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
+        std::string stats_file) :
+        comm_manager_(comm_manager), stats_file_(stats_file) {}
 
     void initialize(unsigned int num_worker_threads, unsigned int num_objects);
 
@@ -90,6 +91,8 @@ public:
 
     void calculateStats();
 
+    void writeToFile(double num_seconds);
+
     void printStats();
 
 private:
@@ -109,6 +112,8 @@ private:
     uint64_t *num_objects_by_node_;
 
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
+
+    std::string stats_file_;
 
     unsigned int num_worker_threads_;
 
