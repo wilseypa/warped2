@@ -126,8 +126,9 @@ std::shared_ptr<Event> LadderQueue::begin() {
     return *bottom_.begin();
 }
 
-void LadderQueue::erase(std::shared_ptr<Event> event) {
+bool LadderQueue::erase(std::shared_ptr<Event> event) {
 
+    bool status = false;
     assert(event != nullptr);
     auto timestamp = event->timestamp();
 
@@ -138,10 +139,11 @@ void LadderQueue::erase(std::shared_ptr<Event> event) {
             if (iter == top_.end()) assert(0);
             if (*iter == event) {
                 (void) top_.erase(iter);
+                status = true;
                 break;
             }
         }
-        return;
+        return status;
     }
 
     /* Step through rungs */
@@ -160,6 +162,7 @@ void LadderQueue::erase(std::shared_ptr<Event> event) {
                 if (iter == rung_bucket->end()) assert(0);
                 if ((*iter) == event) {
                     (void) rung_bucket->erase(iter);
+                    status = true;
                     break;
                 }
             }
@@ -188,12 +191,13 @@ void LadderQueue::erase(std::shared_ptr<Event> event) {
         } else {
             assert(0);
         }
-        return;
+        return status;
     }
 
     /* Check and erase from bottom, if present */
     if (bottom_.empty()) assert(0);
     (void) bottom_.erase(event);
+    return true;
 }
 
 void LadderQueue::insert(std::shared_ptr<Event> event) {

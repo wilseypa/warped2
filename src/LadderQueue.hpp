@@ -26,7 +26,7 @@ class LadderQueue {
 public:
     LadderQueue();
     std::shared_ptr<Event> begin();
-    void erase(std::shared_ptr<Event> event);
+    bool erase(std::shared_ptr<Event> event);
     void insert(std::shared_ptr<Event> event);
 
 private:
