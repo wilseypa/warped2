@@ -75,6 +75,8 @@ const static std::string DEFAULT_CONFIG = R"x({
     // Name of file to dump stats, "none" to disable
     "statistics-file" : "none",
 
+    "config-output-file" : "none",
+
     "communication" : {
         "send-queue-size" : 10000,
         "recv-queue-size" : 10000,
@@ -316,6 +318,13 @@ check the following configurations:\n") + invalid_string);
                       << "GVT Period:                " << gvt_period << " ms" << "\n"
                       << "Max simulation time:       " \
                         << (max_sim_time_ ? std::to_string(max_sim_time_) : "infinity") << std::endl << std::endl;
+
+            auto output_config_file = (*root_)["time-warp"]["config-output-file"].asString();
+            if (output_config_file != "none") {
+                std::ofstream ofs(output_config_file);
+                ofs << *root_ << std::endl;
+                ofs.close();
+            }
         }
 
         return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
