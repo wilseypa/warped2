@@ -6,9 +6,8 @@
  * the state.
  */
 
-#include <map>
 #include <memory>
-#include <mutex>
+#include <deque>
 
 #include "TimeWarpEventDispatcher.hpp"
 #include "ObjectState.hpp"
@@ -40,7 +39,7 @@ public:
 protected:
 
     // Array of vectors (Array of states queues), one for each object
-    std::unique_ptr<std::vector<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>> []>
+    std::unique_ptr<std::deque<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>> []>
         state_queue_;
 
     unsigned int num_local_objects_;

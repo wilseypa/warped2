@@ -10,7 +10,7 @@
 namespace warped {
 
 void TimeWarpStateManager::initialize(unsigned int num_local_objects) {
-   state_queue_ = make_unique<std::vector<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>>[]>
+   state_queue_ = make_unique<std::deque<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>>[]>
         (num_local_objects);
 
     num_local_objects_ = num_local_objects;
@@ -27,14 +27,9 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
     //      first == the event
     //      second == the state
 
-    while (max != state_queue_[local_object_id].rend()) {
-        if (*max->first < *rollback_event) {
-            // Break as soon as we find an event that is less than the straggler
-            break;
-        } else {
-            state_queue_[local_object_id].pop_back();
-            max++;
-        }
+    while ((max != state_queue_[local_object_id].rend()) && (*max->first >= *rollback_event)) {
+        state_queue_[local_object_id].pop_back();
+        max = state_queue_[local_object_id].rbegin();
     }
 
     // We must have a state that we can go back to.
@@ -62,12 +57,13 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
     // Loop through and delete states until min timestamp is less than GVT and next timestamp is
     //  greater than GVT.
     while ((next != state_queue_[local_object_id].end()) && (next->first->timestamp() < gvt)) {
-        min = state_queue_[local_object_id].erase(min);
+        state_queue_[local_object_id].pop_front();
+        min = state_queue_[local_object_id].begin();
         next = std::next(min);
     }
 
     if (gvt == (unsigned int)-1) {
-        state_queue_[local_object_id].erase(min);
+        state_queue_[local_object_id].pop_front();
         return gvt;
     }
 

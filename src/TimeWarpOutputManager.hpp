@@ -1,8 +1,8 @@
 #ifndef OUTPUT_MANAGER_HPP
 #define OUTPUT_MANAGER_HPP
 
-#include <mutex>
 #include <vector>
+#include <deque>
 
 #include "Event.hpp"
 #include "TimeWarpEventDispatcher.hpp"
@@ -40,7 +40,7 @@ protected:
         removeEventsSentAfter(std::shared_ptr<Event> straggler_event, unsigned int local_object_id);
 
     // Array of local output queues and locks
-    std::unique_ptr<std::vector<std::shared_ptr<Event>> []> output_queue_;
+    std::unique_ptr<std::deque<std::shared_ptr<Event>> []> output_queue_;
 
     unsigned int num_local_objects_;
 };

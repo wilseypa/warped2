@@ -6,6 +6,7 @@
  */
 
 #include <vector>
+#include <deque>
 #include <set>
 #include <unordered_map>
 #include <mutex>
@@ -66,7 +67,7 @@ private:
                                             compareEvents>>> input_queue_;
 
     // Queues to hold the processed events for each simulation object
-    std::vector<std::unique_ptr<std::vector<std::shared_ptr<Event>>>> 
+    std::vector<std::unique_ptr<std::deque<std::shared_ptr<Event>>>> 
                                                             processed_queue_;
 
     // Number of event schedulers

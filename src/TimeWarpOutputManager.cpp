@@ -6,7 +6,7 @@
 namespace warped {
 
 void TimeWarpOutputManager::initialize(unsigned int num_local_objects) {
-    output_queue_ = make_unique<std::vector<std::shared_ptr<Event>> []>(num_local_objects);
+    output_queue_ = make_unique<std::deque<std::shared_ptr<Event>> []>(num_local_objects);
     num_local_objects_ = num_local_objects;
 }
 
@@ -25,7 +25,8 @@ unsigned int TimeWarpOutputManager::fossilCollect(unsigned int gvt, unsigned int
 
     auto min = output_queue_[local_object_id].begin();
     while ((min != output_queue_[local_object_id].end()) && (min->get()->timestamp() < gvt)) {
-        min = output_queue_[local_object_id].erase(min);
+        output_queue_[local_object_id].pop_front();
+        min = output_queue_[local_object_id].begin();
     }
 
     if (min != output_queue_[local_object_id].end()) {
@@ -46,18 +47,12 @@ TimeWarpOutputManager::removeEventsSentAfter(std::shared_ptr<Event> straggler_ev
 
     auto max = output_queue_[local_object_id].rbegin(); // Start at the largest event
 
-    while (max != output_queue_[local_object_id].rend()) {
-        if (**max <= *straggler_event) {
-            // Output queues are assumed to be in order, so we are safe to stop when we reach
-            // an event that is less than or equal to the straggler.
-            break;
-        } else {
-            // Events are in order of LARGEST to SMALLEST
-            max++;
-            auto event = output_queue_[local_object_id].back();
-            output_queue_[local_object_id].pop_back();
-            events_to_cancel->push_back(event);
-        }
+    while ((max != output_queue_[local_object_id].rend()) && (**max > *straggler_event)) {
+        auto event = output_queue_[local_object_id].back();
+        output_queue_[local_object_id].pop_back();
+        // Events are returned in order of LARGEST to SMALLEST
+        events_to_cancel->push_back(event);
+        max = output_queue_[local_object_id].rbegin();
     }
 
     return std::move(events_to_cancel);

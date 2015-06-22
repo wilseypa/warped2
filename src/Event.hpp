@@ -65,6 +65,14 @@ public:
         return (*this < other) || (*this == other);
     }
 
+    bool operator>= (const Event &other) {
+        return !(*this < other);
+    }
+
+    bool operator> (const Event &other) {
+        return !(*this <= other);
+    }
+
     // The name of the SimualtionObject that should receive this event.
     virtual const std::string& receiverName() const = 0;
 

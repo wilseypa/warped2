@@ -24,7 +24,7 @@ void TimeWarpEventSet::initialize (unsigned int num_of_objects,
         input_queue_.push_back(
             make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
         processed_queue_.push_back(
-            make_unique<std::vector<std::shared_ptr<Event>>>());
+            make_unique<std::deque<std::shared_ptr<Event>>>());
         scheduled_event_pointer_.push_back(nullptr);
         input_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
     }
@@ -145,19 +145,14 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, std::shared_ptr<Event> str
     // reinserted back into input queue.
     // EQUAL will ensure that a negative message will properly be cancelled out.
 
-    while (!processed_queue_[obj_id]->empty()){
+    auto event_riterator = processed_queue_[obj_id]->rbegin();  // Starting with largest event
 
+    while (event_riterator != processed_queue_[obj_id]->rend() && (**event_riterator >= *straggler_event)){
         auto event = processed_queue_[obj_id]->back(); // Starting from largest event
         assert(event);
-
-        if (*event < *straggler_event) {
-            // Processed events are always in order, so we are safe to break when we reach a lesser
-            // event.
-            break;
-        } else {
-            processed_queue_[obj_id]->pop_back();
-            input_queue_[obj_id]->insert(event);
-        }
+        processed_queue_[obj_id]->pop_back();
+        input_queue_[obj_id]->insert(event);
+        event_riterator = processed_queue_[obj_id]->rbegin();
     }
 }
 
@@ -187,20 +182,12 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 
     auto event_riterator = processed_queue_[obj_id]->rbegin();  // Starting with largest event
 
-    while (event_riterator != processed_queue_[obj_id]->rend()) {
-
+    while ((event_riterator != processed_queue_[obj_id]->rend()) && (**event_riterator > *restored_state_event)) {
         assert(*event_riterator);
         assert(**event_riterator < *straggler_event);
-
-        if (**event_riterator <= *restored_state_event) {
-            // Processed events are always in order so it's safe to stop when we reach an event
-            // that is less than or equal to restored state event.
-            break;
-        } else {
-            // Events are in order of LARGEST to SMALLEST
-            events->push_back(*event_riterator);
-            event_riterator++;
-        }
+        // Events are in order of LARGEST to SMALLEST
+        events->push_back(*event_riterator);
+        event_riterator++;
     }
 
     return (std::move(events));
@@ -295,13 +282,11 @@ unsigned int TimeWarpEventSet::fossilCollect (unsigned int fossil_collect_time, 
     unsigned int count = 0;
 
     auto event_iterator = processed_queue_[obj_id]->begin();
-    while (event_iterator != processed_queue_[obj_id]->end()) {
-        if ((*event_iterator)->timestamp() >= fossil_collect_time) {
-            break;
-        }
-        processed_queue_[obj_id]->erase(event_iterator);
-        count++;
+    while ((event_iterator != processed_queue_[obj_id]->end()) &&
+           ((*event_iterator)->timestamp() < fossil_collect_time)) {
+        processed_queue_[obj_id]->pop_front();
         event_iterator = processed_queue_[obj_id]->begin();
+        count++;
     }
 
     return count;
