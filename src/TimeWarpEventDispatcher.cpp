@@ -478,8 +478,10 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObje
     for (auto& partition : objects) {
         if (partition_id == comm_manager_->getID()) {
             for (auto& ob : partition) {
+                unsigned int object_id = local_object_id_by_name_[ob->name_];
                 auto new_events = ob->createInitialEvents();
-                sendEvents(new_events, local_object_id_by_name_[ob->name_], ob);
+                sendEvents(new_events, object_id, ob);
+                state_manager_->saveState(std::make_shared<InitialEvent>(), object_id, ob);
             }
         }
         partition_id++;

@@ -116,8 +116,22 @@ public:
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<Event>(this), receiver_name_, receive_time_)
 };
 
-/* Compares two events to see if one has a receive time less than to the other
- *  21  */
+// Initial event used with the initial state save of all objects
+class InitialEvent : public Event {
+public:
+    InitialEvent() {
+        sender_name_ = "";
+        send_time_ = 0;
+        counter_ = 0;
+   }
+
+    const std::string& receiverName() const { return receiver_name_; }
+    unsigned int timestamp() const { return 0; }
+
+    std::string receiver_name_ = "";
+};
+
+/* Compares two events to see if one has a receive time less than to the other */
 struct compareEvents {
 public:
     bool operator() (const std::shared_ptr<Event>& first,
