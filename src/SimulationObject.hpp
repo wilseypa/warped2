@@ -7,7 +7,6 @@
 #include <list>
 
 #include "FileStream.hpp"
-#include "utility/memory.hpp"
 #include "RandomNumberGenerator.hpp"
 
 namespace warped {
