@@ -11,6 +11,7 @@ WARPED_INSTALL_HPP_FILES = \
     src/Event.hpp \
     src/ObjectState.hpp \
     src/Partitioner.hpp \
+	src/RandomNumberGenerator.hpp \
     src/serialization.hpp \
     src/Simulation.hpp \
     src/SimulationObject.hpp \
@@ -32,6 +33,7 @@ WARPED_NOINST_HPP_FILES = \
     src/SequentialEventDispatcher.hpp \
     src/STLLTSFQueue.hpp \
     src/LadderQueue.hpp \
+	src/RandomNumberGenerator.hpp \
     src/TimeWarpEventDispatcher.hpp \
     src/utility/strings.hpp \
 	src/TicketLock.hpp \

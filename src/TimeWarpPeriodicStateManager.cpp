@@ -19,9 +19,14 @@ void TimeWarpPeriodicStateManager::saveState(std::shared_ptr<Event> current_even
     // Save if count is zero. State will always be saved on first call
     if (count_[local_object_id] == 0) {
 
-        // Copy state and save it to state vector for object with local_object_id
-        state_queue_[local_object_id].push_back(std::make_pair(current_event,
-            object->getState().clone()));
+        auto object_state = object->getState().clone();
+
+        auto rng_state = make_unique<std::stringstream>();
+        for (auto rng = object->rng_list_.begin(); rng != object->rng_list_.end(); rng++) {
+            (*rng)->getState(*rng_state);
+        }
+
+        state_queue_[local_object_id].emplace_back(current_event, std::move(object_state), std::move(rng_state));
 
         count_[local_object_id] = period_ - 1;
     } else {

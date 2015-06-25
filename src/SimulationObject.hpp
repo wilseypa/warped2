@@ -4,8 +4,11 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <list>
 
 #include "FileStream.hpp"
+#include "utility/memory.hpp"
+#include "RandomNumberGenerator.hpp"
 
 namespace warped {
 
@@ -52,7 +55,18 @@ public:
 
     unsigned int last_fossil_collect_gvt_ = 0;
 
+    template<class RNGType>
+    void registerRNG(std::shared_ptr<RNGType>);
+
+    std::list<std::shared_ptr<RandomNumberGenerator>> rng_list_;
+
 };
+
+template<class RNGType>
+void SimulationObject::registerRNG(std::shared_ptr<RNGType> new_rng) {
+    auto rng = std::make_shared<RNGDerived<RNGType>>(new_rng);
+    rng_list_.push_back(std::move(rng));
+}
 
 } // namespace warped
 

@@ -38,9 +38,26 @@ public:
 
 protected:
 
+    struct SavedState {
+        SavedState(std::shared_ptr<Event> state_event, std::unique_ptr<ObjectState> object_state,
+            std::unique_ptr<std::stringstream> rng_state)
+                : state_event_(state_event), object_state_(std::move(object_state)),
+                rng_state_(std::move(rng_state)) {}
+
+        SavedState& operator=(SavedState&& other) {
+            this->state_event_ = other.state_event_;
+            this->object_state_ = std::move(other.object_state_);
+            this->rng_state_ = std::move(other.rng_state_);
+            return *this;
+        }
+
+        std::shared_ptr<Event> state_event_;
+        std::unique_ptr<ObjectState> object_state_;
+        std::unique_ptr<std::stringstream> rng_state_;
+    };
+
     // Array of vectors (Array of states queues), one for each object
-    std::unique_ptr<std::deque<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>> []>
-        state_queue_;
+    std::unique_ptr<std::deque<SavedState> []> state_queue_;
 
     unsigned int num_local_objects_;
 };

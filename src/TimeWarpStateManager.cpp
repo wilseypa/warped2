@@ -10,9 +10,7 @@
 namespace warped {
 
 void TimeWarpStateManager::initialize(unsigned int num_local_objects) {
-   state_queue_ = make_unique<std::deque<std::pair<std::shared_ptr<Event>, std::unique_ptr<ObjectState>>>[]>
-        (num_local_objects);
-
+    state_queue_ = make_unique<std::deque<SavedState>[]>(num_local_objects);
     num_local_objects_ = num_local_objects;
 }
 
@@ -27,7 +25,7 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
     //      first == the event
     //      second == the state
 
-    while ((max != state_queue_[local_object_id].rend()) && (*max->first >= *rollback_event)) {
+    while ((max != state_queue_[local_object_id].rend()) && (*max->state_event_ >= *rollback_event)) {
         state_queue_[local_object_id].pop_back();
         max = state_queue_[local_object_id].rbegin();
     }
@@ -35,10 +33,13 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
     // We must have a state that we can go back to.
     assert(max != state_queue_[local_object_id].rend());
 
-    object->getState().restoreState(*max->second);
+    object->getState().restoreState(*max->object_state_);
+    for (auto rng = object->rng_list_.rbegin(); rng != object->rng_list_.rend(); rng++) {
+        (*rng)->restoreState(*max->rng_state_);
+    }
 
     // Return the state
-    return max->first;
+    return max->state_event_;
 }
 
 // NOTE: Returns the time at which events should be fossil collected before
@@ -56,7 +57,7 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
     // We need to keep a state that is less than the GVT
     // Loop through and delete states until min timestamp is less than GVT and next timestamp is
     //  greater than GVT.
-    while ((next != state_queue_[local_object_id].end()) && (next->first->timestamp() < gvt)) {
+    while ((next != state_queue_[local_object_id].end()) && (next->state_event_->timestamp() < gvt)) {
         state_queue_[local_object_id].pop_front();
         min = state_queue_[local_object_id].begin();
         next = std::next(min);
@@ -67,7 +68,7 @@ unsigned int TimeWarpStateManager::fossilCollect(unsigned int gvt, unsigned int 
         return gvt;
     }
 
-    return min->first->timestamp();
+    return min->state_event_->timestamp();
 }
 
 // NOTE: Used for debugging
