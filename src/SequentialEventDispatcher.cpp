@@ -41,7 +41,8 @@ void SequentialEventDispatcher::startSimulation(
         objects_by_name[ob->name_] = ob;
     }
 
-    while (current_sim_time_ < max_sim_time_ && !events.empty()) {
+    int count = 0;
+    while ((current_sim_time_ <= max_sim_time_) && !events.empty()) {
         auto event = events.pop();
         current_sim_time_ = event->timestamp();
         auto receiver = objects_by_name[event->receiverName()];
@@ -49,10 +50,12 @@ void SequentialEventDispatcher::startSimulation(
         for (auto& e : new_events) {
             e->sender_name_ = receiver->name_;
         }
+        count++;
         stats_->record(event->receiverName(), current_sim_time_, new_events);
         events.push(std::move(new_events));
     }
 
+    std::cout << "Events committed: " << count << std::endl;
     stats_->writeToFile();
 }
 
