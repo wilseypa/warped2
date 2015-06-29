@@ -66,6 +66,9 @@ void TimeWarpStatistics::calculateStats() {
             case CANCELLED_EVENTS.value:
                 sumReduceLocal(CANCELLED_EVENTS, cancelled_events_by_node_);
                 break;
+            case COAST_FORWARDED_EVENTS.value:
+                sumReduceLocal(COAST_FORWARDED_EVENTS, coast_forward_events_by_node_);
+                break;
             case GVT_CYCLES.value:
                 global_stats_[GVT_CYCLES] = local_stats_[num_worker_threads_][GVT_CYCLES];
                 break;
@@ -94,6 +97,7 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
             << remote_neg_sent_by_node_[i]      << ",\t"
             << primary_rollbacks_by_node_[i]    << ",\t"
             << secondary_rollbacks_by_node_[i]  << ",\t"
+            << coast_forward_events_by_node_[i] << ",\t"
             << cancelled_events_by_node_[i]     << ",\t"
             << processed_events_by_node_[i]     << ",\t"
             << committed_events_by_node_[i]     << std::endl;
@@ -108,6 +112,7 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
         << global_stats_[REMOTE_NEGATIVE_EVENTS_SENT] << ",\t"
         << global_stats_[PRIMARY_ROLLBACKS]           << ",\t"
         << global_stats_[SECONDARY_ROLLBACKS]         << ",\t"
+        << global_stats_[COAST_FORWARDED_EVENTS]      << ",\t"
         << global_stats_[CANCELLED_EVENTS]            << ",\t"
         << global_stats_[EVENTS_PROCESSED]            << ",\t"
         << global_stats_[EVENTS_COMMITTED]            << std::endl;
@@ -128,6 +133,8 @@ void TimeWarpStatistics::printStats() {
 
                   << "\tPrimary rollbacks:        " << primary_rollbacks_by_node_[i]  << "\n"
                   << "\tSecondary rollbacks:      " << secondary_rollbacks_by_node_[i] << "\n\n"
+
+                  << "\tCoast forward events:     " << coast_forward_events_by_node_[i] << "\n\n"
 
                   << "\tCancelled events:         " << cancelled_events_by_node_[i]    << "\n\n"
 
@@ -150,6 +157,8 @@ void TimeWarpStatistics::printStats() {
               << "\tTotal anti-messages sent:  " << global_stats_[TOTAL_NEGATIVE_EVENTS] << "\n"
               << "\tCancelled events:          " << global_stats_[CANCELLED_EVENTS] << "\n\n"
 
+              << "\tCoast forward events:      " << global_stats_[COAST_FORWARDED_EVENTS] << "\n\n"
+
               << "\tTotal events sent:         " << global_stats_[TOTAL_EVENTS_SENT] << "\n"
 
               << "\tTotal events processed:    " << global_stats_[EVENTS_PROCESSED] << "\n"
@@ -164,6 +173,7 @@ void TimeWarpStatistics::printStats() {
     delete [] remote_neg_sent_by_node_;
     delete [] primary_rollbacks_by_node_;
     delete [] secondary_rollbacks_by_node_;
+    delete [] coast_forward_events_by_node_;
     delete [] cancelled_events_by_node_;
     delete [] num_objects_by_node_;
     delete [] processed_events_by_node_;
