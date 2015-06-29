@@ -148,6 +148,7 @@ void TimeWarpEventSet::rollback (unsigned int obj_id, std::shared_ptr<Event> str
     auto event_riterator = processed_queue_[obj_id]->rbegin();  // Starting with largest event
 
     while (event_riterator != processed_queue_[obj_id]->rend() && (**event_riterator >= *straggler_event)){
+
         auto event = processed_queue_[obj_id]->back(); // Starting from largest event
         assert(event);
         processed_queue_[obj_id]->pop_back();
@@ -183,6 +184,7 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
     auto event_riterator = processed_queue_[obj_id]->rbegin();  // Starting with largest event
 
     while ((event_riterator != processed_queue_[obj_id]->rend()) && (**event_riterator > *restored_state_event)) {
+
         assert(*event_riterator);
         assert(**event_riterator < *straggler_event);
         // Events are in order of LARGEST to SMALLEST
@@ -233,6 +235,7 @@ void TimeWarpEventSet::replenishScheduler (unsigned int obj_id) {
     auto num_erased = input_queue_[obj_id]->erase(scheduled_event_pointer_[obj_id]);
     assert(num_erased == 1);
     unused(num_erased);
+
     processed_queue_[obj_id]->push_back(scheduled_event_pointer_[obj_id]);
 
     // Map the object to the next schedule queue (cyclic order)
@@ -261,8 +264,9 @@ void TimeWarpEventSet::cancelEvent (unsigned int obj_id, std::shared_ptr<Event> 
     auto neg_iterator = input_queue_[obj_id]->find(cancel_event);
     assert(neg_iterator != input_queue_[obj_id]->end());
     auto pos_iterator = std::next(neg_iterator);
+    assert(pos_iterator != input_queue_[obj_id]->end());
+
     assert(**pos_iterator == **neg_iterator);
-    assert((*pos_iterator)->event_type_ == EventType::POSITIVE);
     input_queue_[obj_id]->erase(neg_iterator);
     input_queue_[obj_id]->erase(pos_iterator);
 }
@@ -273,7 +277,7 @@ void TimeWarpEventSet::printEvent(std::shared_ptr<Event> event) {
               << "\tReceiver:   " << event->receiverName()                << "\n"
               << "\tSend time:  " << event->send_time_                    << "\n"
               << "\tRecv time:  " << event->timestamp()                   << "\n"
-              << "\tCounter:    " << event->counter_                      << "\n"
+              << "\tGeneratrion:" << event->generation_                   << "\n"
               << "\tType:       " << (unsigned int)event->event_type_     << "\n";
 }
 
@@ -281,8 +285,18 @@ unsigned int TimeWarpEventSet::fossilCollect (unsigned int fossil_collect_time, 
 
     unsigned int count = 0;
 
+    if (processed_queue_[obj_id]->empty()) {
+        return count;
+    }
+
+    if (fossil_collect_time == (unsigned int)-1) {
+        count = processed_queue_[obj_id]->size();
+        processed_queue_[obj_id]->clear();
+        return count;
+    }
+
     auto event_iterator = processed_queue_[obj_id]->begin();
-    while ((event_iterator != processed_queue_[obj_id]->end()) &&
+    while ((event_iterator != std::prev(processed_queue_[obj_id]->end())) &&
            ((*event_iterator)->timestamp() < fossil_collect_time)) {
         processed_queue_[obj_id]->pop_front();
         event_iterator = processed_queue_[obj_id]->begin();
