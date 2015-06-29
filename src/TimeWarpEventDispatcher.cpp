@@ -154,6 +154,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
     thread_id = id;
     unsigned int local_gvt_flag;
+    unsigned int gvt = 0;
 
     while (!termination_manager_->terminationStatus()) {
         // NOTE: local_gvt_flag must be obtained before getting the next event to avoid the
@@ -174,9 +175,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             SimulationObject* current_object = objects_by_name_[event->receiverName()];
 
             // Get the last processed event so we can check for a rollback
-            event_set_->acquireInputQueueLock(current_object_id);
             auto last_processed_event = event_set_->lastProcessedEvent(current_object_id);
-            event_set_->releaseInputQueueLock(current_object_id);
 
             // The rules with event processing
             //      1. Negative events are given priority over positive events if they both exist
@@ -194,6 +193,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // A rollback can occur in two situations:
             //      1. We get an event that is strictly less than the last processed event.
             //      2. We get an event that is equal to the last processed event and is negative.
+
             if (last_processed_event &&
                     ((*event < *last_processed_event) ||
                         ((*event == *last_processed_event) &&
@@ -222,15 +222,14 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // process event and get new events
             auto new_events = current_object->receiveEvent(*event);
 
+            tw_stats_->upCount(EVENTS_PROCESSED, thread_id);
+
             // Save state
             state_manager_->saveState(event, current_object_id, current_object);
 
-            tw_stats_->upCount(EVENTS_PROCESSED, thread_id);
-
             // Send new events
-            sendEvents(new_events, current_object_id, current_object);
+            sendEvents(event, new_events, current_object_id, current_object);
 
-            unsigned int gvt;
             if (comm_manager_->getNumProcesses() > 1) {
                 gvt = mattern_gvt_manager_->getGVT();
             } else {
@@ -284,19 +283,20 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
     sendLocalEvent(msg->event);
 }
 
-void TimeWarpEventDispatcher::sendEvents(std::vector<std::shared_ptr<Event>> new_events,
-    unsigned int sender_object_id, SimulationObject *sender_object) {
+void TimeWarpEventDispatcher::sendEvents(std::shared_ptr<Event> source_event,
+    std::vector<std::shared_ptr<Event>> new_events, unsigned int sender_object_id,
+    SimulationObject *sender_object) {
 
     for (auto& e: new_events) {
 
         // Make sure not to send any events past max time so we can terminate simulation
         if (e->timestamp() <= max_sim_time_) {
             e->sender_name_ = sender_object->name_;
-            e->counter_ = event_counter_by_obj_[sender_object_id]++;
             e->send_time_ = object_simulation_time_[sender_object_id];
+            e->generation_ = sender_object->generation_++;
 
             // Save sent events so that they can be sent as anti-messages in the case of a rollback
-            output_manager_->insertEvent(e, sender_object_id);
+            output_manager_->insertEvent(source_event, e, sender_object_id);
 
             // We will have problems if we are creating events in the past. There must be an issue
             //  with the model being run.
@@ -382,18 +382,21 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
     event_set_->rollback(local_object_id, straggler_event);
     event_set_->releaseInputQueueLock(local_object_id);
 
+    // Restore state by getting most recent saved state before the straggler and coast forwarding.
+    auto restored_state_event = state_manager_->restoreState(straggler_event, local_object_id,
+        current_object);
+    assert(restored_state_event);
+    assert(*restored_state_event < *straggler_event);
+
+    // Restore LVT
+    object_simulation_time_[local_object_id] = restored_state_event->timestamp();
+
     // Send anti-messages
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
     if (events_to_cancel != nullptr) {
         cancelEvents(std::move(events_to_cancel));
     }
 
-    // Restore state by getting most recent saved state before the straggler and coast forwarding.
-    auto restored_state_event = state_manager_->restoreState(straggler_event, local_object_id,
-        current_object);
-    assert(restored_state_event);
-    assert(*restored_state_event < *straggler_event);
-    object_simulation_time_[local_object_id] = restored_state_event->timestamp();
     coastForward(straggler_event, restored_state_event);
 }
 
@@ -403,10 +406,8 @@ void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_even
     SimulationObject* object = objects_by_name_[straggler_event->receiverName()];
     unsigned int current_object_id = local_object_id_by_name_[straggler_event->receiverName()];
 
-    event_set_->acquireInputQueueLock(current_object_id);
-    auto events = event_set_->getEventsForCoastForward(
-                                    current_object_id, straggler_event, restored_state_event);
-    event_set_->releaseInputQueueLock(current_object_id);
+    auto events = event_set_->getEventsForCoastForward(current_object_id, straggler_event,
+        restored_state_event);
 
     // NOTE: events are in order from LARGEST to SMALLEST, so reprocess backwards
     for (auto event_riterator = events->rbegin();
@@ -422,6 +423,8 @@ void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_even
         object->receiveEvent(**event_riterator);
 
         state_manager_->saveState(*event_riterator, current_object_id, object);
+
+        tw_stats_->upCount(COAST_FORWARDED_EVENTS, thread_id);
 
         // NOTE: Do not send any new events
         // NOTE: All coast forward events are already in processed queue, they were never removed.
@@ -440,8 +443,6 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObje
     object_simulation_time_ = make_unique<unsigned int []>(num_local_objects_);
     std::memset(object_simulation_time_.get(), 0, num_local_objects_*sizeof(unsigned int));
 
-    event_counter_by_obj_ = make_unique<std::atomic<unsigned long> []>(num_local_objects_);
-
     unsigned int partition_id = 0;
     for (auto& partition : objects) {
         unsigned int object_id = 0;
@@ -449,7 +450,6 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObje
             if (partition_id == comm_manager_->getID()) {
                 objects_by_name_[ob->name_] = ob;
                 local_object_id_by_name_[ob->name_] = object_id;
-                event_counter_by_obj_[object_id].store(0);
                 object_id++;
             }
             object_node_id_by_name_[ob->name_] = partition_id;
@@ -474,14 +474,15 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObje
     tw_stats_->initialize(num_worker_threads_, num_local_objects_);
 
     // Send local initial events and enqueue remote initial events
+    auto initial_event = std::make_shared<InitialEvent>();
     partition_id = 0;
     for (auto& partition : objects) {
         if (partition_id == comm_manager_->getID()) {
             for (auto& ob : partition) {
                 unsigned int object_id = local_object_id_by_name_[ob->name_];
                 auto new_events = ob->createInitialEvents();
-                sendEvents(new_events, object_id, ob);
-                state_manager_->saveState(std::make_shared<InitialEvent>(), object_id, ob);
+                sendEvents(initial_event, new_events, object_id, ob);
+                state_manager_->saveState(initial_event, object_id, ob);
             }
         }
         partition_id++;
