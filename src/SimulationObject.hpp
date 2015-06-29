@@ -54,6 +54,8 @@ public:
 
     unsigned int last_fossil_collect_gvt_ = 0;
 
+    unsigned long long generation_ = 0;
+
     template<class RNGType>
     void registerRNG(std::shared_ptr<RNGType>);
 

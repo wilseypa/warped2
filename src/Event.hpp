@@ -20,45 +20,22 @@ public:
     Event() = default;
     virtual ~Event() {}
 
-    // Operator can be used in its current form only for handling anti-messages.
-    // Receiver name comparison might needed for general use elsewhere.
     bool operator== (const Event &other) {
         return ((this->timestamp() == other.timestamp())
+                && (this->send_time_ == other.send_time_)
                 && (this->sender_name_ == other.sender_name_)
-                && (this->counter_ == other.counter_)
-                && (this->send_time_ == other.send_time_));
-    }
-
-    bool operator!= (const Event &other) {
-        return !(*this == other);
+                && (this->generation_ == other.generation_));
     }
 
     bool operator< (const Event &other) {
-        bool is_less = false;
-        if (this->timestamp() < other.timestamp()) {
-            is_less = true;
-        } else if (this->timestamp() == other.timestamp()) {
-            if (this->send_time_ < other.send_time_) {
-                is_less = true;
-            } else if (this->send_time_ == other.send_time_) {
-                if (this->sender_name_.compare(other.sender_name_) < 0) {
-                    is_less = true;
-                } else if (this->sender_name_.compare(other.sender_name_) == 0) {
-                    if (this->counter_ < other.counter_) {
-                        is_less = true;
-                    } else {
-                        is_less = false;
-                    }
-                } else {
-                    is_less = false;
-                }
-            } else {
-                is_less = false;
-            }
-        } else {
-            is_less = false;
-        }
-        return is_less;
+        return  (this->timestamp() < other.timestamp()) ? true :
+                ((this->timestamp() != other.timestamp()) ? false :
+                  ((this->send_time_ < other.send_time_) ? true :
+                  ((this->send_time_ != other.send_time_) ? false :
+                    ((this->sender_name_ < other.sender_name_) ? true :
+                    ((this->sender_name_ != other.sender_name_) ? false :
+                      ((this->generation_ < other.generation_) ? true :
+                      ((this->generation_ != other.generation_) ? false : false)))))));
     }
 
     bool operator<= (const Event &other) {
@@ -88,10 +65,11 @@ public:
     // Send time
     unsigned int send_time_ = 0;
 
-    // Event counter
-    unsigned long counter_ = 0;
+    // For differentiating same events which is caused by
+    //  anti-message + regeneration of event.
+    unsigned long long generation_ = 0;
 
-    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_name_, event_type_, counter_, send_time_)
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(sender_name_, event_type_, send_time_, generation_)
 
 };
 
@@ -104,7 +82,7 @@ public:
         sender_name_ = e->sender_name_;
         send_time_ = e->send_time_;
         event_type_ = EventType::NEGATIVE;
-        counter_ = e->counter_;
+        generation_ = e->generation_;
     }
 
     const std::string& receiverName() const {return receiver_name_;}
@@ -122,7 +100,7 @@ public:
     InitialEvent() {
         sender_name_ = "";
         send_time_ = 0;
-        counter_ = 0;
+        generation_ = 0;
    }
 
     const std::string& receiverName() const { return receiver_name_; }
@@ -136,34 +114,16 @@ struct compareEvents {
 public:
     bool operator() (const std::shared_ptr<Event>& first,
                      const std::shared_ptr<Event>& second) const {
-
-        bool is_less = false;
-        if (first->timestamp() < second->timestamp()) {
-            is_less = true;
-        } else if (first->timestamp() == second->timestamp()) {
-            if (first->send_time_ < second->send_time_) {
-                is_less = true;
-            } else if (first->send_time_ == second->send_time_) {
-                if (first->sender_name_.compare(second->sender_name_) < 0) {
-                    is_less = true;
-                } else if (first->sender_name_.compare(second->sender_name_) == 0) {
-                    if (first->counter_ < second->counter_) {
-                        is_less = true;
-                    } else if (first->counter_ == second->counter_) {
-                        is_less = (first->event_type_ < second->event_type_) ? true : false;
-                    } else {
-                        is_less = false;
-                    }
-                } else {
-                    is_less = false;
-                }
-            } else {
-                is_less = false;
-            }
-        } else {
-            is_less = false;
-        }
-        return is_less;
+        return  (first->timestamp() < second->timestamp()) ? true :
+                ((first->timestamp() != second->timestamp()) ? false :
+                  ((first->send_time_ < second->send_time_) ? true :
+                  ((first->send_time_ != second->send_time_) ? false :
+                    ((first->sender_name_ < second->sender_name_) ? true :
+                    ((first->sender_name_ != second->sender_name_) ? false :
+                      ((first->generation_ < second->generation_) ? true :
+                      ((first->generation_ != second->generation_) ? false :
+                        ((first->event_type_ < second->event_type_) ? true :
+                        ((first->event_type_ != second->event_type_) ? false : false)))))))));
     }
 
 };
