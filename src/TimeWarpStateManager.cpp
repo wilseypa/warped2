@@ -34,8 +34,16 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
     assert(max != state_queue_[local_object_id].rend());
 
     object->getState().restoreState(*max->object_state_);
+
+    // Restore state of random number generators
     for (auto rng = object->rng_list_.rbegin(); rng != object->rng_list_.rend(); rng++) {
         (*rng)->restoreState(*max->rng_state_);
+    }
+
+    // Need to resave state of random number generator
+    max->rng_state_ = std::make_shared<std::stringstream>();
+    for (auto rng = object->rng_list_.begin(); rng != object->rng_list_.end(); rng++) {
+        (*rng)->getState(*max->rng_state_);
     }
 
     // Return the state

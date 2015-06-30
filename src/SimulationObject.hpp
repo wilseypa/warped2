@@ -66,7 +66,7 @@ public:
 template<class RNGType>
 void SimulationObject::registerRNG(std::shared_ptr<RNGType> new_rng) {
     auto rng = std::make_shared<RNGDerived<RNGType>>(new_rng);
-    rng_list_.push_back(std::move(rng));
+    rng_list_.push_back(rng);
 }
 
 } // namespace warped
