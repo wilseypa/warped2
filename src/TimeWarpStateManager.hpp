@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <deque>
+#include <list>
 
 #include "TimeWarpEventDispatcher.hpp"
 #include "ObjectState.hpp"
@@ -40,20 +41,13 @@ protected:
 
     struct SavedState {
         SavedState(std::shared_ptr<Event> state_event, std::unique_ptr<ObjectState> object_state,
-            std::shared_ptr<std::stringstream> rng_state)
+            std::list<std::shared_ptr<std::stringstream> > rng_state)
                 : state_event_(state_event), object_state_(std::move(object_state)),
                 rng_state_(rng_state) {}
 
-        SavedState& operator=(SavedState&& other) {
-            this->state_event_ = other.state_event_;
-            this->object_state_ = std::move(other.object_state_);
-            this->rng_state_ = other.rng_state_;
-            return *this;
-        }
-
         std::shared_ptr<Event> state_event_;
         std::unique_ptr<ObjectState> object_state_;
-        std::shared_ptr<std::stringstream> rng_state_;
+        std::list<std::shared_ptr<std::stringstream> > rng_state_;
     };
 
     // Array of vectors (Array of states queues), one for each object

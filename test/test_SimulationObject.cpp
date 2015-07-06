@@ -36,6 +36,6 @@ TEST_CASE("SimualtionObjects support event methods", "[SimulationObject]") {
     }
 
     SECTION("SimualtionObjects support default createInitialEvents") {
-        REQUIRE(ob.createInitialEvents().size() == 0);
+        REQUIRE(ob.initializeObject().size() == 0);
     }
 }

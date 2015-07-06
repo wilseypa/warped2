@@ -37,13 +37,16 @@ std::shared_ptr<Event> TimeWarpStateManager::restoreState(std::shared_ptr<Event>
 
     // Restore state of random number generators
     for (auto rng = object->rng_list_.rbegin(); rng != object->rng_list_.rend(); rng++) {
-        (*rng)->restoreState(*max->rng_state_);
+        auto ss = max->rng_state_.back();
+        max->rng_state_.pop_back();
+        (*rng)->restoreState(*ss);
     }
 
     // Need to resave state of random number generator
-    max->rng_state_ = std::make_shared<std::stringstream>();
     for (auto rng = object->rng_list_.begin(); rng != object->rng_list_.end(); rng++) {
-        (*rng)->getState(*max->rng_state_);
+        auto ss = std::make_shared<std::stringstream>();
+        (*rng)->getState(*ss);
+        max->rng_state_.push_back(ss);
     }
 
     // Return the state

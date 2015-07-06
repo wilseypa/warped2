@@ -10,86 +10,123 @@
 TEST_CASE("Save and restore random number generator states") {
     std::list<std::shared_ptr<warped::RandomNumberGenerator>> rng_list;
 
-    auto model_rng = std::make_shared<std::default_random_engine>();
-    auto warped_rng = std::make_shared<warped::RNGDerived<std::default_random_engine>>(model_rng);
+    auto model_rng1 = std::make_shared<std::minstd_rand0>();
+    auto warped_rng1 = std::make_shared<warped::RNGDerived<std::minstd_rand0>>(model_rng1);
+    auto model_rng2 = std::make_shared<std::mt19937>();
+    auto warped_rng2 = std::make_shared<warped::RNGDerived<std::mt19937>>(model_rng2);
 
-    rng_list.push_back(warped_rng);
+    rng_list.push_back(warped_rng1);
+    rng_list.push_back(warped_rng2);
+
+    std::list<std::shared_ptr<std::stringstream>> saved_list;
 
     SECTION("With uniform distribution") {
-        auto num1 = (*model_rng)();
-        auto num2 = (*model_rng)();
-
-        auto ss1 = std::make_shared<std::stringstream>();
-
-        for (auto rng = rng_list.begin(); rng != rng_list.end(); rng++) {
-            (*rng)->getState(*ss1);
-        }
-
-        auto num3 = (*model_rng)();
-        auto num4 = (*model_rng)();
-
-        for (auto rng = rng_list.rbegin(); rng != rng_list.rend(); rng++) {
-            (*rng)->restoreState(*ss1);
-        }
-
-        ss1 = std::make_shared<std::stringstream>();
+        auto num1_1 = (*model_rng1)();
+        auto num2_1 = (*model_rng1)();
+        auto num1_2 = (*model_rng2)();
+        auto num2_2 = (*model_rng2)();
 
         for (auto rng = rng_list.begin(); rng != rng_list.end(); rng++) {
-            (*rng)->getState(*ss1);
+            auto ss = std::make_shared<std::stringstream>();
+            (*rng)->getState(*ss);
+            saved_list.push_back(ss);
         }
 
-        CHECK((*model_rng)() == num3);
-        CHECK((*model_rng)() == num4);
-
-        (*model_rng)();
-        (*model_rng)();
+        auto num3_1 = (*model_rng1)();
+        auto num4_1 = (*model_rng1)();
+        auto num3_2 = (*model_rng2)();
+        auto num4_2 = (*model_rng2)();
 
         for (auto rng = rng_list.rbegin(); rng != rng_list.rend(); rng++) {
-            (*rng)->restoreState(*ss1);
+            auto ss = saved_list.back();
+            saved_list.pop_back();
+
+            (*rng)->restoreState(*ss);
         }
 
-        CHECK((*model_rng)() == num3);
-        CHECK((*model_rng)() == num4);
+        for (auto rng = rng_list.begin(); rng != rng_list.end(); rng++) {
+            auto ss = std::make_shared<std::stringstream>();
+            (*rng)->getState(*ss);
+            saved_list.push_back(ss);
+        }
+
+        CHECK((*model_rng1)() == num3_1);
+        CHECK((*model_rng1)() == num4_1);
+        CHECK((*model_rng2)() == num3_2);
+        CHECK((*model_rng2)() == num4_2);
+
+        (*model_rng1)();
+        (*model_rng1)();
+        (*model_rng2)();
+        (*model_rng2)();
+
+        for (auto rng = rng_list.rbegin(); rng != rng_list.rend(); rng++) {
+            auto ss = saved_list.back();
+            saved_list.pop_back();
+
+            (*rng)->restoreState(*ss);
+        }
+
+        CHECK((*model_rng1)() == num3_1);
+        CHECK((*model_rng1)() == num4_1);
+        CHECK((*model_rng2)() == num3_2);
+        CHECK((*model_rng2)() == num4_2);
     }
 
     SECTION("With other distribution") {
         unsigned int average = 20;
         std::exponential_distribution<double> dist(1.0/20);
 
-        auto num1 = (unsigned int)dist(*model_rng);
-        auto num2 = (unsigned int)dist(*model_rng);
-
-        auto ss1 = std::make_shared<std::stringstream>();
-
-        for (auto rng = rng_list.begin(); rng != rng_list.end(); rng++) {
-            (*rng)->getState(*ss1);
-        }
-
-        auto num3 = (unsigned int)dist(*model_rng);
-        auto num4 = (unsigned int)dist(*model_rng);
-
-        for (auto rng = rng_list.rbegin(); rng != rng_list.rend(); rng++) {
-            (*rng)->restoreState(*ss1);
-        }
-
-        ss1 = std::make_shared<std::stringstream>();
+        auto num1_1 = (unsigned int)dist(*model_rng1);
+        auto num2_1 = (unsigned int)dist(*model_rng1);
+        auto num1_2 = (unsigned int)dist(*model_rng2);
+        auto num2_2 = (unsigned int)dist(*model_rng2);
 
         for (auto rng = rng_list.begin(); rng != rng_list.end(); rng++) {
-            (*rng)->getState(*ss1);
+            auto ss = std::make_shared<std::stringstream>();
+            (*rng)->getState(*ss);
+            saved_list.push_back(ss);
         }
 
-        CHECK((unsigned int)dist(*model_rng) == num3);
-        CHECK((unsigned int)dist(*model_rng) == num4);
-
-        dist(*model_rng);
-        dist(*model_rng);
+        auto num3_1 = (unsigned int)dist(*model_rng1);
+        auto num4_1 = (unsigned int)dist(*model_rng1);
+        auto num3_2 = (unsigned int)dist(*model_rng2);
+        auto num4_2 = (unsigned int)dist(*model_rng2);
 
         for (auto rng = rng_list.rbegin(); rng != rng_list.rend(); rng++) {
-            (*rng)->restoreState(*ss1);
+            auto ss = saved_list.back();
+            saved_list.pop_back();
+
+            (*rng)->restoreState(*ss);
         }
 
-        CHECK((unsigned int)dist(*model_rng) == num3);
-        CHECK((unsigned int)dist(*model_rng) == num4);
+        for (auto rng = rng_list.begin(); rng != rng_list.end(); rng++) {
+            auto ss = std::make_shared<std::stringstream>();
+            (*rng)->getState(*ss);
+            saved_list.push_back(ss);
+        }
+
+        CHECK((unsigned int)dist(*model_rng1) == num3_1);
+        CHECK((unsigned int)dist(*model_rng1) == num4_1);
+        CHECK((unsigned int)dist(*model_rng2) == num3_2);
+        CHECK((unsigned int)dist(*model_rng2) == num4_2);
+
+        dist(*model_rng1);
+        dist(*model_rng1);
+        dist(*model_rng2);
+        dist(*model_rng2);
+
+        for (auto rng = rng_list.rbegin(); rng != rng_list.rend(); rng++) {
+            auto ss = saved_list.back();
+            saved_list.pop_back();
+
+            (*rng)->restoreState(*ss);
+        }
+
+        CHECK((unsigned int)dist(*model_rng1) == num3_1);
+        CHECK((unsigned int)dist(*model_rng1) == num4_1);
+        CHECK((unsigned int)dist(*model_rng2) == num3_2);
+        CHECK((unsigned int)dist(*model_rng2) == num4_2);
     }
 }
 

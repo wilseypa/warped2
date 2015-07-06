@@ -21,12 +21,14 @@ void TimeWarpPeriodicStateManager::saveState(std::shared_ptr<Event> current_even
 
         auto object_state = object->getState().clone();
 
-        auto rng_state = std::make_shared<std::stringstream>();
+        std::list<std::shared_ptr<std::stringstream> > saved_rng_list;
         for (auto rng = object->rng_list_.begin(); rng != object->rng_list_.end(); rng++) {
-            (*rng)->getState(*rng_state);
+            auto ss = std::make_shared<std::stringstream>();
+            (*rng)->getState(*ss);
+            saved_rng_list.push_back(ss);
         }
 
-        state_queue_[local_object_id].emplace_back(current_event, std::move(object_state), rng_state);
+        state_queue_[local_object_id].emplace_back(current_event, std::move(object_state), saved_rng_list);
 
         count_[local_object_id] = period_ - 1;
     } else {
