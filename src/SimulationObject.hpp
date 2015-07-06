@@ -41,10 +41,12 @@ public:
     // current simulation time.
     virtual std::vector<std::shared_ptr<Event>> receiveEvent(const Event& event) = 0;
 
-    // Create events before the simulation starts.
+    // Initialize object before the simulation starts.
     //
     // This is an optional method that is called before the simulation begins.
-    virtual std::vector<std::shared_ptr<Event>> createInitialEvents();
+    // If the object needs any random number generators, they must be registered here. The object
+    // may also create new events and return them as a vector.
+    virtual std::vector<std::shared_ptr<Event>> initializeObject();
 
     FileStream& getInputFileStream(const std::string& filename);
 

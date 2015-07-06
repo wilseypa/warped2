@@ -32,7 +32,7 @@ void SequentialEventDispatcher::startSimulation(
     current_sim_time_ = 0;
 
     for (auto& ob : objects[0]) {
-        auto new_events = ob->createInitialEvents();
+        auto new_events = ob->initializeObject();
         for (auto& e : new_events) {
             e->sender_name_ = ob->name_;
         }

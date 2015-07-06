@@ -12,7 +12,7 @@ namespace warped {
 
 SimulationObject::SimulationObject(const std::string& name) : name_(name) {}
 
-std::vector<std::shared_ptr<Event>> SimulationObject::createInitialEvents()  { return {}; }
+std::vector<std::shared_ptr<Event>> SimulationObject::initializeObject()  { return {}; }
 
 FileStream& SimulationObject::getInputFileStream(const std::string& filename) {
     return Simulation::getFileStream(this, filename, std::ios_base::in, nullptr);
