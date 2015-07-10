@@ -35,10 +35,11 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
     auto comm_manager = config_.makeCommunicationManager();
 
     unsigned int num_partitions = comm_manager->initialize();
+    auto partitioned_objects = config_.makePartitioner()->partition(objects, num_partitions);
+    comm_manager->initializeObjectMap(partitioned_objects);
 
     event_dispatcher_ = config_.makeDispatcher(comm_manager);
-    auto partitioned_objects = config_.makePartitioner()->partition(objects, num_partitions);
-    event_dispatcher_->startSimulation(partitioned_objects);
+    event_dispatcher_->startSimulation({partitioned_objects[comm_manager->getID()]});
 
     comm_manager->finalize();
 }
@@ -49,11 +50,12 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects,
     auto comm_manager = config_.makeCommunicationManager();
 
     unsigned int num_partitions = comm_manager->initialize();
-
-    event_dispatcher_ = config_.makeDispatcher(comm_manager);
     auto partitioned_objects =
         config_.makePartitioner(std::move(partitioner))->partition(objects, num_partitions);
-    event_dispatcher_->startSimulation(partitioned_objects);
+    comm_manager->initializeObjectMap(partitioned_objects);
+
+    event_dispatcher_ = config_.makeDispatcher(comm_manager);
+    event_dispatcher_->startSimulation({partitioned_objects[comm_manager->getID()]});
 
     comm_manager->finalize();
 }

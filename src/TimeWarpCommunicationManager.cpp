@@ -22,5 +22,19 @@ void TimeWarpCommunicationManager::deliverReceivedMessages() {
     }
 }
 
+void TimeWarpCommunicationManager::initializeObjectMap(const std::vector<std::vector<SimulationObject*>>& objects) {
+    unsigned int partition_id = 0;
+    for (auto& partition : objects) {
+        for (auto& ob : partition) {
+            node_id_by_object_name_[ob->name_] = partition_id;
+        }
+        partition_id++;
+    }
+}
+
+unsigned int TimeWarpCommunicationManager::getNodeID(std::string object_name) {
+    return node_id_by_object_name_[object_name];
+}
+
 } // namespace warped
 

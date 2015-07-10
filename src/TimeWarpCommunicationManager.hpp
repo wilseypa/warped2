@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <cstdint> // for uint8_t
 
+#include "SimulationObject.hpp"
 #include "TimeWarpKernelMessage.hpp"
 #include "utility/memory.hpp"
 
@@ -53,10 +54,16 @@ public:
     void addRecvMessageHandler(MessageType msg_type,
         std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> msg_handler);
 
+    void initializeObjectMap(const std::vector<std::vector<SimulationObject*>>& objects);
+
+    unsigned int getNodeID(std::string object_name);
+
 private:
     // Map to lookup message handler given a message type
     std::unordered_map<int, std::function<void(std::unique_ptr<TimeWarpKernelMessage>)>>
         msg_handler_by_msg_type_;
+
+    std::unordered_map<std::string, unsigned int> node_id_by_object_name_;
 
 };
 
