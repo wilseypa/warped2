@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <iostream>
 #include <sstream>
+#include <fstream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -30,7 +31,10 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
         throw std::runtime_error(std::string("Could not open statistics file ") + stats_file_);
     }
 
-    std::vector<std::vector<SimulationObject*>> partitions(num_partitions);
+    std::vector<std::vector<SimulationObject*>> objects_by_partition(num_partitions);
+    std::vector<std::vector<idx_t>>             xadj_by_partition(num_partitions);
+    std::vector<std::vector<idx_t>>             adjncy_by_partition(num_partitions);
+    std::vector<std::vector<idx_t>>             adjwgt_by_partition(num_partitions);
 
     // A map of METIS node number -> SimulationObject name that is used to
     // translate the metis partition info to warped partitions.
@@ -105,20 +109,76 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
     // Add the metis output to partitons, removing partitioned names from the
     // object map. Any left over objects don't have profiling data associated,
     // and will be partitioned uniformly.
+
+    for (unsigned int i = 0; i < num_partitions; i++) {
+        xadj_by_partition[i].push_back(0);
+    }
+
     for (int i = 0; i < nvtxs; i++) {
         auto name = object_names[i];
-        partitions[part[i]].push_back(objects_by_name.at(name));
+        objects_by_partition[part[i]].push_back(objects_by_name.at(name));
+
+        for (int j = xadj[i]; j < xadj[i+1]; j++) {
+            if (part[i] == part[adjncy[j]]) {
+                adjncy_by_partition[part[i]].push_back(adjncy[j]);
+                adjwgt_by_partition[part[i]].push_back(adjwgt[j]);
+            }
+        }
+        xadj_by_partition[part[i]].push_back(adjncy_by_partition[part[i]].size());
+
         objects_by_name.erase(name);
     }
 
     // Add any objects that metis didn't partition
     unsigned int j = 0;
     for (auto& it : objects_by_name) {
-        partitions[j % num_partitions].push_back(it.second);
+        objects_by_partition[j % num_partitions].push_back(it.second);
         j++;
     }
 
-    return partitions;
+    for (unsigned int i = 0; i < num_partitions; i++) {
+        savePartition(i, objects_by_partition[i], xadj_by_partition[i], adjncy_by_partition[i],
+                      adjwgt_by_partition[i]);
+    }
+
+    return objects_by_partition;
+}
+
+void ProfileGuidedPartitioner::savePartition(unsigned int part_id, const std::vector<SimulationObject*>& objects,
+const std::vector<idx_t>& xadj, const std::vector<idx_t>& adjncy, const std::vector<idx_t>& adjwgt) const {
+
+    auto num_vertices = 0;
+    for (unsigned int k = 0; k < objects.size(); k++) {
+        if ((xadj[k+1] - xadj[k]) > 0) num_vertices++;
+    }
+
+    auto num_edges = adjncy.size() / 2;
+
+    std::ofstream ofs("partition"+std::to_string(part_id)+".out", std::ios::trunc | std::ios::out);
+
+    ofs << "%% The first line contains the following information:\n"
+        << "%% <# of vertices> <# of edges> <file format>\n"
+        <<  num_vertices << ' ' << num_edges << ' ' << "001 " << '\n'
+        << "%% Lines that start with %: are comments that are ignored by Metis,\n"
+        << "%% but list the WARPED object name for the Metis node described by \n"
+        << "%% the following line.\n"
+        << "%% The remaining lines each describe a vertex and have the following format:\n"
+        << "%% <<neighbor> <event count>> ...";
+
+    unsigned int i = 0;
+    for (auto& ob : objects) {
+
+        if ((xadj[i+1] - xadj[i]) == 0) return;
+
+        ofs << "\n%: " << ob->name_ << '\n';
+        for (idx_t j = xadj[i]; j < xadj[i+1]; j++) {
+            ofs << adjncy[j] << ' ' << adjwgt[j] << ' ';
+        }
+
+        ++i;
+    }
+
+    ofs.close();
 }
 
 } // namespace warped
