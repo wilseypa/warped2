@@ -26,7 +26,8 @@ protected:
                        const std::vector<SimulationObject*>& objects,
                        const std::vector<idx_t>& xadj,
                        const std::vector<idx_t>& adjncy,
-                       const std::vector<idx_t>& adjwgt) const;
+                       const std::vector<idx_t>& adjwgt,
+                       const std::vector<unsigned int>& numbering) const;
 
 private:
     std::string stats_file_;

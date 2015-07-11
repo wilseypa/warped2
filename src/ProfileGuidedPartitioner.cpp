@@ -35,6 +35,7 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
     std::vector<std::vector<idx_t>>             xadj_by_partition(num_partitions);
     std::vector<std::vector<idx_t>>             adjncy_by_partition(num_partitions);
     std::vector<std::vector<idx_t>>             adjwgt_by_partition(num_partitions);
+    std::vector<std::vector<unsigned int>>      numbering_by_partition(num_partitions);
 
     // A map of METIS node number -> SimulationObject name that is used to
     // translate the metis partition info to warped partitions.
@@ -66,6 +67,7 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
         if (i == 0) {
             int nedges, format;
             iss >> nvtxs >> nedges >> format;
+
             if (format != 1) {
                 throw std::runtime_error("Graph format must be 001.");
             }
@@ -84,6 +86,11 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
         i++;
     }
     input.close();
+
+    std::cout << "Num objects:  " << objects.size() << std::endl;
+    std::cout << "xadj size:    " << xadj.size() << std::endl;
+    std::cout << "adjncy size:  " << adjncy.size() << std::endl;
+    std::cout << "adjwgt size:  " << adjwgt.size() << std::endl;
 
     METIS_PartGraphKway(&nvtxs,     // nvtxs
                         &ncon,      // ncon
@@ -125,6 +132,7 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
             }
         }
         xadj_by_partition[part[i]].push_back(adjncy_by_partition[part[i]].size());
+        numbering_by_partition[part[i]].push_back((unsigned int)i);
 
         objects_by_name.erase(name);
     }
@@ -138,14 +146,15 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
 
     for (unsigned int i = 0; i < num_partitions; i++) {
         savePartition(i, objects_by_partition[i], xadj_by_partition[i], adjncy_by_partition[i],
-                      adjwgt_by_partition[i]);
+                      adjwgt_by_partition[i], numbering_by_partition[i]);
     }
 
     return objects_by_partition;
 }
 
 void ProfileGuidedPartitioner::savePartition(unsigned int part_id, const std::vector<SimulationObject*>& objects,
-const std::vector<idx_t>& xadj, const std::vector<idx_t>& adjncy, const std::vector<idx_t>& adjwgt) const {
+const std::vector<idx_t>& xadj, const std::vector<idx_t>& adjncy, const std::vector<idx_t>& adjwgt,
+const std::vector<unsigned int>& numbering) const {
 
     auto num_vertices = 0;
     for (unsigned int k = 0; k < objects.size(); k++) {
@@ -153,6 +162,12 @@ const std::vector<idx_t>& xadj, const std::vector<idx_t>& adjncy, const std::vec
     }
 
     auto num_edges = adjncy.size() / 2;
+
+    unsigned int i = 1;
+    std::map<unsigned int, unsigned int>    new_number;
+    for (auto& n : numbering) {
+        new_number[n] = i++;
+    }
 
     std::ofstream ofs("partition"+std::to_string(part_id)+".out", std::ios::trunc | std::ios::out);
 
@@ -165,18 +180,19 @@ const std::vector<idx_t>& xadj, const std::vector<idx_t>& adjncy, const std::vec
         << "%% The remaining lines each describe a vertex and have the following format:\n"
         << "%% <<neighbor> <event count>> ...";
 
-    unsigned int i = 0;
+    i = 0;
     for (auto& ob : objects) {
 
         if ((xadj[i+1] - xadj[i]) == 0) return;
 
         ofs << "\n%: " << ob->name_ << '\n';
         for (idx_t j = xadj[i]; j < xadj[i+1]; j++) {
-            ofs << adjncy[j] << ' ' << adjwgt[j] << ' ';
+            ofs << new_number[adjncy[j]] << ' ' << adjwgt[j] << ' ';
         }
 
         ++i;
     }
+    ofs << '\n';
 
     ofs.close();
 }
