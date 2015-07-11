@@ -38,8 +38,13 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
     auto partitioned_objects = config_.makePartitioner()->partition(objects, num_partitions);
     comm_manager->initializeObjectMap(partitioned_objects);
 
+    unsigned int num_schedulers = num_partitions;
+    auto local_partitioner = config_.makeLocalPartitioner(comm_manager->getID(), num_schedulers);
+    auto local_partitions =
+        local_partitioner->partition(partitioned_objects[comm_manager->getID()], num_schedulers);
+
     event_dispatcher_ = config_.makeDispatcher(comm_manager);
-    event_dispatcher_->startSimulation({partitioned_objects[comm_manager->getID()]});
+    event_dispatcher_->startSimulation(local_partitions);
 
     comm_manager->finalize();
 }
@@ -54,8 +59,13 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects,
         config_.makePartitioner(std::move(partitioner))->partition(objects, num_partitions);
     comm_manager->initializeObjectMap(partitioned_objects);
 
+    unsigned int num_schedulers = num_partitions;
+    auto local_partitioner = config_.makeLocalPartitioner(comm_manager->getID(), num_schedulers);
+    auto local_partitions =
+        local_partitioner->partition(partitioned_objects[comm_manager->getID()], num_schedulers);
+
     event_dispatcher_ = config_.makeDispatcher(comm_manager);
-    event_dispatcher_->startSimulation({partitioned_objects[comm_manager->getID()]});
+    event_dispatcher_->startSimulation(local_partitions);
 
     comm_manager->finalize();
 }

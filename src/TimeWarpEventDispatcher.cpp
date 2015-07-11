@@ -44,7 +44,6 @@ thread_local unsigned int TimeWarpEventDispatcher::thread_id;
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_worker_threads,
-    unsigned int num_schedulers,
     bool is_lp_migration_on,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<TimeWarpEventSet> event_set,
@@ -56,7 +55,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpTerminationManager> termination_manager,
     std::unique_ptr<TimeWarpStatistics> tw_stats) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
-        num_schedulers_(num_schedulers), is_lp_migration_on_(is_lp_migration_on), 
+        is_lp_migration_on_(is_lp_migration_on), 
         comm_manager_(comm_manager), event_set_(std::move(event_set)), 
         mattern_gvt_manager_(std::move(mattern_gvt_manager)),
         local_gvt_manager_(std::move(local_gvt_manager)), state_manager_(std::move(state_manager)),
@@ -435,8 +434,7 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObje
         num_local_objects_ += p.size();
     }
 
-    event_set_->initialize(num_local_objects_, num_schedulers_, 
-                                    is_lp_migration_on_, num_worker_threads_);
+    event_set_->initialize(objects, num_local_objects_, is_lp_migration_on_, num_worker_threads_);
 
     object_simulation_time_ = make_unique<unsigned int []>(num_local_objects_);
     std::memset(object_simulation_time_.get(), 0, num_local_objects_*sizeof(unsigned int));

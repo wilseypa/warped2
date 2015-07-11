@@ -7,39 +7,40 @@
 
 namespace warped {
 
-void TimeWarpEventSet::initialize (unsigned int num_of_objects, 
-                                   unsigned int num_of_schedulers,
+void TimeWarpEventSet::initialize (const std::vector<std::vector<SimulationObject*>>& objects,
+                                   unsigned int num_of_objects,
                                    bool is_lp_migration_on,
                                    unsigned int num_of_worker_threads) {
 
     num_of_objects_     = num_of_objects;
-    num_of_schedulers_  = num_of_schedulers;
+    num_of_schedulers_  = objects.size();
     is_lp_migration_on_ = is_lp_migration_on;
 
     /* Create the input and processed queues and their locks.
        Also create the input queue-scheduler map and scheduled event pointer. */
     input_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
+    schedule_queue_lock_ = make_unique<TicketLock []>(num_of_schedulers_);
 
-    for (unsigned int obj_id = 0; obj_id < num_of_objects; obj_id++) {
-        input_queue_.push_back(
-            make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
-        processed_queue_.push_back(
-            make_unique<std::deque<std::shared_ptr<Event>>>());
-        scheduled_event_pointer_.push_back(nullptr);
-        input_queue_scheduler_map_.push_back(obj_id % num_of_schedulers);
+    unsigned int scheduler_id = 0;
+    for (auto& scheduler_partition : objects) {
+        for (auto& ob : scheduler_partition) {
+            unused(ob);
+            input_queue_.push_back(make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
+            processed_queue_.push_back(make_unique<std::deque<std::shared_ptr<Event>>>());
+            scheduled_event_pointer_.push_back(nullptr);
+            input_queue_scheduler_map_.push_back(scheduler_id);
+        }
+        scheduler_id++;
     }
 
-    /* Create the schedule queues and their locks. */
-    for (unsigned int scheduler_id = 0; scheduler_id < num_of_schedulers; scheduler_id++) {
-        schedule_queue_.push_back(
-            make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
+    /* Create the schedule queues */
+    for (unsigned int scheduler_id = 0; scheduler_id < num_of_schedulers_; scheduler_id++) {
+        schedule_queue_.push_back(make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
     }
-    schedule_queue_lock_ = make_unique<TicketLock []>(num_of_schedulers);
 
     /* Map worker threads to schedule queues. */
-    for (unsigned int thread_id = 0; 
-            thread_id < num_of_worker_threads; thread_id++) {
-        worker_thread_scheduler_map_.push_back(thread_id % num_of_schedulers);
+    for (unsigned int thread_id = 0; thread_id < num_of_worker_threads; thread_id++) {
+        worker_thread_scheduler_map_.push_back(thread_id % num_of_schedulers_);
     }
 }
 

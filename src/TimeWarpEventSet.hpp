@@ -13,6 +13,7 @@
 #include <memory>
 #include <atomic>
 
+#include "SimulationObject.hpp"
 #include "Event.hpp"
 #include "utility/memory.hpp"
 #include "TicketLock.hpp"
@@ -23,8 +24,8 @@ class TimeWarpEventSet {
 public:
     TimeWarpEventSet() = default;
 
-    void initialize (unsigned int num_of_objects, 
-                     unsigned int num_of_schedulers,
+    void initialize (const std::vector<std::vector<SimulationObject*>>& objects,
+                     unsigned int num_of_objects,
                      bool is_lp_migration_on,
                      unsigned int num_of_worker_threads);
 

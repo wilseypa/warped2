@@ -40,6 +40,9 @@ public:
     // partitioner.
     std::unique_ptr<Partitioner> makePartitioner(std::unique_ptr<Partitioner> user_partitioner);
 
+    std::unique_ptr<Partitioner> makeLocalPartitioner(unsigned int node_id,
+        unsigned int& num_schedulers);
+
     // Create a communcation manager based on configurations
     std::shared_ptr<TimeWarpCommunicationManager> makeCommunicationManager();
 
