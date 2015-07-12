@@ -46,13 +46,6 @@ namespace warped {
 
 enum class MatternColor { WHITE, RED };
 
-struct MatternNodeState {
-    static MatternColor color_;
-    static int white_msg_counter_;
-    static unsigned int min_red_msg_timestamp_;
-    static std::mutex lock_;
-};
-
 class TimeWarpMatternGVTManager {
 public:
     TimeWarpMatternGVTManager(std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
@@ -65,8 +58,9 @@ public:
     // Start a new GVT calculation
     bool startGVT();
 
-    // Reset the state so a new GVT calculation can be done
-    void resetState();
+    void receiveUpdate(MatternColor color);
+
+    MatternColor sendUpdate(unsigned int timestamp);
 
     // Send a Mattern token to the next node
     void sendMatternGVTToken(unsigned int local_minimum);
@@ -90,16 +84,27 @@ public:
     bool gvtUpdated();
 
 protected:
-    unsigned int infinityVT();
-
     void sendGVTUpdate(unsigned int gvt);
+
+    void toggleColor();
+
+    void toggleInitialColor();
+
+    int& initialColorCount();
 
 private:
     // The current GVT
     unsigned int gVT_ = 0;
 
-    // Current round token is on
-    unsigned int token_iteration_ = 0;
+    // State variables that must be protected by a lock
+    struct MatternNodeState {
+        MatternColor color_ = MatternColor::WHITE;
+        MatternColor initial_color_ = MatternColor::WHITE;
+        int white_msg_count_ = 0;
+        int red_msg_count_ = 0;
+        unsigned int min_timestamp_ = (unsigned int)-1;
+        std::mutex lock_;
+    } state_;
 
     // Accumulated clock minimum
     unsigned int global_min_clock_;

@@ -80,15 +80,12 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     // Master thread main loop
     while (!termination_manager_->terminationStatus()) {
 
-        comm_manager_->deliverReceivedMessages();
         comm_manager_->sendMessages();
+        comm_manager_->deliverReceivedMessages();
 
-        // We can start a "local GVT calculation" two different ways
-        //      1. We are the master node and it is time to start a new "global GVT calculation"
-        //      2. We have received a Mattern token and a local minimum time is needed so the
-        //          token can be forwarded to next node.
-        if (mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT()) {
-            local_gvt_manager_->startGVT();
+        // Check to see if we should start/continue the termination process
+        if (termination_manager_->nodePassive()) {
+            termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID());
         }
 
         // Check to see if a "local GVT calculation" has completed so we can forward a Mattern
@@ -100,7 +97,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                 gvt = local_gvt_manager_->getGVT();
                 std::cout << "GVT: " << gvt << std::endl;
                 tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
-                mattern_gvt_manager_->resetState();
             }
         }
 
@@ -112,13 +108,16 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
                 std::cout << "GVT: " << gvt << std::endl;
             }
             tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
-            mattern_gvt_manager_->resetState();
         }
 
-        // Check to see if we should start/continue the termination process
-        if (termination_manager_->nodePassive()) {
-            termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID());
+        // We can start a "local GVT calculation" two different ways
+        //      1. We are the master node and it is time to start a new "global GVT calculation"
+        //      2. We have received a Mattern token and a local minimum time is needed so the
+        //          token can be forwarded to next node.
+        if (mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT()) {
+            local_gvt_manager_->startGVT();
         }
+
     }
 
     comm_manager_->waitForAllProcesses();
@@ -274,6 +273,8 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
     assert(msg->event != nullptr);
 
     sendLocalEvent(msg->event);
+
+    mattern_gvt_manager_->receiveUpdate(msg->gvt_mattern_color);
 }
 
 void TimeWarpEventDispatcher::sendEvents(std::shared_ptr<Event> source_event,
@@ -499,10 +500,8 @@ void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
     unsigned int receiver_id) {
 
     if (event->timestamp() <= max_sim_time_) {
-        MatternNodeState::lock_.lock();
-        auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id, event,
-                                                   MatternNodeState::color_);
-        MatternNodeState::lock_.unlock();
+        auto color = mattern_gvt_manager_->sendUpdate(event->timestamp());
+        auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id, event, color);
         comm_manager_->insertMessage(std::move(event_msg));
     }
 }
