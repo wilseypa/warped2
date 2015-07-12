@@ -87,11 +87,6 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
     }
     input.close();
 
-    std::cout << "Num objects:  " << objects.size() << std::endl;
-    std::cout << "xadj size:    " << xadj.size() << std::endl;
-    std::cout << "adjncy size:  " << adjncy.size() << std::endl;
-    std::cout << "adjwgt size:  " << adjwgt.size() << std::endl;
-
     METIS_PartGraphKway(&nvtxs,     // nvtxs
                         &ncon,      // ncon
                         &xadj[0],   // xadj
