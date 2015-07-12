@@ -1,3 +1,6 @@
+#ifndef TICKET_LOCK_HPP
+#define TICKET_LOCK_HPP
+
 #include <atomic>
 
 struct TicketLock {
@@ -18,3 +21,5 @@ private:
     std::atomic<unsigned int> users_ = ATOMIC_VAR_INIT(0);
 
 };
+
+#endif
