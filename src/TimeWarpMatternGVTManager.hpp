@@ -130,8 +130,6 @@ private:
     // Flag to indicate that GVT has been updated
     bool gvt_updated_ = false;
 
-    bool master_can_start_ = true;
-
 };
 
 struct MatternGVTToken : public TimeWarpKernelMessage {
