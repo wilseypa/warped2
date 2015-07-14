@@ -8,7 +8,7 @@
 #include "TimeWarpMatternGVTManager.hpp"
 
 TEST_CASE("Messages can be enqueued, serialized, sent, received, and deserialized","[mpi]"){
-    auto mpi_manager = std::make_shared<warped::TimeWarpMPICommunicationManager>(100, 100, 512);
+    auto mpi_manager = std::make_shared<warped::TimeWarpMPICommunicationManager>(512);
 
     SECTION("Basic management routines return correct values", "[mpi]") {
         mpi_manager->initialize();
