@@ -149,16 +149,16 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
         objects_by_name.erase(name);
     }
 
+    for (unsigned int i = 0; i < num_partitions; i++) {
+        savePartition(i, objects_by_partition[i], xadj_by_partition[i], adjncy_by_partition[i],
+                      adjwgt_by_partition[i], numbering_by_partition[i]);
+    }
+
     // Add any objects that metis didn't partition
     unsigned int j = 0;
     for (auto& it : objects_by_name) {
         objects_by_partition[j % num_partitions].push_back(it.second);
         j++;
-    }
-
-    for (unsigned int i = 0; i < num_partitions; i++) {
-        savePartition(i, objects_by_partition[i], xadj_by_partition[i], adjncy_by_partition[i],
-                      adjwgt_by_partition[i], numbering_by_partition[i]);
     }
 
     return objects_by_partition;
