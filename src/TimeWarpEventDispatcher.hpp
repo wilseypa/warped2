@@ -98,8 +98,6 @@ private:
     const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
     const std::unique_ptr<TimeWarpStatistics> tw_stats_;
 
-    std::unique_ptr<unsigned int []> object_simulation_time_;
-
     static thread_local unsigned int thread_id;
 };
 

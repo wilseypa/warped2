@@ -215,9 +215,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             local_gvt_manager_->receiveEventUpdateState(
                     event->timestamp(), thread_id, local_gvt_flag);
 
-            // Update local simulation time for this object
-            object_simulation_time_[current_object_id] = event->timestamp();
-
             // process event and get new events
             auto new_events = current_object->receiveEvent(*event);
 
@@ -291,15 +288,11 @@ void TimeWarpEventDispatcher::sendEvents(std::shared_ptr<Event> source_event,
         // Make sure not to send any events past max time so we can terminate simulation
         if (e->timestamp() <= max_sim_time_) {
             e->sender_name_ = sender_object->name_;
-            e->send_time_ = object_simulation_time_[sender_object_id];
+            e->send_time_ = source_event->timestamp();
             e->generation_ = sender_object->generation_++;
 
             // Save sent events so that they can be sent as anti-messages in the case of a rollback
             output_manager_->insertEvent(source_event, e, sender_object_id);
-
-            // We will have problems if we are creating events in the past. There must be an issue
-            //  with the model being run.
-            assert(e->timestamp() >= object_simulation_time_[sender_object_id]);
 
             unsigned int node_id = comm_manager_->getNodeID(e->receiverName());
             if (node_id == comm_manager_->getID()) {
@@ -387,9 +380,6 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
     assert(restored_state_event);
     assert(*restored_state_event < *straggler_event);
 
-    // Restore LVT
-    object_simulation_time_[local_object_id] = restored_state_event->timestamp();
-
     // Send anti-messages
     auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
     if (events_to_cancel != nullptr) {
@@ -413,10 +403,6 @@ void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_even
                     event_riterator != events->rend(); event_riterator++) {
 
         assert(**event_riterator <= *straggler_event);
-        assert((*event_riterator)->timestamp() >= object_simulation_time_[current_object_id]);
-
-        // Update this objects local simulation time
-        object_simulation_time_[current_object_id] = (*event_riterator)->timestamp();
 
         // This just updates state, ignore new events
         object->receiveEvent(**event_riterator);
@@ -441,9 +427,6 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObje
     }
 
     event_set_->initialize(objects, num_local_objects_, is_lp_migration_on_, num_worker_threads_);
-
-    object_simulation_time_ = make_unique<unsigned int []>(num_local_objects_);
-    std::memset(object_simulation_time_.get(), 0, num_local_objects_*sizeof(unsigned int));
 
     unsigned int object_id = 0;
     for (auto& partition : objects) {
