@@ -65,7 +65,7 @@ bool TimeWarpMatternGVTManager::startGVT() {
 
     // Only node 0 can start a new GVT calculation
     // NOTE: This will work for a single node simulation also
-    if (comm_manager_->getID() != 0) {
+    if (comm_manager_->getID() != 0 || !master_can_start_) {
         return false;
     }
 
@@ -98,6 +98,9 @@ bool TimeWarpMatternGVTManager::startGVT() {
 
         // gvt_start is always used whether this is run on a single node or a cluster
         gvt_start = now;
+
+        // In the middle of a GVT calc, master cannot start again.
+        master_can_start_ = false;
 
         return true;
     }
@@ -199,6 +202,7 @@ void TimeWarpMatternGVTManager::receiveGVTUpdate(std::unique_ptr<TimeWarpKernelM
 
     global_min_clock_ = (unsigned int)-1;
     toggleInitialColor();
+    master_can_start_ = true;
 
     gvt_updated_ = true;
 }
