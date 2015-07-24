@@ -75,7 +75,7 @@ public:
     unsigned int getGVT() { return gVT_; }
 
     // Set the GVT
-    void setGVT(unsigned int gvt) { gVT_ = gvt; }
+    void setGVT(unsigned int gvt) { gVT_ = gvt; master_can_start_ = true; }
 
     // Test if we have received a Mattern token and need to send another
     bool needLocalGVT();
