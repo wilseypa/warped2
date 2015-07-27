@@ -7,7 +7,7 @@ LadderQueue::LadderQueue() {
 
     /* Initialize the variables */
     std::fill_n(bucket_width_, MAX_RUNG_CNT, 0);
-    std::fill_n(first_nonempty_bucket_, MAX_RUNG_CNT, 0);
+    std::fill_n(last_nonempty_bucket_, MAX_RUNG_CNT, 0);
     std::fill_n(r_start_, MAX_RUNG_CNT, 0);
     std::fill_n(r_current_, MAX_RUNG_CNT, 0);
 
@@ -41,19 +41,19 @@ std::shared_ptr<Event> LadderQueue::begin() {
         rung_[n_rung_-1][bucket_index]->clear();
 
         /* If bucket returned is the last valid bucket of the rung */
-        if (first_nonempty_bucket_[n_rung_-1] == bucket_index+1) {
+        if (last_nonempty_bucket_[n_rung_-1] == bucket_index+1) {
             do {
-                first_nonempty_bucket_[n_rung_-1] = 0;
+                last_nonempty_bucket_[n_rung_-1] = 0;
                 r_start_[n_rung_-1]         = 0;
                 r_current_[n_rung_-1]       = 0;
                 bucket_width_[n_rung_-1]    = 0;
                 n_rung_--;
-            } while(n_rung_ && !first_nonempty_bucket_[n_rung_-1]);
+            } while(n_rung_ && !last_nonempty_bucket_[n_rung_-1]);
 
         } else {
-            while((++bucket_index < first_nonempty_bucket_[n_rung_-1]) && 
+            while((++bucket_index < last_nonempty_bucket_[n_rung_-1]) && 
                                     rung_[n_rung_-1][bucket_index]->empty());
-            if (bucket_index < first_nonempty_bucket_[n_rung_-1]) {
+            if (bucket_index < last_nonempty_bucket_[n_rung_-1]) {
                 r_current_[n_rung_-1] = 
                     r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1];
             } else {
@@ -84,8 +84,8 @@ std::shared_ptr<Event> LadderQueue::begin() {
         iter = top_.erase(iter);
 
         /* Update the numBucket parameter */
-        if (first_nonempty_bucket_[0] < bucket_index+1) {
-            first_nonempty_bucket_[0] = bucket_index+1;
+        if (last_nonempty_bucket_[0] < bucket_index+1) {
+            last_nonempty_bucket_[0] = bucket_index+1;
         }
     }
 
@@ -100,21 +100,21 @@ std::shared_ptr<Event> LadderQueue::begin() {
     rung_[n_rung_-1][bucket_index]->clear();
 
     /* If bucket returned is the last valid rung of the bucket */
-    if (first_nonempty_bucket_[n_rung_-1] == bucket_index+1) {
-        first_nonempty_bucket_[n_rung_-1] = 0;
+    if (last_nonempty_bucket_[n_rung_-1] == bucket_index+1) {
+        last_nonempty_bucket_[n_rung_-1] = 0;
         r_start_[n_rung_-1]         = 0;
         r_current_[n_rung_-1]       = 0;
         bucket_width_[n_rung_-1]    = 0;
         n_rung_--;
 
     } else {
-        while((++bucket_index < first_nonempty_bucket_[n_rung_-1]) && 
+        while((++bucket_index < last_nonempty_bucket_[n_rung_-1]) && 
                 (rung_[n_rung_-1][bucket_index]->empty()));
-        if (bucket_index < first_nonempty_bucket_[n_rung_-1]) {
+        if (bucket_index < last_nonempty_bucket_[n_rung_-1]) {
             r_current_[n_rung_-1] = 
                 r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1];
         } else {
-            first_nonempty_bucket_[n_rung_-1] = 0;
+            last_nonempty_bucket_[n_rung_-1] = 0;
             r_start_[n_rung_-1]         = 0;
             r_current_[n_rung_-1]       = 0;
             bucket_width_[n_rung_-1]    = 0;
@@ -170,12 +170,12 @@ bool LadderQueue::erase(std::shared_ptr<Event> event) {
             /* If bucket is empty after deletion */
             if (rung_bucket->empty()) {
                 /* Check whether rung bucket count needs adjustment */
-                if (first_nonempty_bucket_[rung_index] == bucket_index+1) {
+                if (last_nonempty_bucket_[rung_index] == bucket_index+1) {
                     bool is_rung_empty = false;
                     do {
                         if (!bucket_index) {
                             is_rung_empty = true;
-                            first_nonempty_bucket_[rung_index] = 0;
+                            last_nonempty_bucket_[rung_index] = 0;
                             r_current_[rung_index] = r_start_[rung_index];
                             break;
                         }
@@ -184,7 +184,7 @@ bool LadderQueue::erase(std::shared_ptr<Event> event) {
                     } while (rung_bucket->empty());
 
                     if (!is_rung_empty) {
-                        first_nonempty_bucket_[rung_index] = bucket_index+1;
+                        last_nonempty_bucket_[rung_index] = bucket_index+1;
                     }
                 }
             }
@@ -230,8 +230,8 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
                                                             RUNG_BUCKET_CNT(rung_index)-1);
 
         /* Adjust rung parameters */
-        if (first_nonempty_bucket_[rung_index] < bucket_index+1) {
-            first_nonempty_bucket_[rung_index] = bucket_index+1;
+        if (last_nonempty_bucket_[rung_index] < bucket_index+1) {
+            last_nonempty_bucket_[rung_index] = bucket_index+1;
         }
         if (r_current_[rung_index] > 
                     r_start_[rung_index] + bucket_index*bucket_width_[rung_index]) {
@@ -269,8 +269,8 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
                                                             RUNG_BUCKET_CNT(n_rung_-1)-1 );
 
             /* Adjust rung parameters */
-            if (first_nonempty_bucket_[n_rung_-1] < bucket_index+1) {
-                first_nonempty_bucket_[n_rung_-1] = bucket_index+1;
+            if (last_nonempty_bucket_[n_rung_-1] < bucket_index+1) {
+                last_nonempty_bucket_[n_rung_-1] = bucket_index+1;
             }
             rung_[n_rung_-1][bucket_index]->push_front(*iter);
         }
@@ -281,8 +281,8 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
         unsigned int bucket_index = std::min( 
                 (unsigned int)((timestamp-r_start_[n_rung_-1]) / bucket_width_[n_rung_-1]),
                                                             RUNG_BUCKET_CNT(n_rung_-1)-1 );
-        if (first_nonempty_bucket_[n_rung_-1] < bucket_index+1) {
-            first_nonempty_bucket_[n_rung_-1] = bucket_index+1;
+        if (last_nonempty_bucket_[n_rung_-1] < bucket_index+1) {
+            last_nonempty_bucket_[n_rung_-1] = bucket_index+1;
         }
         if (r_current_[n_rung_-1] > 
                     r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1]) {
@@ -313,7 +313,7 @@ bool LadderQueue::createNewRung(unsigned int num_events,
         top_start_          = max_ts_;
         r_start_[0]         = min_ts_;
         r_current_[0]       = min_ts_;
-        first_nonempty_bucket_[0] = 0;
+        last_nonempty_bucket_[0] = 0;
         n_rung_++;
 
         /* Create the actual rungs */
@@ -335,7 +335,7 @@ bool LadderQueue::createNewRung(unsigned int num_events,
         n_rung_++;
         bucket_width_[n_rung_-1] = (bucket_width_[n_rung_-2] + num_events - 1) / num_events;
         r_start_[n_rung_-1] = r_current_[n_rung_-1] = init_start_and_cur_val;
-        first_nonempty_bucket_[n_rung_-1] = 0;
+        last_nonempty_bucket_[n_rung_-1] = 0;
     }
     return true;
 }
@@ -344,7 +344,7 @@ void LadderQueue::createRungForBottomTransfer(unsigned int start_val) {
 
     n_rung_++;
     r_start_[n_rung_-1] = r_current_[n_rung_-1] = start_val;
-    first_nonempty_bucket_[n_rung_-1] = 0;
+    last_nonempty_bucket_[n_rung_-1] = 0;
     if(n_rung_ == 1) {
         assert(top_start_ >= start_val);
         bucket_width_[0] = std::max(
@@ -388,7 +388,7 @@ bool LadderQueue::recurseRung(unsigned int *index) {
             r_start_[n_rung_-1]         = 0;
             r_current_[n_rung_-1]       = 0;
             bucket_width_[n_rung_-1]    = 0;
-            first_nonempty_bucket_[n_rung_-1] = 0;
+            last_nonempty_bucket_[n_rung_-1] = 0;
             n_rung_--;
 
         } else {
@@ -425,13 +425,13 @@ bool LadderQueue::recurseRung(unsigned int *index) {
                 rung_[n_rung_-1][new_bucket_index]->push_front(*iter);
 
                 /* Calculate bucket count for new rung */
-                if (first_nonempty_bucket_[n_rung_-1] < new_bucket_index+1) {
-                    first_nonempty_bucket_[n_rung_-1] = new_bucket_index+1;
+                if (last_nonempty_bucket_[n_rung_-1] < new_bucket_index+1) {
+                    last_nonempty_bucket_[n_rung_-1] = new_bucket_index+1;
                 }
             }
             rung_[n_rung_-2][bucket_index]->clear();
 
-            /* Re-calculate r_current and first_nonempty_bucket_ of old rung */
+            /* Re-calculate r_current and last_nonempty_bucket_ of old rung */
             bool bucket_found = false;
             for (unsigned int index = bucket_index+1; 
                             index < RUNG_BUCKET_CNT(n_rung_-2); index++) {
@@ -441,11 +441,11 @@ bool LadderQueue::recurseRung(unsigned int *index) {
                         r_current_[n_rung_-2] = 
                             r_start_[n_rung_-2] + index*bucket_width_[n_rung_-2];
                     }
-                    first_nonempty_bucket_[n_rung_-2] = index+1;
+                    last_nonempty_bucket_[n_rung_-2] = index+1;
                 }
             }
             if (!bucket_found) {
-                first_nonempty_bucket_[n_rung_-2] = 0;
+                last_nonempty_bucket_[n_rung_-2] = 0;
                 r_current_[n_rung_-2] = r_start_[n_rung_-2];
             }
         }

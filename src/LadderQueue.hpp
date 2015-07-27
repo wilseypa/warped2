@@ -51,7 +51,7 @@ private:
 
     unsigned int n_rung_ = 0;
     unsigned int bucket_width_[MAX_RUNG_CNT];
-    unsigned int first_nonempty_bucket_[MAX_RUNG_CNT];
+    unsigned int last_nonempty_bucket_[MAX_RUNG_CNT];
     unsigned int r_start_[MAX_RUNG_CNT];
     unsigned int r_current_[MAX_RUNG_CNT];
 
