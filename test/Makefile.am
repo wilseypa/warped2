@@ -11,6 +11,7 @@ WARPED_TEST_PROGS = \
     test_CommandLineConfiguration \
     test_Event \
     test_IndividualEventStatistics \
+    test_LadderQueue \
     test_ObjectState \
     test_ProfileGuidedPartitioner \
 	test_RandomNumberGenerator \
@@ -24,7 +25,6 @@ WARPED_TEST_PROGS = \
     test_TimeWarpPeriodicStateManager \
     test_TimeWarpAggressiveOutputManager \
     test_TimeWarpFileStreamManager \
-    test_LadderQueue \
     test_TimeWarpEventSet
 
 noinst_HEADERS = catch.hpp mocks.hpp
