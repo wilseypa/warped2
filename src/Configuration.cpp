@@ -375,7 +375,7 @@ std::unique_ptr<Partitioner> Configuration::makePartitioner() {
 
 std::unique_ptr<Partitioner>
 Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
-    const auto& partitioner_type = (*root_)["partitioning"];
+    const auto& partitioner_type = (*root_)["partitioning"]["type"];
     if (partitioner_type == "default") {
         return std::move(user_partitioner);
     }
@@ -385,10 +385,11 @@ Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
 std::unique_ptr<Partitioner> Configuration::makeLocalPartitioner(unsigned int node_id,
     unsigned int& num_schedulers) {
 
-    if (num_schedulers == 1)
-        return makePartitioner();
-
+    unsigned int num_partitions = num_schedulers;
     num_schedulers = (*root_)["time-warp"]["scheduler-count"].asUInt();
+
+    if (num_partitions == 1)
+        return makePartitioner();
 
     auto partitioner_type = (*root_)["partitioning"]["type"].asString();
     if (partitioner_type == "default" || partitioner_type == "round-robin") {
