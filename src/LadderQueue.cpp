@@ -233,10 +233,9 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
         if (last_nonempty_bucket_[rung_index] < bucket_index+1) {
             last_nonempty_bucket_[rung_index] = bucket_index+1;
         }
-        if (r_current_[rung_index] > 
-                    r_start_[rung_index] + bucket_index*bucket_width_[rung_index]) {
-            r_current_[rung_index] = 
-                    r_start_[rung_index] + bucket_index*bucket_width_[rung_index];
+        unsigned int temp_ts = r_start_[rung_index] + bucket_index*bucket_width_[rung_index];
+        if (r_current_[rung_index] > temp_ts) {
+            r_current_[rung_index] = temp_ts;
         }
 
         rung_[rung_index][bucket_index]->push_front(event);
@@ -284,10 +283,9 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
         if (last_nonempty_bucket_[n_rung_-1] < bucket_index+1) {
             last_nonempty_bucket_[n_rung_-1] = bucket_index+1;
         }
-        if (r_current_[n_rung_-1] > 
-                    r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1]) {
-            r_current_[n_rung_-1] = 
-                    r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1];
+        unsigned int temp_ts = r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1];
+        if (r_current_[n_rung_-1] > temp_ts) {
+            r_current_[n_rung_-1] = temp_ts;
         }
         rung_[n_rung_-1][bucket_index]->push_front(event);
 
