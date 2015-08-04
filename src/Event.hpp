@@ -22,6 +22,7 @@ public:
 
     bool operator== (const Event &other) {
         return ((this->timestamp() == other.timestamp())
+                && (this->receiverName() == other.receiverName())
                 && (this->send_time_ == other.send_time_)
                 && (this->sender_name_ == other.sender_name_)
                 && (this->generation_ == other.generation_));
@@ -30,12 +31,14 @@ public:
     bool operator< (const Event &other) {
         return  (this->timestamp() < other.timestamp()) ? true :
                 ((this->timestamp() != other.timestamp()) ? false :
-                  ((this->send_time_ < other.send_time_) ? true :
-                  ((this->send_time_ != other.send_time_) ? false :
-                    ((this->sender_name_ < other.sender_name_) ? true :
-                    ((this->sender_name_ != other.sender_name_) ? false :
-                      ((this->generation_ < other.generation_) ? true :
-                      ((this->generation_ != other.generation_) ? false : false)))))));
+                  ((this->receiverName() < other.receiverName()) ? true :
+                  ((this->receiverName() != other.receiverName()) ? false :
+                    ((this->send_time_ < other.send_time_) ? true :
+                    ((this->send_time_ != other.send_time_) ? false :
+                      ((this->sender_name_ < other.sender_name_) ? true :
+                      ((this->sender_name_ != other.sender_name_) ? false :
+                        ((this->generation_ < other.generation_) ? true :
+                        ((this->generation_ != other.generation_) ? false : false)))))))));
     }
 
     bool operator<= (const Event &other) {
@@ -116,14 +119,16 @@ public:
                      const std::shared_ptr<Event>& second) const {
         return  (first->timestamp() < second->timestamp()) ? true :
                 ((first->timestamp() != second->timestamp()) ? false :
-                  ((first->send_time_ < second->send_time_) ? true :
-                  ((first->send_time_ != second->send_time_) ? false :
-                    ((first->sender_name_ < second->sender_name_) ? true :
-                    ((first->sender_name_ != second->sender_name_) ? false :
-                      ((first->generation_ < second->generation_) ? true :
-                      ((first->generation_ != second->generation_) ? false :
-                        ((first->event_type_ < second->event_type_) ? true :
-                        ((first->event_type_ != second->event_type_) ? false : false)))))))));
+                  ((first->receiverName() < second->receiverName()) ? true :
+                  ((first->receiverName() != second->receiverName()) ? false :
+                    ((first->send_time_ < second->send_time_) ? true :
+                    ((first->send_time_ != second->send_time_) ? false :
+                      ((first->sender_name_ < second->sender_name_) ? true :
+                      ((first->sender_name_ != second->sender_name_) ? false :
+                        ((first->generation_ < second->generation_) ? true :
+                        ((first->generation_ != second->generation_) ? false :
+                          ((first->event_type_ < second->event_type_) ? true :
+                          ((first->event_type_ != second->event_type_) ? false : false)))))))))));
     }
 
 };
