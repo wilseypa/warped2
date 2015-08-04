@@ -72,25 +72,19 @@ TEST_CASE("Ladder Queue operations") {
 
     SECTION("Test events with same timestamp but different insertion order") {
 
-        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 10}));
-        e = q.begin();
-        REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
-        CHECK(e->timestamp() == 10);
-        q.erase(e);
-        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r2", 10}));
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"r3", 10}));
+        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r2", 10}));
         e = q.begin();
         REQUIRE(e != nullptr);
         CHECK(e->receiverName() == "r2");
         CHECK(e->timestamp() == 10);
         q.erase(e);
         e = q.begin();
-        //REQUIRE(e != nullptr);
-        //CHECK(e->receiverName() == "3");
-        //CHECK(e->timestamp() == 10);
-        //q.erase(e);
-        //e = q.begin();
-        //REQUIRE(e == nullptr);
+        REQUIRE(e != nullptr);
+        CHECK(e->receiverName() == "r3");
+        CHECK(e->timestamp() == 10);
+        q.erase(e);
+        e = q.begin();
+        REQUIRE(e == nullptr);
     }
 }
