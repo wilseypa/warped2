@@ -11,7 +11,7 @@ AC_DEFUN([CHECK_ENABLE_DEBUG],
 
     AS_IF([test "x$debug" = "xyes"],
           [],
-          [AC_DEFINE([NDEBUG])])
+          [AC_DEFINE([NDEBUG], [], [Disables assertions])])
 
 ]) dnl end CHECK_ENABLE_DEBUG
 

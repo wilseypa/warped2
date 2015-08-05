@@ -13,6 +13,7 @@
 #include <memory>
 #include <atomic>
 
+#include "config.h" // for SCHEDULE_QUEUE_SPINLOCKS config
 #include "SimulationObject.hpp"
 #include "Event.hpp"
 #include "utility/memory.hpp"
@@ -75,7 +76,11 @@ private:
     unsigned int num_of_schedulers_ = 0;
 
     // Lock to protect the schedule queues
+#ifdef SCHEDULE_QUEUE_SPINLOCKS
     std::unique_ptr<TicketLock []> schedule_queue_lock_;
+#else
+    std::unique_ptr<std::mutex []> schedule_queue_lock_;
+#endif
 
     // Queues to hold the scheduled events
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 

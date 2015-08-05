@@ -19,8 +19,11 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<SimulationObjec
     /* Create the input and processed queues and their locks.
        Also create the input queue-scheduler map and scheduled event pointer. */
     input_queue_lock_ = make_unique<std::mutex []>(num_of_objects);
+#ifdef SCHEDULE_QUEUE_SPINLOCKS
     schedule_queue_lock_ = make_unique<TicketLock []>(num_of_schedulers_);
-
+#else
+    schedule_queue_lock_ = make_unique<std::mutex []>(num_of_schedulers_);
+#endif
     unsigned int scheduler_id = 0;
     for (auto& scheduler_partition : objects) {
         for (auto& ob : scheduler_partition) {
