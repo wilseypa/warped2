@@ -403,8 +403,6 @@ void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_even
         // This just updates state, ignore new events
         object->receiveEvent(**event_riterator);
 
-        state_manager_->saveState(*event_riterator, current_object_id, object);
-
         tw_stats_->upCount(COAST_FORWARDED_EVENTS, thread_id);
 
         // NOTE: Do not send any new events
