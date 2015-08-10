@@ -13,11 +13,12 @@
 #include <memory>
 #include <atomic>
 
-#include "config.h" // for SCHEDULE_QUEUE_SPINLOCKS config
+#include "config.h" // for spinlock and ladder queue config
 #include "SimulationObject.hpp"
 #include "Event.hpp"
 #include "utility/memory.hpp"
 #include "TicketLock.hpp"
+#include "LadderQueue.hpp"
 
 namespace warped {
 
@@ -83,8 +84,12 @@ private:
 #endif
 
     // Queues to hold the scheduled events
+#ifdef LADDER_QUEUE_SCHEDULER
+    std::vector<std::unique_ptr<LadderQueue>> schedule_queue_;
+#else
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
                                             compareEvents>>> schedule_queue_;
+#endif
 
     // Map unprocessed queue to a schedule queue
     std::vector<unsigned int> input_queue_scheduler_map_;

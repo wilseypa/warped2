@@ -29,6 +29,9 @@ CHECK_ENABLE_DEBUG
 m4_include([m4/check_schedule_queue_lock.m4])
 CHECK_SCHEDULE_QUEUE_LOCK
 
+m4_include([m4/check_ladder_queue_scheduler.m4])
+CHECK_LADDER_QUEUE_SCHEDULER
+
 AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_FILES([deps/cereal/Makefile])

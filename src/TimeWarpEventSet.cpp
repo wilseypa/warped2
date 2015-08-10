@@ -28,7 +28,8 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<SimulationObjec
     for (auto& scheduler_partition : objects) {
         for (auto& ob : scheduler_partition) {
             unused(ob);
-            input_queue_.push_back(make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
+            input_queue_.push_back(
+                    make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
             processed_queue_.push_back(make_unique<std::deque<std::shared_ptr<Event>>>());
             scheduled_event_pointer_.push_back(nullptr);
             input_queue_scheduler_map_.push_back(scheduler_id);
@@ -38,7 +39,12 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<SimulationObjec
 
     /* Create the schedule queues */
     for (unsigned int scheduler_id = 0; scheduler_id < num_of_schedulers_; scheduler_id++) {
-        schedule_queue_.push_back(make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
+#ifdef LADDER_QUEUE_SCHEDULER
+        schedule_queue_.push_back(make_unique<LadderQueue>());
+#else
+        schedule_queue_.push_back(
+                make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
+#endif
     }
 
     /* Map worker threads to schedule queues. */
@@ -113,12 +119,19 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
     schedule_queue_lock_[scheduler_id].lock();
 
+#ifdef LADDER_QUEUE_SCHEDULER
+    auto event = schedule_queue_[scheduler_id]->begin();
+    if (event != nullptr) {
+        schedule_queue_[scheduler_id]->erase(event);
+    }
+#else
     auto event_iterator = schedule_queue_[scheduler_id]->begin();
     auto event = (event_iterator != schedule_queue_[scheduler_id]->end()) ?
                     *event_iterator : nullptr;
     if (event != nullptr) {
         schedule_queue_[scheduler_id]->erase(event_iterator);
     }
+#endif
 
     // NOTE: scheduled_event_pointer is not changed here so that other threads will not schedule new
     // events and this thread can move events into processed queue and update schedule queue correctly.
