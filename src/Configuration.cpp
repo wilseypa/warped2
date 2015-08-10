@@ -13,6 +13,7 @@
 
 #include "json/json.h"
 
+#include "config.h"
 #include "AggregateEventStatistics.hpp"
 #include "CommandLineConfiguration.hpp"
 #include "EventDispatcher.hpp"
@@ -299,16 +300,33 @@ check the following configurations:\n") + invalid_string);
         delete [] all_config_ids;
 
         if (comm_manager->getID() == 0) {
+            std::cout << "Type of build:             ";
 #ifdef NDEBUG
-            std::cout << "\nOPTIMIZED BUILD\n" << std::endl;
+            std::cout << "Optimized\n";
 #else
-            std::cout << "\nDEBUG BUILD\n" << std::endl;
+            std::cout << "Debug\n";
 #endif
+
             std::cout << "Simulation type:           " << simulation_type << "\n"
                       << "Number of processes:       " << comm_manager->getNumProcesses() << "\n"
                       << "Number of worker threads:  " << num_worker_threads << "\n"
-                      << "Number of Schedule queues: " << num_schedulers << "\n"
-                      << "LP Migration:              " << lp_migration_status << "\n"
+                      << "Number of Schedule queues: " << num_schedulers << "\n";
+
+            std::cout << "Type of Schedule queue:    ";
+#ifdef LADDER_QUEUE_SCHEDULER
+            std::cout << "Ladder Queue\n";
+#else
+            std::cout << "MultiSet\n";
+#endif
+
+            std::cout << "Type of Scheduler lock:    ";
+#ifdef SCHEDULE_QUEUE_SPINLOCKS
+            std::cout << "SpinLock\n";
+#else
+            std::cout << "Mutex\n";
+#endif
+
+            std::cout << "LP Migration:              " << lp_migration_status << "\n"
                       << "State-saving type:         " << state_saving_type << "\n";
             if (state_saving_type == "periodic")
             std::cout << "State-saving period:       " << state_period << " events" << "\n";

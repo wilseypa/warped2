@@ -13,7 +13,6 @@
 #include <memory>
 #include <atomic>
 
-#include "config.h" // for spinlock and ladder queue config
 #include "SimulationObject.hpp"
 #include "Event.hpp"
 #include "utility/memory.hpp"
