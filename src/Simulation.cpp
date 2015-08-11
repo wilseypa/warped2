@@ -7,7 +7,7 @@
 #include "Configuration.hpp"
 #include "EventDispatcher.hpp"
 #include "Partitioner.hpp"
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
 #include "TimeWarpMPICommunicationManager.hpp"
 
 extern "C" {
@@ -30,18 +30,18 @@ Simulation::Simulation(const std::string& model_description, int argc, const cha
 Simulation::Simulation(const std::string& config_file_name, unsigned int max_sim_time)
     : config_(config_file_name, max_sim_time) {}
 
-void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
+void Simulation::simulate(const std::vector<LogicalProcess*>& lps) {
 
     auto comm_manager = config_.makeCommunicationManager();
 
     unsigned int num_partitions = comm_manager->initialize();
-    auto partitioned_objects = config_.makePartitioner()->partition(objects, num_partitions);
-    comm_manager->initializeObjectMap(partitioned_objects);
+    auto partitioned_lps = config_.makePartitioner()->partition(lps, num_partitions);
+    comm_manager->initializeLPMap(partitioned_lps);
 
     unsigned int num_schedulers = num_partitions;
     auto local_partitioner = config_.makeLocalPartitioner(comm_manager->getID(), num_schedulers);
     auto local_partitions =
-        local_partitioner->partition(partitioned_objects[comm_manager->getID()], num_schedulers);
+        local_partitioner->partition(partitioned_lps[comm_manager->getID()], num_schedulers);
 
     event_dispatcher_ = config_.makeDispatcher(comm_manager);
     event_dispatcher_->startSimulation(local_partitions);
@@ -49,20 +49,20 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects) {
     comm_manager->finalize();
 }
 
-void Simulation::simulate(const std::vector<SimulationObject*>& objects,
+void Simulation::simulate(const std::vector<LogicalProcess*>& lps,
     std::unique_ptr<Partitioner> partitioner) {
 
     auto comm_manager = config_.makeCommunicationManager();
 
     unsigned int num_partitions = comm_manager->initialize();
-    auto partitioned_objects =
-        config_.makePartitioner(std::move(partitioner))->partition(objects, num_partitions);
-    comm_manager->initializeObjectMap(partitioned_objects);
+    auto partitioned_lps =
+        config_.makePartitioner(std::move(partitioner))->partition(lps, num_partitions);
+    comm_manager->initializeLPMap(partitioned_lps);
 
     unsigned int num_schedulers = num_partitions;
     auto local_partitioner = config_.makeLocalPartitioner(comm_manager->getID(), num_schedulers);
     auto local_partitions =
-        local_partitioner->partition(partitioned_objects[comm_manager->getID()], num_schedulers);
+        local_partitioner->partition(partitioned_lps[comm_manager->getID()], num_schedulers);
 
     event_dispatcher_ = config_.makeDispatcher(comm_manager);
     event_dispatcher_->startSimulation(local_partitions);
@@ -70,10 +70,10 @@ void Simulation::simulate(const std::vector<SimulationObject*>& objects,
     comm_manager->finalize();
 }
 
-FileStream& Simulation::getFileStream(SimulationObject* object, const std::string& filename,
+FileStream& Simulation::getFileStream(LogicalProcess* lp, const std::string& filename,
     std::ios_base::openmode mode, std::shared_ptr<Event> this_event) {
 
-    return event_dispatcher_->getFileStream(object, filename, mode, this_event);
+    return event_dispatcher_->getFileStream(lp, filename, mode, this_event);
 }
 
 } // namepsace warped

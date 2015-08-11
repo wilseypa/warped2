@@ -9,12 +9,12 @@ WARPED_INSTALL_HPP_FILES = \
     src/Configuration.hpp \
     src/FileStream.hpp \
     src/Event.hpp \
-    src/ObjectState.hpp \
+    src/LogicalProcess.hpp \
+    src/LPState.hpp \
     src/Partitioner.hpp \
 	src/RandomNumberGenerator.hpp \
     src/serialization.hpp \
     src/Simulation.hpp \
-    src/SimulationObject.hpp \
     src/warped.hpp \
     src/utility/memory.hpp \
     src/utility/warnings.hpp
@@ -63,9 +63,9 @@ WARPED_CPP_FILES = \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
     src/Simulation.cpp \
-    src/SimulationObject.cpp \
     src/STLLTSFQueue.cpp \
     src/LadderQueue.cpp \
+    src/LogicalProcess.cpp \
     src/TimeWarpEventDispatcher.cpp \
     src/TimeWarpMatternGVTManager.cpp \
     src/TimeWarpCommunicationManager.cpp \

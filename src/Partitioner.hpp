@@ -5,12 +5,12 @@
 
 namespace warped {
 
-class SimulationObject;
+class LogicalProcess;
 
 class Partitioner {
 public:
-    virtual std::vector<std::vector<SimulationObject*>> partition(
-             const std::vector<SimulationObject*>& objects,
+    virtual std::vector<std::vector<LogicalProcess*>> partition(
+             const std::vector<LogicalProcess*>& lps,
              const unsigned int num_partitions) const = 0;
 };
 

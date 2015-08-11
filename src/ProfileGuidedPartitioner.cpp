@@ -13,18 +13,18 @@
 #include "metis/include/metis.h"
 
 #include "Partitioner.hpp"
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
 
 namespace warped {
 
 ProfileGuidedPartitioner::ProfileGuidedPartitioner(std::string stats_file,
     std::vector<float> part_weights) : stats_file_(stats_file), part_weights_(part_weights) {}
 
-std::vector<std::vector<SimulationObject*>> ProfileGuidedPartitioner::partition(
-const std::vector<SimulationObject*>& objects, const unsigned int num_partitions) const {
+std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::partition(
+const std::vector<LogicalProcess*>& lps, const unsigned int num_partitions) const {
 
     if (num_partitions == 1) {
-        return {objects};
+        return {lps};
     }
 
     if (part_weights_.empty()) {
@@ -48,15 +48,15 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
         throw std::runtime_error(std::string("Could not open statistics file ") + stats_file_);
     }
 
-    std::vector<std::vector<SimulationObject*>> objects_by_partition(num_partitions);
+    std::vector<std::vector<LogicalProcess*>>   lps_by_partition(num_partitions);
     std::vector<std::vector<idx_t>>             xadj_by_partition(num_partitions);
     std::vector<std::vector<idx_t>>             adjncy_by_partition(num_partitions);
     std::vector<std::vector<idx_t>>             adjwgt_by_partition(num_partitions);
     std::vector<std::vector<unsigned int>>      numbering_by_partition(num_partitions);
 
-    // A map of METIS node number -> SimulationObject name that is used to
+    // A map of METIS node number -> LogicalProcess name that is used to
     // translate the metis partition info to warped partitions.
-    std::vector<std::string> object_names(objects.size());
+    std::vector<std::string> lp_names(lps.size());
 
     // METIS parameters
     // idx_t is a METIS typedef
@@ -67,7 +67,7 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
     std::vector<idx_t> adjncy; // part of the edge list
     std::vector<idx_t> adjwgt; // edge weights
     idx_t edgecut = 0; // output var for the final communication volume
-    std::vector<idx_t> part(objects.size()); // output var for partition list
+    std::vector<idx_t> part(lps.size()); // output var for partition list
 
     xadj.push_back(0);
     int i = 0;
@@ -76,7 +76,7 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
             // Skip comment lines unless they are a map comment
             if (line[1] != ':') { continue; }
             // The first line is the file format, so store the name at i-1
-            object_names[i - 1] = line.substr(3);
+            lp_names[i - 1] = line.substr(3);
             continue;
         }
 
@@ -88,7 +88,7 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
             if (format != 1) {
                 throw std::runtime_error("Graph format must be 001.");
             }
-            if (static_cast<std::size_t>(nvtxs) > objects.size()) {
+            if (static_cast<std::size_t>(nvtxs) > lps.size()) {
                 throw std::runtime_error("Invalid statistics file for this simulation.");
             }
         } else {
@@ -119,14 +119,14 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
                         &part[0]        // part
                        );
 
-    // Create a map of all SimulationObject names -> pointers
-    std::unordered_map<std::string, SimulationObject*> objects_by_name;
-    for (auto ob: objects) {
-        objects_by_name[ob->name_] = ob;
+    // Create a map of all LogicalProcess names -> pointers
+    std::unordered_map<std::string, LogicalProcess*> lps_by_name;
+    for (auto lp: lps) {
+        lps_by_name[lp->name_] = lp;
     }
 
     // Add the metis output to partitons, removing partitioned names from the
-    // object map. Any left over objects don't have profiling data associated,
+    // lp map. Any left over lps don't have profiling data associated,
     // and will be partitioned uniformly.
 
     for (unsigned int i = 0; i < num_partitions; i++) {
@@ -134,8 +134,8 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
     }
 
     for (int i = 0; i < nvtxs; i++) {
-        auto name = object_names[i];
-        objects_by_partition[part[i]].push_back(objects_by_name.at(name));
+        auto name = lp_names[i];
+        lps_by_partition[part[i]].push_back(lps_by_name.at(name));
 
         for (int j = xadj[i]; j < xadj[i+1]; j++) {
             if (part[i] == part[adjncy[j]]) {
@@ -146,30 +146,30 @@ const std::vector<SimulationObject*>& objects, const unsigned int num_partitions
         xadj_by_partition[part[i]].push_back(adjncy_by_partition[part[i]].size());
         numbering_by_partition[part[i]].push_back((unsigned int)i);
 
-        objects_by_name.erase(name);
+        lps_by_name.erase(name);
     }
 
     for (unsigned int i = 0; i < num_partitions; i++) {
-        savePartition(i, objects_by_partition[i], xadj_by_partition[i], adjncy_by_partition[i],
+        savePartition(i, lps_by_partition[i], xadj_by_partition[i], adjncy_by_partition[i],
                       adjwgt_by_partition[i], numbering_by_partition[i]);
     }
 
-    // Add any objects that metis didn't partition
+    // Add any lps that metis didn't partition
     unsigned int j = 0;
-    for (auto& it : objects_by_name) {
-        objects_by_partition[j % num_partitions].push_back(it.second);
+    for (auto& it : lps_by_name) {
+        lps_by_partition[j % num_partitions].push_back(it.second);
         j++;
     }
 
-    return objects_by_partition;
+    return lps_by_partition;
 }
 
-void ProfileGuidedPartitioner::savePartition(unsigned int part_id, const std::vector<SimulationObject*>& objects,
+void ProfileGuidedPartitioner::savePartition(unsigned int part_id, const std::vector<LogicalProcess*>& lps,
 const std::vector<idx_t>& xadj, const std::vector<idx_t>& adjncy, const std::vector<idx_t>& adjwgt,
 const std::vector<unsigned int>& numbering) const {
 
     auto num_vertices = 0;
-    for (unsigned int k = 0; k < objects.size(); k++) {
+    for (unsigned int k = 0; k < lps.size(); k++) {
         if ((xadj[k+1] - xadj[k]) > 0) num_vertices++;
     }
 
@@ -187,17 +187,17 @@ const std::vector<unsigned int>& numbering) const {
         << "%% <# of vertices> <# of edges> <file format>\n"
         <<  num_vertices << ' ' << num_edges << ' ' << "001 " << '\n'
         << "%% Lines that start with %: are comments that are ignored by Metis,\n"
-        << "%% but list the WARPED object name for the Metis node described by \n"
+        << "%% but list the WARPED lp name for the Metis node described by \n"
         << "%% the following line.\n"
         << "%% The remaining lines each describe a vertex and have the following format:\n"
         << "%% <<neighbor> <event count>> ...";
 
     i = 0;
-    for (auto& ob : objects) {
+    for (auto& lp : lps) {
 
         if ((xadj[i+1] - xadj[i]) == 0) return;
 
-        ofs << "\n%: " << ob->name_ << '\n';
+        ofs << "\n%: " << lp->name_ << '\n';
         for (idx_t j = xadj[i]; j < xadj[i+1]; j++) {
             ofs << new_number[adjncy[j]] << ' ' << adjwgt[j] << ' ';
         }

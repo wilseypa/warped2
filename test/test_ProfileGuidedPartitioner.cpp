@@ -7,7 +7,7 @@
 #include <string>
 
 #include "ProfileGuidedPartitioner.hpp"
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
 #include "mocks.hpp"
 
 TEST_CASE("ProfileGuidedPartitioner partitions fully connected graph", "[partitioning]") {
@@ -17,78 +17,78 @@ TEST_CASE("ProfileGuidedPartitioner partitions fully connected graph", "[partiti
 
     unsigned int num_parts = 2;
 
-    test_SimulationObject ob1{"ob1"};
-    test_SimulationObject ob2{"ob2"};
-    std::vector<warped::SimulationObject*> objects = {&ob1, &ob2};
+    test_LogicalProcess lp1{"ob1"};
+    test_LogicalProcess lp2{"ob2"};
+    std::vector<warped::LogicalProcess*> lps = {&lp1, &lp2};
 
-    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test").partition(objects, num_parts);
+    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test").partition(lps, num_parts);
 
     SECTION("correct number of partitions") {
         REQUIRE(partitions.size() == num_parts);
     }
 
-    std::vector<warped::SimulationObject*> partitioned_objects;
+    std::vector<warped::LogicalProcess*> partitioned_lps;
     for (int i = 0; i < num_parts; ++i) {
-        for (auto ob : partitions[i]) {
-            partitioned_objects.push_back(ob);
+        for (auto lp : partitions[i]) {
+            partitioned_lps.push_back(lp);
         }
     }
 
-    SECTION("all objects contained") {
-        REQUIRE(partitioned_objects.size() == objects.size());
+    SECTION("all lps contained") {
+        REQUIRE(partitioned_lps.size() == lps.size());
     }
 
-    SECTION("all objects valid") {
-        for (auto ob : partitioned_objects) {
-            REQUIRE(std::find(objects.begin(), objects.end(), ob) != objects.end());
+    SECTION("all lps valid") {
+        for (auto lp : partitioned_lps) {
+            REQUIRE(std::find(lps.begin(), lps.end(), lp) != lps.end());
         }
     }
 
-    SECTION("all objects unique") {
-        REQUIRE(partitioned_objects[0] != partitioned_objects[1]);
+    SECTION("all lps unique") {
+        REQUIRE(partitioned_lps[0] != partitioned_lps[1]);
     }
 
 }
 
 TEST_CASE("ProfileGuidedPartitioner partitions graph with extra nodes", "[partitioning]") {
     std::ofstream of("profile_guided_stats.test", std::ios_base::trunc);
-    of << "2 1 001\n%: ob1\n2 1\n%: ob2\n1 1\n";
+    of << "2 1 001\n%: lp1\n2 1\n%: lp2\n1 1\n";
     of.close();
 
     int num_parts = 2;
 
-    test_SimulationObject ob1{"ob1"};
-    test_SimulationObject ob2{"ob2"};
-    test_SimulationObject ob3{"ob3"};
-    std::vector<warped::SimulationObject*> objects = {&ob1, &ob2, &ob3};
+    test_LogicalProcess lp1{"lp1"};
+    test_LogicalProcess lp2{"lp2"};
+    test_LogicalProcess lp3{"lp3"};
+    std::vector<warped::LogicalProcess*> lps = {&lp1, &lp2, &lp3};
 
-    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test").partition(objects, num_parts);
+    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test").partition(lps, num_parts);
 
     SECTION("correct number of partitions") {
         REQUIRE(partitions.size() == num_parts);
     }
 
-    std::vector<warped::SimulationObject*> partitioned_objects;
+    std::vector<warped::LogicalProcess*> partitioned_lps;
     for (int i = 0; i < num_parts; ++i) {
-        for (auto ob : partitions[i]) {
-            partitioned_objects.push_back(ob);
+        for (auto lp : partitions[i]) {
+            partitioned_lps.push_back(lp);
         }
     }
 
-    SECTION("all objects contained") {
-        REQUIRE(partitioned_objects.size() == objects.size());
+    SECTION("all lps contained") {
+        REQUIRE(partitioned_lps.size() == lps.size());
     }
 
     SECTION("all objects valid") {
-        for (auto ob : partitioned_objects) {
-            REQUIRE(std::find(objects.begin(), objects.end(), ob) != objects.end());
+        for (auto lp : partitioned_lps) {
+            REQUIRE(std::find(lps.begin(), lps.end(), lp) != lps.end());
         }
     }
 
-    SECTION("all objects unique") {
-        CHECK(partitioned_objects[0] != partitioned_objects[1]);
-        CHECK(partitioned_objects[0] != partitioned_objects[2]);
-        CHECK(partitioned_objects[1] != partitioned_objects[2]);
+    SECTION("all lps unique") {
+        CHECK(partitioned_lps[0] != partitioned_lps[1]);
+        CHECK(partitioned_lps[0] != partitioned_lps[2]);
+        CHECK(partitioned_lps[1] != partitioned_lps[2]);
     }
 
 }

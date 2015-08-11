@@ -24,7 +24,7 @@ namespace warped {
 
 class LTSFQueue;
 class Partitioner;
-class SimulationObject;
+class LogicalProcess;
 class TimeWarpStateManager;
 class TimeWarpOutputManager;
 class TimeWarpFileStreamManager;
@@ -51,11 +51,11 @@ public:
         std::unique_ptr<TimeWarpTerminationManager> termination_manager,
         std::unique_ptr<TimeWarpStatistics> tw_stats);
 
-    void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
+    void startSimulation(const std::vector<std::vector<LogicalProcess*>>& lps);
 
 private:
     void sendEvents(std::shared_ptr<Event> source_event, std::vector<std::shared_ptr<Event>> new_events,
-                    unsigned int sender_object_id, SimulationObject *sender_object);
+                    unsigned int sender_lp_id, LogicalProcess *sender_lp);
 
     void sendLocalEvent(std::shared_ptr<Event> event);
 
@@ -66,7 +66,7 @@ private:
     void coastForward(std::shared_ptr<Event> stop_event, 
                             std::shared_ptr<Event> restored_state_event);
 
-    FileStream& getFileStream(SimulationObject *object, const std::string& filename,
+    FileStream& getFileStream(LogicalProcess *lp, const std::string& filename,
         std::ios_base::openmode mode, std::shared_ptr<Event> this_event);
 
     void enqueueRemoteEvent(std::shared_ptr<Event> event, unsigned int receiver_id);
@@ -75,7 +75,7 @@ private:
 
 /* ====================== Used by only manager thread ========================= */
 
-    void initialize(const std::vector<std::vector<SimulationObject*>>& objects);
+    void initialize(const std::vector<std::vector<LogicalProcess*>>& lps);
 
     void receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
@@ -83,10 +83,10 @@ private:
 
     unsigned int num_worker_threads_;
     bool is_lp_migration_on_;
-    unsigned int num_local_objects_;
+    unsigned int num_local_lps_;
 
-    std::unordered_map<std::string, SimulationObject*> objects_by_name_;
-    std::unordered_map<std::string, unsigned int> local_object_id_by_name_;
+    std::unordered_map<std::string, LogicalProcess*> lps_by_name_;
+    std::unordered_map<std::string, unsigned int> local_lp_id_by_name_;
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<TimeWarpEventSet> event_set_;

@@ -1,38 +1,38 @@
 #include "TimeWarpPeriodicStateManager.hpp"
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
 #include "utility/memory.hpp"
 
 namespace warped {
 
-void TimeWarpPeriodicStateManager::initialize(unsigned int num_local_objects) {
+void TimeWarpPeriodicStateManager::initialize(unsigned int num_local_lps) {
 
     // Initialize counts to zero
-    count_ = make_unique<unsigned int []>(num_local_objects);
-    memset(count_.get(), 0, num_local_objects*sizeof(unsigned int));
+    count_ = make_unique<unsigned int []>(num_local_lps);
+    memset(count_.get(), 0, num_local_lps*sizeof(unsigned int));
 
-    TimeWarpStateManager::initialize(num_local_objects);
+    TimeWarpStateManager::initialize(num_local_lps);
 }
 
 void TimeWarpPeriodicStateManager::saveState(std::shared_ptr<Event> current_event,
-    unsigned int local_object_id, SimulationObject *object) {
+    unsigned int local_lp_id, LogicalProcess *lp) {
 
     // Save if count is zero. State will always be saved on first call
-    if (count_[local_object_id] == 0) {
+    if (count_[local_lp_id] == 0) {
 
-        auto object_state = object->getState().clone();
+        auto lp_state = lp->getState().clone();
 
         std::list<std::shared_ptr<std::stringstream> > saved_rng_list;
-        for (auto rng = object->rng_list_.begin(); rng != object->rng_list_.end(); rng++) {
+        for (auto rng = lp->rng_list_.begin(); rng != lp->rng_list_.end(); rng++) {
             auto ss = std::make_shared<std::stringstream>();
             (*rng)->getState(*ss);
             saved_rng_list.push_back(ss);
         }
 
-        state_queue_[local_object_id].emplace_back(current_event, std::move(object_state), saved_rng_list);
+        state_queue_[local_lp_id].emplace_back(current_event, std::move(lp_state), saved_rng_list);
 
-        count_[local_object_id] = period_ - 1;
+        count_[local_lp_id] = period_ - 1;
     } else {
-        count_[local_object_id]--;
+        count_[local_lp_id]--;
     }
 
 }

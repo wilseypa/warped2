@@ -2,9 +2,9 @@
 // are used to test various warped componenets.
 
 #include "Event.hpp"
-#include "ObjectState.hpp"
+#include "LPState.hpp"
 #include "serialization.hpp"
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
 
 enum enum_type {
     VALUE1,
@@ -16,14 +16,14 @@ struct some_type {
     enum_type a;
 };
 
-WARPED_DEFINE_OBJECT_STATE_STRUCT(test_ObjectState) {
-    test_ObjectState(int x=0): x(x) {
+WARPED_DEFINE_LP_STATE_STRUCT(test_LPState) {
+    test_LPState(int x=0): x(x) {
         y = std::make_shared<int>(0);
         *y = 0;
         a_map = std::make_shared<std::map<unsigned int, std::shared_ptr<enum_type>>>();
     }
 
-    test_ObjectState(const test_ObjectState& other) {
+    test_LPState(const test_LPState& other) {
         x = other.x;
         y = std::make_shared<int>(*other.y);
 
@@ -60,12 +60,12 @@ struct test_Event : public warped::Event {
 };
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(test_Event)
 
-class test_SimulationObject : public warped::SimulationObject {
+class test_LogicalProcess : public warped::LogicalProcess {
 public:
-    test_SimulationObject(const std::string& name, int x=0)
-        : SimulationObject(name), state(x) {}
+    test_LogicalProcess(const std::string& name, int x=0)
+        : LogicalProcess(name), state(x) {}
 
-    warped::ObjectState& getState() { return state; }
+    warped::LPState& getState() { return state; }
 
     std::vector<std::shared_ptr<warped::Event>> receiveEvent(const warped::Event& event) {
         std::vector<std::shared_ptr<warped::Event>> v;
@@ -74,7 +74,7 @@ public:
     }
 
 private:
-    test_ObjectState state;
+    test_LPState state;
 };
 
 

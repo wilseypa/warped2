@@ -10,7 +10,7 @@
 namespace TCLAP { class Arg; }
 
 namespace warped {
-class SimulationObject;
+class LogicalProcess;
 class Event;
 
 // The main entry point into the simulation.
@@ -34,20 +34,20 @@ public:
     // This constructor doesn't do any command line processing.
     Simulation(const std::string& config_file_name, unsigned int max_time);
 
-    // This will start the simulation, using the objects passed in.
+    // This will start the simulation, using the lps passed in.
     //
-    // If a Time Warp simulation is run, the objects will be automatically
+    // If a Time Warp simulation is run, the lps will be automatically
     // partitioned.
-    void simulate(const std::vector<SimulationObject*>& objects);
+    void simulate(const std::vector<LogicalProcess*>& lps);
 
     // A model can perform its own partitioning by calling this overload of simulate().
     //
     // The user supplied partition may not be used if a specific partitioner
     // is configured.
-    void simulate(const std::vector<SimulationObject*>& objects,
+    void simulate(const std::vector<LogicalProcess*>& lps,
                   std::unique_ptr<Partitioner> partitioner);
 
-    static FileStream& getFileStream(SimulationObject* object, const std::string& filename,
+    static FileStream& getFileStream(LogicalProcess* lp, const std::string& filename,
         std::ios_base::openmode mode, std::shared_ptr<Event> this_event);
 
 private:

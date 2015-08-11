@@ -7,7 +7,7 @@
 #include "Event.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 
-/* This class contains output queues for each local object and serves as a base class for
+/* This class contains output queues for each local lp and serves as a base class for
  * a specific cancellation technique.
  */
 
@@ -17,23 +17,23 @@ class TimeWarpOutputManager {
 public:
     TimeWarpOutputManager() = default;
 
-    // Creates an output queue for each object as well as locks for each output queue.
-    void initialize(unsigned int num_local_objects);
+    // Creates an output queue for each lp as well as locks for each output queue.
+    void initialize(unsigned int num_local_lps);
 
-    // Insert an event into the output queue for the specified object
+    // Insert an event into the output queue for the specified lp
     void insertEvent(std::shared_ptr<Event> input_event, std::shared_ptr<Event> output_event,
-        unsigned int local_object_id);
+        unsigned int local_lp_id);
 
-    // Remove any events from the output queue before the gvt for the specified object
-    unsigned int fossilCollect(unsigned int gvt, unsigned int local_object_id);
+    // Remove any events from the output queue before the gvt for the specified lp
+    unsigned int fossilCollect(unsigned int gvt, unsigned int local_lp_id);
 
-    // Number of events in the output queue for the specified object.
-    std::size_t size(unsigned int local_object_id);
+    // Number of events in the output queue for the specified lp.
+    std::size_t size(unsigned int local_lp_id);
 
     // The rollback method will return a vector of negative events that must be sent
     // as anti-messages
     virtual std::unique_ptr<std::vector<std::shared_ptr<Event>>>
-        rollback(std::shared_ptr<Event> straggler_event, unsigned int local_object_id) = 0;
+        rollback(std::shared_ptr<Event> straggler_event, unsigned int local_lp_id) = 0;
 
 protected:
 
@@ -46,12 +46,12 @@ protected:
     };
 
     std::unique_ptr<std::vector<std::shared_ptr<Event>>>
-        removeEventsSentAfter(std::shared_ptr<Event> straggler_event, unsigned int local_object_id);
+        removeEventsSentAfter(std::shared_ptr<Event> straggler_event, unsigned int local_lp_id);
 
     // Array of local output queues and locks
     std::unique_ptr<std::deque<OutputEvent> []> output_queue_;
 
-    unsigned int num_local_objects_;
+    unsigned int num_local_lps_;
 };
 
 }

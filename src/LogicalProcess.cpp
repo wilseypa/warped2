@@ -1,4 +1,4 @@
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
 
 #include <memory>
 #include <string>
@@ -10,15 +10,15 @@
 
 namespace warped {
 
-SimulationObject::SimulationObject(const std::string& name) : name_(name) {}
+LogicalProcess::LogicalProcess(const std::string& name) : name_(name) {}
 
-std::vector<std::shared_ptr<Event>> SimulationObject::initializeObject()  { return {}; }
+std::vector<std::shared_ptr<Event>> LogicalProcess::initializeLP()  { return {}; }
 
-FileStream& SimulationObject::getInputFileStream(const std::string& filename) {
+FileStream& LogicalProcess::getInputFileStream(const std::string& filename) {
     return Simulation::getFileStream(this, filename, std::ios_base::in, nullptr);
 }
 
-FileStream& SimulationObject::getOutputFileStream(const std::string& filename,
+FileStream& LogicalProcess::getOutputFileStream(const std::string& filename,
     std::shared_ptr<Event> this_event) {
 
     return Simulation::getFileStream(this, filename, std::ios_base::out, this_event);

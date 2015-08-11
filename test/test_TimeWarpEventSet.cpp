@@ -11,10 +11,10 @@
 
 TEST_CASE("Test the event set operations") {
 
-    unsigned int num_objects = 4, num_schedulers = 1, num_threads = 1;
+    unsigned int num_lps = 4, num_schedulers = 1, num_threads = 1;
     warped::TimeWarpEventSet twes;
-    std::vector<std::vector<warped::SimulationObject*>> objects = {{nullptr}}; // One item just to avoid divide by zero
-    twes.initialize(objects, num_objects, false, num_threads);
+    std::vector<std::vector<warped::LogicalProcess*>> lps = {{nullptr}}; // One item just to avoid divide by zero
+    twes.initialize(lps, num_lps, false, num_threads);
     std::shared_ptr<warped::Event> spe, restored_event;
     REQUIRE(twes.getEvent(0) == nullptr);
 

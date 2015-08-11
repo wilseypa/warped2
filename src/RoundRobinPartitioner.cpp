@@ -3,12 +3,12 @@
 #include <vector>
 #include <cmath>
 
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
 
 namespace warped {
 
-std::vector<std::vector<SimulationObject*>> RoundRobinPartitioner::partition(
-                                             const std::vector<SimulationObject*>& objects,
+std::vector<std::vector<LogicalProcess*>> RoundRobinPartitioner::partition(
+                                             const std::vector<LogicalProcess*>& lps,
                                              const unsigned int num_partitions) const {
 
     if (part_weights_.empty()) {
@@ -27,16 +27,16 @@ std::vector<std::vector<SimulationObject*>> RoundRobinPartitioner::partition(
         }
     }
 
-    std::vector<unsigned int> num_objects_by_partition;
+    std::vector<unsigned int> num_lps_by_partition;
     for (auto& w : part_weights_) {
-        num_objects_by_partition.push_back(std::ceil(w*objects.size()));
+        num_lps_by_partition.push_back(std::ceil(w*lps.size()));
     }
 
-    std::vector<std::vector<SimulationObject*>> partitions(num_partitions);
+    std::vector<std::vector<LogicalProcess*>> partitions(num_partitions);
 
-    for (unsigned int i = 0, j = 0; j < objects.size(); ++i) {
-        if (partitions[i % num_partitions].size() < num_objects_by_partition[i % num_partitions]) {
-            partitions[i % num_partitions].push_back(objects[j]);
+    for (unsigned int i = 0, j = 0; j < lps.size(); ++i) {
+        if (partitions[i % num_partitions].size() < num_lps_by_partition[i % num_partitions]) {
+            partitions[i % num_partitions].push_back(lps[j]);
             j++;
         }
     }

@@ -7,14 +7,14 @@
 
 namespace warped {
 
-class SimulationObject;
+class LogicalProcess;
 
 class RoundRobinPartitioner : public Partitioner {
 public:
     RoundRobinPartitioner(std::vector<float> part_weights = {}) : part_weights_(part_weights) {}
 
-    std::vector<std::vector<SimulationObject*>> partition(
-             const std::vector<SimulationObject*>& objects,
+    std::vector<std::vector<LogicalProcess*>> partition(
+             const std::vector<LogicalProcess*>& lps,
              const unsigned int num_partitions) const;
 
 private:

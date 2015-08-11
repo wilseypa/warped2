@@ -9,16 +9,16 @@
 namespace warped {
 
 class EventStatistics;
-class SimulationObject;
+class LogicalProcess;
 
 // This class is an EventDispatcher that runs on a single thread and process.
 class SequentialEventDispatcher : public EventDispatcher {
 public:
     SequentialEventDispatcher(unsigned int max_sim_time, std::unique_ptr<EventStatistics> stats);
 
-    void startSimulation(const std::vector<std::vector<SimulationObject*>>& objects);
+    void startSimulation(const std::vector<std::vector<LogicalProcess*>>& lps);
 
-    FileStream& getFileStream(SimulationObject* object, const std::string& filename,
+    FileStream& getFileStream(LogicalProcess* lp, const std::string& filename,
         std::ios_base::openmode mode, std::shared_ptr<Event> this_event);
 
 private:
@@ -29,7 +29,7 @@ private:
     std::unordered_map<std::string, std::unique_ptr<FileStream, FileStreamDeleter>>
         file_stream_by_filename_;
 
-    std::unordered_map<std::string, SimulationObject*> object_by_filename_;
+    std::unordered_map<std::string, LogicalProcess*> lp_by_filename_;
 
 };
 

@@ -22,7 +22,7 @@
 #include "EventDispatcher.hpp"
 #include "LTSFQueue.hpp"
 #include "Partitioner.hpp"
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
 #include "TimeWarpMPICommunicationManager.hpp"
 #include "TimeWarpMatternGVTManager.hpp"
 #include "TimeWarpLocalGVTManager.hpp"
@@ -62,9 +62,9 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
         termination_manager_(std::move(termination_manager)), tw_stats_(std::move(tw_stats)) {}
 
-void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<SimulationObject*>>&
-                                              objects) {
-    initialize(objects);
+void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<LogicalProcess*>>&
+                                              lps) {
+    initialize(lps);
 
     // Create worker threads
     std::vector<std::thread> threads;
@@ -132,8 +132,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Simu
     }
 
     gvt = (unsigned int)-1;
-    for (unsigned int current_object_id = 0; current_object_id < num_local_objects_; current_object_id++) {
-        unsigned int num_committed = event_set_->fossilCollect(gvt, current_object_id);
+    for (unsigned int current_lp_id = 0; current_lp_id < num_local_lps_; current_lp_id++) {
+        unsigned int num_committed = event_set_->fossilCollect(gvt, current_lp_id);
         tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
     }
 
@@ -166,15 +166,15 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
-            unsigned int current_object_id = local_object_id_by_name_[event->receiverName()];
-            SimulationObject* current_object = objects_by_name_[event->receiverName()];
+            unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];
+            LogicalProcess* current_lp = lps_by_name_[event->receiverName()];
 
             // Get the last processed event so we can check for a rollback
-            auto last_processed_event = event_set_->lastProcessedEvent(current_object_id);
+            auto last_processed_event = event_set_->lastProcessedEvent(current_lp_id);
 
             // The rules with event processing
             //      1. Negative events are given priority over positive events if they both exist
-            //          in the objects input queue
+            //          in the lps input queue
             //      2. We assume that if we have a negative message, then we also have the positive
             //          message either in the input queue or in the processed queue. If the positive
             //          event is in the processed queue, then a rollback will occur and both events
@@ -198,10 +198,10 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // Check to see if event is NEGATIVE and cancel
             if (event->event_type_ == EventType::NEGATIVE) {
-                event_set_->acquireInputQueueLock(current_object_id);
-                event_set_->cancelEvent(current_object_id, event);
-                event_set_->startScheduling(current_object_id);
-                event_set_->releaseInputQueueLock(current_object_id);
+                event_set_->acquireInputQueueLock(current_lp_id);
+                event_set_->cancelEvent(current_lp_id, event);
+                event_set_->startScheduling(current_lp_id);
+                event_set_->releaseInputQueueLock(current_lp_id);
 
                 tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
                 continue;
@@ -220,15 +220,15 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                     lowest_timestamp, thread_id, local_gvt_flag);
 
             // process event and get new events
-            auto new_events = current_object->receiveEvent(*event);
+            auto new_events = current_lp->receiveEvent(*event);
 
             tw_stats_->upCount(EVENTS_PROCESSED, thread_id);
 
             // Save state
-            state_manager_->saveState(event, current_object_id, current_object);
+            state_manager_->saveState(event, current_lp_id, current_lp);
 
             // Send new events
-            sendEvents(event, new_events, current_object_id, current_object);
+            sendEvents(event, new_events, current_lp_id, current_lp);
 
             if (comm_manager_->getNumProcesses() > 1) {
                 gvt = mattern_gvt_manager_->getGVT();
@@ -236,27 +236,27 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 gvt = local_gvt_manager_->getGVT();
             }
 
-            if (gvt > current_object->last_fossil_collect_gvt_) {
-                current_object->last_fossil_collect_gvt_ = gvt;
+            if (gvt > current_lp->last_fossil_collect_gvt_) {
+                current_lp->last_fossil_collect_gvt_ = gvt;
 
-                // Fossil collect all queues for this object
-                twfs_manager_->fossilCollect(gvt, current_object_id);
-                output_manager_->fossilCollect(gvt, current_object_id);
+                // Fossil collect all queues for this lp
+                twfs_manager_->fossilCollect(gvt, current_lp_id);
+                output_manager_->fossilCollect(gvt, current_lp_id);
 
                 unsigned int event_fossil_collect_time =
-                    state_manager_->fossilCollect(gvt, current_object_id);
+                    state_manager_->fossilCollect(gvt, current_lp_id);
 
                 unsigned int num_committed =
-                    event_set_->fossilCollect(event_fossil_collect_time, current_object_id);
+                    event_set_->fossilCollect(event_fossil_collect_time, current_lp_id);
 
                 tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
             }
 
-            // Move the next event from object into the schedule queue
+            // Move the next event from lp into the schedule queue
             // Also transfer old event to processed queue
-            event_set_->acquireInputQueueLock(current_object_id);
-            event_set_->replenishScheduler(current_object_id);
-            event_set_->releaseInputQueueLock(current_object_id);
+            event_set_->acquireInputQueueLock(current_lp_id);
+            event_set_->replenishScheduler(current_lp_id);
+            event_set_->releaseInputQueueLock(current_lp_id);
 
         } else {
             // This thread no longer has anything to do because it's schedule queue is empty.
@@ -284,19 +284,19 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
 }
 
 void TimeWarpEventDispatcher::sendEvents(std::shared_ptr<Event> source_event,
-    std::vector<std::shared_ptr<Event>> new_events, unsigned int sender_object_id,
-    SimulationObject *sender_object) {
+    std::vector<std::shared_ptr<Event>> new_events, unsigned int sender_lp_id,
+    LogicalProcess *sender_lp) {
 
     for (auto& e: new_events) {
 
         // Make sure not to send any events past max time so we can terminate simulation
         if (e->timestamp() <= max_sim_time_) {
-            e->sender_name_ = sender_object->name_;
+            e->sender_name_ = sender_lp->name_;
             e->send_time_ = source_event->timestamp();
-            e->generation_ = sender_object->generation_++;
+            e->generation_ = sender_lp->generation_++;
 
             // Save sent events so that they can be sent as anti-messages in the case of a rollback
-            output_manager_->insertEvent(source_event, e, sender_object_id);
+            output_manager_->insertEvent(source_event, e, sender_lp_id);
 
             unsigned int node_id = comm_manager_->getNodeID(e->receiverName());
             if (node_id == comm_manager_->getID()) {
@@ -318,12 +318,12 @@ void TimeWarpEventDispatcher::sendEvents(std::shared_ptr<Event> source_event,
 }
 
 void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
-    unsigned int receiver_object_id = local_object_id_by_name_[event->receiverName()];
+    unsigned int receiver_lp_id = local_lp_id_by_name_[event->receiverName()];
 
     // NOTE: Event is assumed to be less than the maximum simulation time.
-    event_set_->acquireInputQueueLock(receiver_object_id);
-    event_set_->insertEvent(receiver_object_id, event);
-    event_set_->releaseInputQueueLock(receiver_object_id);
+    event_set_->acquireInputQueueLock(receiver_lp_id);
+    event_set_->insertEvent(receiver_lp_id, event);
+    event_set_->releaseInputQueueLock(receiver_lp_id);
 }
 
 void TimeWarpEventDispatcher::cancelEvents(
@@ -357,8 +357,8 @@ void TimeWarpEventDispatcher::cancelEvents(
 
 void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
 
-    unsigned int local_object_id = local_object_id_by_name_[straggler_event->receiverName()];
-    SimulationObject* current_object = objects_by_name_[straggler_event->receiverName()];
+    unsigned int local_lp_id = local_lp_id_by_name_[straggler_event->receiverName()];
+    LogicalProcess* current_lp = lps_by_name_[straggler_event->receiverName()];
 
     // Statistics count
     if (straggler_event->event_type_ == EventType::POSITIVE) {
@@ -368,24 +368,24 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
     }
 
     // Rollback output file stream. XXX so far this is not used by any models
-    twfs_manager_->rollback(straggler_event, local_object_id);
+    twfs_manager_->rollback(straggler_event, local_lp_id);
 
     // We have major problems if we are rolling back past the GVT
     assert(straggler_event->timestamp() >= mattern_gvt_manager_->getGVT());
 
     // Move processed events larger  than straggler back to input queue.
-    event_set_->acquireInputQueueLock(local_object_id);
-    event_set_->rollback(local_object_id, straggler_event);
-    event_set_->releaseInputQueueLock(local_object_id);
+    event_set_->acquireInputQueueLock(local_lp_id);
+    event_set_->rollback(local_lp_id, straggler_event);
+    event_set_->releaseInputQueueLock(local_lp_id);
 
     // Restore state by getting most recent saved state before the straggler and coast forwarding.
-    auto restored_state_event = state_manager_->restoreState(straggler_event, local_object_id,
-        current_object);
+    auto restored_state_event = state_manager_->restoreState(straggler_event, local_lp_id,
+        current_lp);
     assert(restored_state_event);
     assert(*restored_state_event < *straggler_event);
 
     // Send anti-messages
-    auto events_to_cancel = output_manager_->rollback(straggler_event, local_object_id);
+    auto events_to_cancel = output_manager_->rollback(straggler_event, local_lp_id);
     if (events_to_cancel != nullptr) {
         cancelEvents(std::move(events_to_cancel));
     }
@@ -396,10 +396,10 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
 void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_event, 
                                             std::shared_ptr<Event> restored_state_event) {
 
-    SimulationObject* object = objects_by_name_[straggler_event->receiverName()];
-    unsigned int current_object_id = local_object_id_by_name_[straggler_event->receiverName()];
+    LogicalProcess* lp = lps_by_name_[straggler_event->receiverName()];
+    unsigned int current_lp_id = local_lp_id_by_name_[straggler_event->receiverName()];
 
-    auto events = event_set_->getEventsForCoastForward(current_object_id, straggler_event,
+    auto events = event_set_->getEventsForCoastForward(current_lp_id, straggler_event,
         restored_state_event);
 
     // NOTE: events are in order from LARGEST to SMALLEST, so reprocess backwards
@@ -409,7 +409,7 @@ void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_even
         assert(**event_riterator <= *straggler_event);
 
         // This just updates state, ignore new events
-        object->receiveEvent(**event_riterator);
+        lp->receiveEvent(**event_riterator);
 
         tw_stats_->upCount(COAST_FORWARDED_EVENTS, thread_id);
 
@@ -419,30 +419,30 @@ void TimeWarpEventDispatcher::coastForward(std::shared_ptr<Event> straggler_even
 }
 
 void
-TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObject*>>& objects) {
+TimeWarpEventDispatcher::initialize(const std::vector<std::vector<LogicalProcess*>>& lps) {
 
     thread_id = num_worker_threads_;
 
-    num_local_objects_ = 0;
-    for (auto& p: objects) {
-        num_local_objects_ += p.size();
+    num_local_lps_ = 0;
+    for (auto& p: lps) {
+        num_local_lps_ += p.size();
     }
 
-    event_set_->initialize(objects, num_local_objects_, is_lp_migration_on_, num_worker_threads_);
+    event_set_->initialize(lps, num_local_lps_, is_lp_migration_on_, num_worker_threads_);
 
-    unsigned int object_id = 0;
-    for (auto& partition : objects) {
-        for (auto& ob : partition) {
-            objects_by_name_[ob->name_] = ob;
-            local_object_id_by_name_[ob->name_] = object_id;
-            object_id++;
+    unsigned int lp_id = 0;
+    for (auto& partition : lps) {
+        for (auto& lp : partition) {
+            lps_by_name_[lp->name_] = lp;
+            local_lp_id_by_name_[lp->name_] = lp_id;
+            lp_id++;
         }
     }
 
-    // Creates the state queues, output queues, and filestream queues for each local object
-    state_manager_->initialize(num_local_objects_);
-    output_manager_->initialize(num_local_objects_);
-    twfs_manager_->initialize(num_local_objects_);
+    // Creates the state queues, output queues, and filestream queues for each local lp
+    state_manager_->initialize(num_local_lps_);
+    output_manager_->initialize(num_local_lps_);
+    twfs_manager_->initialize(num_local_lps_);
 
     // Register message handlers
     mattern_gvt_manager_->initialize();
@@ -453,16 +453,16 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObje
     local_gvt_manager_->initialize(num_worker_threads_);
 
     // Initialize statistics data structures
-    tw_stats_->initialize(num_worker_threads_, num_local_objects_);
+    tw_stats_->initialize(num_worker_threads_, num_local_lps_);
 
     // Send local initial events and enqueue remote initial events
     auto initial_event = std::make_shared<InitialEvent>();
-    for (auto& partition : objects) {
-        for (auto& ob : partition) {
-            unsigned int object_id = local_object_id_by_name_[ob->name_];
-            auto new_events = ob->initializeObject();
-            sendEvents(initial_event, new_events, object_id, ob);
-            state_manager_->saveState(initial_event, object_id, ob);
+    for (auto& partition : lps) {
+        for (auto& lp : partition) {
+            unsigned int lp_id = local_lp_id_by_name_[lp->name_];
+            auto new_events = lp->initializeLP();
+            sendEvents(initial_event, new_events, lp_id, lp);
+            state_manager_->saveState(initial_event, lp_id, lp);
         }
     }
 
@@ -478,12 +478,12 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<SimulationObje
 }
 
 // XXX This is never used by any models
-FileStream& TimeWarpEventDispatcher::getFileStream(SimulationObject *object,
+FileStream& TimeWarpEventDispatcher::getFileStream(LogicalProcess *lp,
     const std::string& filename, std::ios_base::openmode mode, std::shared_ptr<Event> this_event) {
 
-    unsigned int local_object_id = local_object_id_by_name_[object->name_];
+    unsigned int local_lp_id = local_lp_id_by_name_[lp->name_];
 
-    return *twfs_manager_->getFileStream(filename, mode, local_object_id, this_event);
+    return *twfs_manager_->getFileStream(filename, mode, local_lp_id, this_event);
 }
 
 void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,

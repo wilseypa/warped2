@@ -12,13 +12,13 @@ WARPED_TEST_PROGS = \
     test_Event \
     test_IndividualEventStatistics \
     test_LadderQueue \
-    test_ObjectState \
+    test_LogicalProcess \
+    test_LPState \
     test_ProfileGuidedPartitioner \
 	test_RandomNumberGenerator \
     test_RoundRobinPartitioner \
     test_serialization \
     test_Simulation \
-    test_SimulationObject \
     test_STLLTSFQueue \
     test_TimeWarpMatternGVTManager \
     test_TimeWarpMPICommunicationManager \
@@ -32,4 +32,4 @@ noinst_HEADERS = catch.hpp mocks.hpp
 TESTS = $(WARPED_TEST_PROGS)
 check_PROGRAMS = $(WARPED_TEST_PROGS)
 
-CLEANFILES = test_in.txt test_out1.txt test_out2.txt test_out3.txt profile_guided_stats.test
+CLEANFILES = test_in.txt test_out1.txt test_out2.txt test_out3.txt profile_guided_stats.test partition0.out partition1.out

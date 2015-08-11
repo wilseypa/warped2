@@ -1,5 +1,5 @@
-#ifndef SIMULATION_OBJECT_HPP
-#define SIMULATION_OBJECT_HPP
+#ifndef LOGICAL_PROCESS_HPP
+#define LOGICAL_PROCESS_HPP
 
 #include <string>
 #include <vector>
@@ -12,41 +12,41 @@
 namespace warped {
 
 class Event;
-struct ObjectState;
+struct LPState;
 class FileStream;
 class EventDispatcher;
 
-// SimulationObjects are the core of the simulation. All models must define at
-// least one class implementing this interface. Each SimulationObject has a
+// LogicalProcess's are the core of the simulation. All models must define at
+// least one class implementing this interface. Each LogicalProcess has a
 // name_ that is used to identify the object. It must be unique across all
-// SimulationObjects.
-class SimulationObject {
+// LogicalProcess.
+class LogicalProcess {
 public:
-    SimulationObject(const std::string& name);
-    virtual ~SimulationObject() {}
+    LogicalProcess(const std::string& name);
+    virtual ~LogicalProcess() {}
 
-    // Return the state of this object.
+    // Return the state of this LP.
     //
     // Any state that is mutable once the simulation has begun must be stored
-    // in an ObjectState class. This object is saved and restored repeatedly
+    // in an LPState class. This object is saved and restored repeatedly
     // during the course of the simulation.
-    virtual ObjectState& getState() = 0;
+    virtual LPState& getState() = 0;
 
-    // This is the main function of the SimulationObject which processes incoming events.
+    // This is the main function of the LogicalProcess which processes incoming events.
     //
-    // It is called when an object is sent an event. The receive time of the
-    // event is the current simulation time. The object may create new events
+    // It is called when an LP is sent an event. The receive time of the
+    // event is the current simulation time. The LP may create new events
     // and return then as a vector, or return an empty vector if no events are
     // created. Events must not be created with a timestamp less than the
     // current simulation time.
     virtual std::vector<std::shared_ptr<Event>> receiveEvent(const Event& event) = 0;
 
-    // Initialize object before the simulation starts.
+    // Initialize LP before the simulation starts.
     //
     // This is an optional method that is called before the simulation begins.
-    // If the object needs any random number generators, they must be registered here. The object
+    // If the LP needs any random number generators, they must be registered here. The LP
     // may also create new events and return them as a vector.
-    virtual std::vector<std::shared_ptr<Event>> initializeObject();
+    virtual std::vector<std::shared_ptr<Event>> initializeLP();
 
     FileStream& getInputFileStream(const std::string& filename);
 
@@ -66,7 +66,7 @@ public:
 };
 
 template<class RNGType>
-void SimulationObject::registerRNG(std::shared_ptr<RNGType> new_rng) {
+void LogicalProcess::registerRNG(std::shared_ptr<RNGType> new_rng) {
     auto rng = std::make_shared<RNGDerived<RNGType>>(new_rng);
     rng_list_.push_back(rng);
 }

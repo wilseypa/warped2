@@ -13,7 +13,7 @@
 #include <memory>
 #include <atomic>
 
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
 #include "Event.hpp"
 #include "utility/memory.hpp"
 #include "TicketLock.hpp"
@@ -25,16 +25,16 @@ class TimeWarpEventSet {
 public:
     TimeWarpEventSet() = default;
 
-    void initialize (const std::vector<std::vector<SimulationObject*>>& objects,
-                     unsigned int num_of_objects,
+    void initialize (const std::vector<std::vector<LogicalProcess*>>& lps,
+                     unsigned int num_of_lps,
                      bool is_lp_migration_on,
                      unsigned int num_of_worker_threads);
 
-    void acquireInputQueueLock (unsigned int obj_id);
+    void acquireInputQueueLock (unsigned int lp_id);
 
-    void releaseInputQueueLock (unsigned int obj_id);
+    void releaseInputQueueLock (unsigned int lp_id);
 
-    void insertEvent (unsigned int obj_id, std::shared_ptr<Event> event);
+    void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
@@ -44,37 +44,37 @@ public:
 #endif
 #endif
 
-    std::shared_ptr<Event> lastProcessedEvent (unsigned int obj_id);
+    std::shared_ptr<Event> lastProcessedEvent (unsigned int lp_id);
 
-    void rollback (unsigned int obj_id, std::shared_ptr<Event> straggler_event);
+    void rollback (unsigned int lp_id, std::shared_ptr<Event> straggler_event);
 
     std::unique_ptr<std::vector<std::shared_ptr<Event>>> getEventsForCoastForward (
-                        unsigned int obj_id, 
+                        unsigned int lp_id, 
                         std::shared_ptr<Event> straggler_event, 
                         std::shared_ptr<Event> restored_state_event);
 
-    void startScheduling (unsigned int obj_id);
+    void startScheduling (unsigned int lp_id);
 
-    void replenishScheduler (unsigned int obj_id);
+    void replenishScheduler (unsigned int lp_id);
 
-    void cancelEvent (unsigned int obj_id, std::shared_ptr<Event> cancel_event);
+    void cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 
     void printEvent (std::shared_ptr<Event> event);
 
-    unsigned int fossilCollect (unsigned int fossil_collect_time, unsigned int obj_id);
+    unsigned int fossilCollect (unsigned int fossil_collect_time, unsigned int lp_id);
 
 private:
-    // Number of simulation objects
-    unsigned int num_of_objects_ = 0;
+    // Number of lps
+    unsigned int num_of_lps_ = 0;
 
     // Lock to protect the unprocessed queues
     std::unique_ptr<std::mutex []> input_queue_lock_;
 
-    // Queues to hold the unprocessed events for each simulation object
+    // Queues to hold the unprocessed events for each lp
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
                                             compareEvents>>> input_queue_;
 
-    // Queues to hold the processed events for each simulation object
+    // Queues to hold the processed events for each lp
     std::vector<std::unique_ptr<std::deque<std::shared_ptr<Event>>>> 
                                                             processed_queue_;
 
@@ -105,7 +105,7 @@ private:
     // Map worker thread to a schedule queue
     std::vector<unsigned int> worker_thread_scheduler_map_;
 
-    // Event scheduled from all objects
+    // Event scheduled from all lps
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
 };
 
