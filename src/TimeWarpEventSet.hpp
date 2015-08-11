@@ -38,6 +38,12 @@ public:
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
+#ifdef LADDER_QUEUE_SCHEDULER
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+    unsigned int lowestTimestamp (unsigned int thread_id);
+#endif
+#endif
+
     std::shared_ptr<Event> lastProcessedEvent (unsigned int obj_id);
 
     void rollback (unsigned int obj_id, std::shared_ptr<Event> straggler_event);

@@ -314,7 +314,14 @@ check the following configurations:\n") + invalid_string);
 
             std::cout << "Type of Schedule queue:    ";
 #ifdef LADDER_QUEUE_SCHEDULER
-            std::cout << "Ladder Queue\n";
+            std::cout << "Ladder Queue - ";
+
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+            std::cout << "Partially unsorted (Relaxed)\n";
+#else
+            std::cout << "Strictly sorted\n";
+#endif
+
 #else
             std::cout << "MultiSet\n";
 #endif

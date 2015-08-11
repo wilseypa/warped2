@@ -34,10 +34,19 @@ std::shared_ptr<Event> LadderQueue::begin() {
     }
 
     /* Check required because rung recursion can affect n_rung_ value */
-    if (n_rung_) { 
+    if (n_rung_) {
+
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+        for (auto event : *rung_[n_rung_-1][bucket_index]) {
+            bottom_.push_front(event);
+        }
+        bottom_start_ = r_current_[n_rung_-1];
+#else
         for (auto event : *rung_[n_rung_-1][bucket_index]) {
             bottom_.insert(event);
         }
+#endif
+
         rung_[n_rung_-1][bucket_index]->clear();
 
         /* If bucket returned is the last valid bucket of the rung */
@@ -94,9 +103,17 @@ std::shared_ptr<Event> LadderQueue::begin() {
         assert(0);
     }
 
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+    for (auto event : *rung_[n_rung_-1][bucket_index]) {
+        bottom_.push_front(event);
+    }
+    bottom_start_ = r_current_[n_rung_-1];
+#else
     for (auto event : *rung_[n_rung_-1][bucket_index]) {
         bottom_.insert(event);
     }
+#endif
+
     rung_[n_rung_-1][bucket_index]->clear();
 
     /* If bucket returned is the last valid rung of the bucket */
@@ -196,7 +213,13 @@ bool LadderQueue::erase(std::shared_ptr<Event> event) {
 
     /* Check and erase from bottom, if present */
     if (bottom_.empty()) assert(0);
+
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+    (void) bottom_.remove(event);
+#else
     (void) bottom_.erase(event);
+#endif
+
     return true;
 }
 
@@ -248,16 +271,29 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
         if (n_rung_ >= MAX_RUNG_CNT) {
             /* Intentionally let the bottom continue to overflow */
             //ref sec 2.4 of ladderq + when bucket width becomes static
+
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+            bottom_.push_front(event);
+#else
             bottom_.insert(event);
+#endif
+
             return;
         }
 
         /* Check if new event to be inserted is smaller than what is present in BOTTOM */
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+        if (bottom_start_ > timestamp) {
+            bottom_start_ = timestamp;
+        }
+        createRungForBottomTransfer(bottom_start_);
+#else
         auto bucket_start_ts = (*bottom_.begin())->timestamp();
         if (bucket_start_ts > timestamp) {
             bucket_start_ts = timestamp;
         }
         createRungForBottomTransfer(bucket_start_ts);
+#endif
 
         /* Transfer bottom to new rung */
         for (auto iter = bottom_.begin(); iter != bottom_.end(); iter++) {
@@ -290,9 +326,20 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
         rung_[n_rung_-1][bucket_index]->push_front(event);
 
     } else { /* If BOTTOM is within threshold */
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+        bottom_.push_front(event);
+#else
         bottom_.insert(event);
+#endif
     }
 }
+
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+unsigned int LadderQueue::lowestTimestamp() {
+
+    return bottom_start_;
+}
+#endif
 
 bool LadderQueue::createNewRung(unsigned int num_events, 
                                 unsigned int init_start_and_cur_val, 

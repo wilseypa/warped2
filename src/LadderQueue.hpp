@@ -29,6 +29,10 @@ public:
     bool erase(std::shared_ptr<Event> event);
     void insert(std::shared_ptr<Event> event);
 
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+    unsigned int lowestTimestamp();
+#endif
+
 private:
     bool createNewRung(unsigned int num_events, 
                         unsigned int init_start_and_cur_val, 
@@ -56,7 +60,12 @@ private:
     unsigned int r_current_[MAX_RUNG_CNT];
 
     /* Bottom */
+#ifdef PARTIALLY_UNSORTED_EVENT_SET
+    std::list<std::shared_ptr<Event>> bottom_;
+    unsigned int bottom_start_ = 0;
+#else
     std::multiset<std::shared_ptr<Event>, compareEvents> bottom_;
+#endif
 };
 
 } // namespace warped
