@@ -2,8 +2,8 @@
 // all necessary warped headers.
 
 #include "Event.hpp"
-#include "ObjectState.hpp"
+#include "LPState.hpp"
 #include "Partitioner.hpp"
 #include "serialization.hpp"
 #include "Simulation.hpp"
-#include "SimulationObject.hpp"
+#include "LogicalProcess.hpp"
