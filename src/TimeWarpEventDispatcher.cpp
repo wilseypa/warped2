@@ -212,7 +212,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
 #if LADDER_QUEUE_SCHEDULER
 #if PARTIALLY_UNSORTED_EVENT_SET
-            lowest_timestamp = event_set_->lowest_timestamp(thread_id);
+            lowest_timestamp = event_set_->lowestTimestamp(thread_id);
 #endif
 #endif
 
