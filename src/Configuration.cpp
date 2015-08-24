@@ -89,7 +89,7 @@ const static std::string DEFAULT_CONFIG = R"x({
     // "round-robin".
     "type": "default",
     // The path to the statistics file that was created from a previous run.
-    // Only used if "partitioning-type" is "provided-guided".
+    // Only used if "partitioning-type" is "profile-guided".
     "file": "statistics.out"
 }
 

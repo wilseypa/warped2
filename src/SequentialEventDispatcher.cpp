@@ -45,6 +45,7 @@ void SequentialEventDispatcher::startSimulation(
     while ((current_sim_time_ <= max_sim_time_) && !events.empty()) {
         auto event = events.pop();
         current_sim_time_ = event->timestamp();
+        if (current_sim_time_ > max_sim_time_) break;
         auto receiver = lps_by_name[event->receiverName()];
         auto new_events = receiver->receiveEvent(*event.get());
         for (auto& e : new_events) {
