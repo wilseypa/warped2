@@ -14,7 +14,7 @@ namespace warped {
 
 STLLTSFQueue::STLLTSFQueue()
     : queue_([](std::shared_ptr<Event> lhs, std::shared_ptr<Event> rhs) {
-                    return !(*lhs < *rhs);
+                    return !(*lhs <= *rhs);
                 }) {}
 
 bool STLLTSFQueue::empty() const {

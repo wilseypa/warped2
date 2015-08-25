@@ -33,30 +33,36 @@ void SequentialEventDispatcher::startSimulation(
 
     for (auto& lp : lps[0]) {
         auto new_events = lp->initializeLP();
+        std::vector<std::shared_ptr<warped::Event>> valid_events;
         for (auto& e : new_events) {
+            if (e->timestamp() > max_sim_time_) continue;
             e->sender_name_ = lp->name_;
+            events.push(e);
+            valid_events.push_back(e);
         }
-        stats_->record(lp->name_, current_sim_time_, new_events);
-        events.push(std::move(new_events));
+        stats_->record(lp->name_, current_sim_time_, valid_events);
         lps_by_name[lp->name_] = lp;
     }
 
     int count = 0;
-    while ((current_sim_time_ <= max_sim_time_) && !events.empty()) {
+    while (!events.empty()) {
         auto event = events.pop();
         current_sim_time_ = event->timestamp();
-        if (current_sim_time_ > max_sim_time_) break;
         auto receiver = lps_by_name[event->receiverName()];
         auto new_events = receiver->receiveEvent(*event.get());
+        std::vector<std::shared_ptr<warped::Event>> valid_events;
         for (auto& e : new_events) {
+            if (e->timestamp() > max_sim_time_) continue;
             e->sender_name_ = receiver->name_;
+            e->send_time_   = event->timestamp();
+            events.push(e);
+            valid_events.push_back(e);
         }
         count++;
-        stats_->record(event->receiverName(), current_sim_time_, new_events);
-        events.push(std::move(new_events));
+        stats_->record(event->receiverName(), current_sim_time_, valid_events);
     }
 
-    std::cout << "Events committed: " << count << std::endl;
+    std::cout << "Events processed: " << count << std::endl;
     stats_->writeToFile();
 }
 
