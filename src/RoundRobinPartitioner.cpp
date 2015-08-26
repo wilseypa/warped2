@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cmath>
+#include <stdexcept>
 
 #include "LogicalProcess.hpp"
 
