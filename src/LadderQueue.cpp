@@ -154,7 +154,7 @@ bool LadderQueue::erase(std::shared_ptr<Event> event) {
         if (top_.empty()) assert(0);
         for (auto iter = top_.begin(); iter != top_.end(); iter++) {
             if (iter == top_.end()) assert(0);
-            if (*iter == event) {
+            if ( (*iter == event) && ((*iter)->receiverName() == event->receiverName()) ) {
                 (void) top_.erase(iter);
                 status = true;
                 break;
@@ -177,7 +177,7 @@ bool LadderQueue::erase(std::shared_ptr<Event> event) {
         if (!rung_bucket->empty()) {
             for (auto iter = rung_bucket->begin(); ; iter++) {
                 if (iter == rung_bucket->end()) assert(0);
-                if ((*iter) == event) {
+                if ( (*iter == event) && ((*iter)->receiverName() == event->receiverName()) ) {
                     (void) rung_bucket->erase(iter);
                     status = true;
                     break;
