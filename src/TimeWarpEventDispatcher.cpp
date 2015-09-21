@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <malloc.h>
 
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
@@ -96,8 +97,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
             } else {
                 gvt = local_gvt_manager_->getGVT();
                 mattern_gvt_manager_->setGVT(gvt);
-                std::cout << "GVT: " << gvt << std::endl;
-                tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
+                onGVT(gvt);
             }
         }
 
@@ -105,10 +105,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
         //  the Mattern state and a new GVT calculation can be done.
         if (mattern_gvt_manager_->gvtUpdated()) {
             gvt = mattern_gvt_manager_->getGVT();
-            if (comm_manager_->getID() == 0) {
-                std::cout << "GVT: " << gvt << std::endl;
-            }
-            tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
+            onGVT(gvt);
         }
 
         // We can start a "local GVT calculation" two different ways
@@ -143,6 +140,18 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
         tw_stats_->writeToFile(num_seconds);
         tw_stats_->printStats();
     }
+}
+
+void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
+    auto malloc_info = mallinfo();
+    uint64_t mem = malloc_info.uordblks;
+
+    if (comm_manager_->getID() == 0) {
+        std::cout << "GVT: " << gvt << std::endl;
+    }
+
+    uint64_t c = tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
+    tw_stats_->updateAverage(AVERAGE_MAX_MEMORY, mem, c);
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {

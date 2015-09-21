@@ -32,9 +32,10 @@ struct Stats {
         uint64_t,                   // Events committed             11
         uint64_t,                   // Total negative events sent   12
         uint64_t,                   // Cancelled events             13
-        uint64_t,                   // GVT cycles                   14
-        uint64_t,                   // Number of objects            15
-        uint64_t                    // dummy/number of elements     16
+        uint64_t,                   // Average Maximum Memory       14
+        uint64_t,                   // GVT cycles                   15
+        uint64_t,                   // Number of objects            16
+        uint64_t                    // dummy/number of elements     17
     > stats_;
 
     template<unsigned I>
@@ -58,9 +59,10 @@ const stats_index<10> EVENTS_PROCESSED;
 const stats_index<11> EVENTS_COMMITTED;
 const stats_index<12> TOTAL_NEGATIVE_EVENTS;
 const stats_index<13> CANCELLED_EVENTS;
-const stats_index<14> GVT_CYCLES;
-const stats_index<15> NUM_OBJECTS;
-const stats_index<16> NUM_STATISTICS;
+const stats_index<14> AVERAGE_MAX_MEMORY;
+const stats_index<15> GVT_CYCLES;
+const stats_index<16> NUM_OBJECTS;
+const stats_index<17> NUM_STATISTICS;
 
 class TimeWarpStatistics {
 public:
@@ -71,8 +73,14 @@ public:
     void initialize(unsigned int num_worker_threads, unsigned int num_objects);
 
     template <unsigned I>
-    void upCount(stats_index<I> i, unsigned int thread_id, unsigned int num = 1) {
+    void updateAverage(stats_index<I> i, uint64_t new_val, unsigned int count) {
+        global_stats_[i] = (new_val + (count - 1) * global_stats_[i]) / (count);
+    }
+
+    template <unsigned I>
+    uint64_t upCount(stats_index<I> i, unsigned int thread_id, unsigned int num = 1) {
         local_stats_[thread_id][i] += num;
+        return local_stats_[thread_id][i];
     }
 
     template <unsigned I>

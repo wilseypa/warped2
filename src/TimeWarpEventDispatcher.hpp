@@ -79,6 +79,8 @@ private:
 
     void receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
+    void onGVT(unsigned int gvt);
+
 /* ============================================================================ */
 
     unsigned int num_worker_threads_;

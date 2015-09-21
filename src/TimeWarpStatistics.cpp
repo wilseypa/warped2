@@ -69,6 +69,9 @@ void TimeWarpStatistics::calculateStats() {
             case COAST_FORWARDED_EVENTS.value:
                 sumReduceLocal(COAST_FORWARDED_EVENTS, coast_forward_events_by_node_);
                 break;
+            case AVERAGE_MAX_MEMORY.value:
+                global_stats_[AVERAGE_MAX_MEMORY] /= (1024*1024); // B to MB
+                break;
             case GVT_CYCLES.value:
                 global_stats_[GVT_CYCLES] = local_stats_[num_worker_threads_][GVT_CYCLES];
                 break;
@@ -115,7 +118,8 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
         << global_stats_[COAST_FORWARDED_EVENTS]      << ",\t"
         << global_stats_[CANCELLED_EVENTS]            << ",\t"
         << global_stats_[EVENTS_PROCESSED]            << ",\t"
-        << global_stats_[EVENTS_COMMITTED]            << std::endl;
+        << global_stats_[EVENTS_COMMITTED]            << ",\t"
+        << global_stats_[AVERAGE_MAX_MEMORY]           << std::endl;
 
     ofs.close();
 }
@@ -164,6 +168,7 @@ void TimeWarpStatistics::printStats() {
               << "\tTotal events processed:    " << global_stats_[EVENTS_PROCESSED] << "\n"
               << "\tTotal events committed:    " << global_stats_[EVENTS_COMMITTED] << "\n\n"
 
+              << "\tAverage maximum memory:    " << global_stats_[AVERAGE_MAX_MEMORY] << " MB\n"
               << "\tGVT cycles:                " << global_stats_[GVT_CYCLES] << std::endl << std::endl;
 
 
