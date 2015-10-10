@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <tuple>
+#include <algorithm>
 
 #include "Configuration.hpp"
 #include "EventDispatcher.hpp"
@@ -31,6 +32,7 @@ Simulation::Simulation(const std::string& config_file_name, unsigned int max_sim
     : config_(config_file_name, max_sim_time) {}
 
 void Simulation::simulate(const std::vector<LogicalProcess*>& lps) {
+    check(lps);
 
     auto comm_manager = config_.makeCommunicationManager();
 
@@ -52,6 +54,7 @@ void Simulation::simulate(const std::vector<LogicalProcess*>& lps) {
 void Simulation::simulate(const std::vector<LogicalProcess*>& lps,
     std::unique_ptr<Partitioner> partitioner) {
 
+    check(lps);
     auto comm_manager = config_.makeCommunicationManager();
 
     unsigned int num_partitions = comm_manager->initialize();
@@ -68,6 +71,11 @@ void Simulation::simulate(const std::vector<LogicalProcess*>& lps,
     event_dispatcher_->startSimulation(local_partitions);
 
     comm_manager->finalize();
+}
+
+void Simulation::check(const std::vector<LogicalProcess*>& lps) {
+   if(std::adjacent_find(lps.begin(), lps.end(), equalNames) != lps.end())
+      throw std::runtime_error(std::string("Two LogicalProcess with the same name."));
 }
 
 FileStream& Simulation::getFileStream(LogicalProcess* lp, const std::string& filename,
