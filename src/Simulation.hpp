@@ -6,11 +6,11 @@
 
 #include "Configuration.hpp"
 #include "FileStream.hpp"
+#include "LogicalProcess.hpp"
 
 namespace TCLAP { class Arg; }
 
 namespace warped {
-class LogicalProcess;
 class Event;
 
 // The main entry point into the simulation.
@@ -51,11 +51,14 @@ public:
         std::ios_base::openmode mode, std::shared_ptr<Event> this_event);
 
 private:
+    void inline check(const std::vector<LogicalProcess*>& lps);
     Configuration config_;
-
     static std::unique_ptr<EventDispatcher> event_dispatcher_;
 };
 
+bool inline equalNames(const LogicalProcess* lproc1, const LogicalProcess* lproc2) {
+   return lproc1->name_ == lproc2->name_;
+}
 } // namespace warped
 
 #endif
