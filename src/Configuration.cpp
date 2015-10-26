@@ -393,7 +393,7 @@ std::unique_ptr<Partitioner> Configuration::makePartitioner() {
         return make_unique<RoundRobinPartitioner>();
     } else if (partitioner_type == "profile-guided") {
         auto filename = (*root_)["partitioning"]["file"].asString();
-        return make_unique<ProfileGuidedPartitioner>(filename);
+        return make_unique<ProfileGuidedPartitioner>(filename, "partition");
     }
     throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
 }
@@ -420,7 +420,8 @@ std::unique_ptr<Partitioner> Configuration::makeLocalPartitioner(unsigned int no
     if (partitioner_type == "default" || partitioner_type == "round-robin") {
         return make_unique<RoundRobinPartitioner>();
     } else if (partitioner_type == "profile-guided") {
-        return make_unique<ProfileGuidedPartitioner>("partition"+std::to_string(node_id)+".out");
+        return make_unique<ProfileGuidedPartitioner>("partitions/partition"+std::to_string(node_id)+".out",
+            "partition"+std::to_string(node_id));
     }
     throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
 }

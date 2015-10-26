@@ -15,7 +15,8 @@ class LogicalProcess;
 
 class ProfileGuidedPartitioner : public Partitioner {
 public:
-    ProfileGuidedPartitioner(std::string stats_file, std::vector<float> part_weights = {});
+    ProfileGuidedPartitioner(std::string stats_file, std::string output_prefix,
+                             std::vector<float> part_weights = {});
 
     std::vector<std::vector<LogicalProcess*>> partition(
              const std::vector<LogicalProcess*>& lps,
@@ -31,6 +32,8 @@ protected:
 
 private:
     std::string stats_file_;
+
+    std::string output_prefix_;
 
     mutable std::vector<float> part_weights_;
 };

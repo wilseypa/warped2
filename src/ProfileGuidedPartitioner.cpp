@@ -11,14 +11,18 @@
 #include <cassert>
 
 #include "metis/include/metis.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "Partitioner.hpp"
 #include "LogicalProcess.hpp"
 
 namespace warped {
 
-ProfileGuidedPartitioner::ProfileGuidedPartitioner(std::string stats_file,
-    std::vector<float> part_weights) : stats_file_(stats_file), part_weights_(part_weights) {}
+ProfileGuidedPartitioner::ProfileGuidedPartitioner(std::string stats_file, std::string output_prefix,
+    std::vector<float> part_weights) : stats_file_(stats_file), output_prefix_(output_prefix),
+    part_weights_(part_weights) {}
 
 std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::partition(
 const std::vector<LogicalProcess*>& lps, const unsigned int num_partitions) const {
@@ -27,9 +31,9 @@ const std::vector<LogicalProcess*>& lps, const unsigned int num_partitions) cons
         return {lps};
     }
 
-    if (part_weights_.empty()) {
-        part_weights_.assign(num_partitions, (float)1.0/num_partitions);
-    } else {
+    float* tpwgts = NULL;
+
+    if (!part_weights_.empty()) {
         if (part_weights_.size() != num_partitions) {
             throw std::runtime_error("The number of weights must equal the number of partitions!");
         }
@@ -41,6 +45,8 @@ const std::vector<LogicalProcess*>& lps, const unsigned int num_partitions) cons
         if (weight_sum != 1.0) {
             throw std::runtime_error("The sum of partition weights must equal 1.0!");
         }
+
+        tpwgts = &part_weights_[0];
     }
 
     std::ifstream input(stats_file_);
@@ -112,7 +118,7 @@ const std::vector<LogicalProcess*>& lps, const unsigned int num_partitions) cons
                         NULL,           // vsize
                         &adjwgt[0],     // adjwgt
                         &nparts,        // nparts
-                        &part_weights_[0],// tpwgts
+                        tpwgts,         // tpwgts
                         NULL,           // ubvec
                         NULL,           // options
                         &edgecut,       // edgecut
@@ -181,7 +187,13 @@ const std::vector<unsigned int>& numbering) const {
         new_number[n] = i++;
     }
 
-    std::ofstream ofs("partition"+std::to_string(part_id)+".out", std::ios::trunc | std::ios::out);
+    struct stat st;
+    if (stat("partitions", &st) == -1) {
+        mkdir("partitions", 0755);
+    }
+
+    std::ofstream ofs("partitions/"+output_prefix_+std::to_string(part_id)+".out",
+        std::ios::trunc | std::ios::out);
 
     ofs << "%% The first line contains the following information:\n"
         << "%% <# of vertices> <# of edges> <file format>\n"
