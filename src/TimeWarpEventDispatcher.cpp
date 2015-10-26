@@ -144,7 +144,12 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
 
 void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
     auto malloc_info = mallinfo();
-    uint64_t mem = malloc_info.uordblks;
+    int m = malloc_info.uordblks;
+
+    uint64_t mem = m;
+    if (m < 0) {
+        mem = (uint64_t)2*1024*1024*1024 + (uint64_t)m;
+    }
 
     if (comm_manager_->getID() == 0) {
         std::cout << "GVT: " << gvt << std::endl;
