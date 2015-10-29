@@ -6,10 +6,29 @@ namespace warped {
 SplayTree::SplayTree():
     root(nullptr), current(nullptr) {}
 
+/* Search lowest event */
 std::shared_ptr<Event> SplayTree::begin() {
-    return nullptr;
+
+    std::shared_ptr<Event> event = nullptr;
+    if (!root_ || !num_nodes_) {
+        root_    = nullptr;
+        current_ = nullptr;
+        num_nodes_ = 0;
+    } else {
+        if (!current_) {
+            std::shared_ptr<Node> node = root_;
+            while (node->getLeftNode()) {
+                node = node->getLeftNode();
+            }
+            current_ = node;
+        } else {
+            event = current_->getData();
+        }
+    }
+    return event;
 }
 
+/* Erase event */
 bool SplayTree::erase(std::shared_ptr<Event> event) {
 
     std::shared_ptr<Node> del_node = nullptr;
@@ -86,7 +105,62 @@ bool SplayTree::erase(std::shared_ptr<Event> event) {
     }
 }
 
+/* Insert event */
 void SplayTree::insert(std::shared_ptr<Event> event) {
+
+    std::shared_ptr<Node> node  = nullptr;
+    std::shared_ptr<Node> left  = nullptr;
+    std::shared_ptr<Node> right = nullptr;
+    assert(event);
+
+    std::shared_ptr<Node> new_node = std::make_shared<Node>(event);
+    num_nodes_++;
+
+    if (!root_) {
+        root_    = new_node;
+        current_ = new_node;
+        return;
+    }
+
+    if (!current_->getData()) {
+        node = root_;
+        while (node->getLeftNode()) {
+            node = node->getLeftNode();
+        }
+        current_ = node;
+        assert(current_->getData());
+    }
+
+    if (event <= current_->getData()) {
+        current_->setLeftNode(new_node);
+        new_node->setParentNode(current_);
+        current_ = new_node;
+        splay(new_node);
+        return;
+    }
+
+    node = root_;
+    while (1) {
+        if (event <= node->getData()) {
+            left = node->getLeftNode();
+            if (left) {
+                node = left;
+            } else {
+                node->setLeftNode(new_node);
+                break;
+            }
+        } else {
+            right = node->getRightNode();
+            if (right) {
+                node = right;
+            } else {
+                node->setRightNode(new_node);
+                break;
+            }
+        }
+    }
+    new_node->setParentNode(node);
+    splay(new_node);
 }
 
 /* Splay */
