@@ -88,6 +88,11 @@ const static std::string DEFAULT_CONFIG = R"x({
     // "default" will use user provided partitioning if given, else
     // "round-robin".
     "type": "default",
+
+    // Number of LPs to partition at a time.
+    // Only used if "partitioning-type" is "round-robin".
+    "blocksize": 0,
+
     // The path to the statistics file that was created from a previous run.
     // Only used if "partitioning-type" is "profile-guided".
     "file": "statistics.out"
@@ -390,7 +395,8 @@ check the following configurations:\n") + invalid_string);
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
     auto partitioner_type = (*root_)["partitioning"]["type"].asString();
     if (partitioner_type == "default" || partitioner_type == "round-robin") {
-        return make_unique<RoundRobinPartitioner>();
+        auto blocksize = (*root_)["partitioning"]["blocksize"].asUInt();
+        return make_unique<RoundRobinPartitioner>(blocksize);
     } else if (partitioner_type == "profile-guided") {
         auto filename = (*root_)["partitioning"]["file"].asString();
         return make_unique<ProfileGuidedPartitioner>(filename, "partition");
@@ -418,7 +424,8 @@ std::unique_ptr<Partitioner> Configuration::makeLocalPartitioner(unsigned int no
 
     auto partitioner_type = (*root_)["partitioning"]["type"].asString();
     if (partitioner_type == "default" || partitioner_type == "round-robin") {
-        return make_unique<RoundRobinPartitioner>();
+        auto blocksize = (*root_)["partitioning"]["blocksize"].asUInt();
+        return make_unique<RoundRobinPartitioner>(blocksize);
     } else if (partitioner_type == "profile-guided") {
         return make_unique<ProfileGuidedPartitioner>("partitions/partition"+std::to_string(node_id)+".out",
             "partition"+std::to_string(node_id));

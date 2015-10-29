@@ -11,11 +11,15 @@ class LogicalProcess;
 
 class RoundRobinPartitioner : public Partitioner {
 public:
-    RoundRobinPartitioner() = default;
+    RoundRobinPartitioner(unsigned int block_size) :
+        block_size_(block_size) {}
 
     std::vector<std::vector<LogicalProcess*>> partition(
              const std::vector<LogicalProcess*>& lps,
              const unsigned int num_partitions) const;
+
+private:
+    mutable unsigned int block_size_;
 
 };
 
