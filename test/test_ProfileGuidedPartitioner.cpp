@@ -21,7 +21,7 @@ TEST_CASE("ProfileGuidedPartitioner partitions fully connected graph", "[partiti
     test_LogicalProcess lp2{"ob2"};
     std::vector<warped::LogicalProcess*> lps = {&lp1, &lp2};
 
-    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test").partition(lps, num_parts);
+    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test", "partition").partition(lps, num_parts);
 
     SECTION("correct number of partitions") {
         REQUIRE(partitions.size() == num_parts);
@@ -62,7 +62,7 @@ TEST_CASE("ProfileGuidedPartitioner partitions graph with extra nodes", "[partit
     test_LogicalProcess lp3{"lp3"};
     std::vector<warped::LogicalProcess*> lps = {&lp1, &lp2, &lp3};
 
-    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test").partition(lps, num_parts);
+    auto partitions = warped::ProfileGuidedPartitioner("profile_guided_stats.test", "partition").partition(lps, num_parts);
 
     SECTION("correct number of partitions") {
         REQUIRE(partitions.size() == num_parts);

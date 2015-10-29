@@ -9,7 +9,7 @@
 
 TEST_CASE("The RoundRobinPartitioner partitions correctly", "[RoundRobinPartitioner]") {
     std::vector<warped::LogicalProcess*> lps;
-    warped::RoundRobinPartitioner p;
+    warped::RoundRobinPartitioner p(1);
 
     SECTION("two partitions") {
         SECTION("two lps") {
