@@ -20,33 +20,14 @@
 
 namespace warped {
 
-ProfileGuidedPartitioner::ProfileGuidedPartitioner(std::string stats_file, std::string output_prefix,
-    std::vector<float> part_weights) : stats_file_(stats_file), output_prefix_(output_prefix),
-    part_weights_(part_weights) {}
+ProfileGuidedPartitioner::ProfileGuidedPartitioner(std::string stats_file, std::string output_prefix) :
+    stats_file_(stats_file), output_prefix_(output_prefix) {}
 
 std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::partition(
 const std::vector<LogicalProcess*>& lps, const unsigned int num_partitions) const {
 
     if (num_partitions == 1) {
         return {lps};
-    }
-
-    float* tpwgts = NULL;
-
-    if (!part_weights_.empty()) {
-        if (part_weights_.size() != num_partitions) {
-            throw std::runtime_error("The number of weights must equal the number of partitions!");
-        }
-
-        float weight_sum = 0.0;
-        for (auto& w : part_weights_) {
-            weight_sum += w;
-        }
-        if (weight_sum != 1.0) {
-            throw std::runtime_error("The sum of partition weights must equal 1.0!");
-        }
-
-        tpwgts = &part_weights_[0];
     }
 
     std::ifstream input(stats_file_);
@@ -118,7 +99,7 @@ const std::vector<LogicalProcess*>& lps, const unsigned int num_partitions) cons
                         NULL,           // vsize
                         &adjwgt[0],     // adjwgt
                         &nparts,        // nparts
-                        tpwgts,         // tpwgts
+                        NULL,           // tpwgts
                         NULL,           // ubvec
                         NULL,           // options
                         &edgecut,       // edgecut
