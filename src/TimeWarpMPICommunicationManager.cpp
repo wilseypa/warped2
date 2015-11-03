@@ -105,18 +105,19 @@ unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
             oarchive(std::move(msg));
         }
 
-        send_queue_->pending_request_list_.emplace_back(make_unique<uint8_t[]>(max_buffer_size_));
-        std::memcpy(send_queue_->pending_request_list_.back().buffer_.get(), oss.str().c_str(),
+        auto new_request = make_unique<PendingRequest>(make_unique<uint8_t[]>(max_buffer_size_));
+        send_queue_->pending_request_list_.push_back(std::move(new_request));
+        std::memcpy(send_queue_->pending_request_list_.back()->buffer_.get(), oss.str().c_str(),
                     oss.str().length()+1);
 
         if (MPI_Isend(
-                send_queue_->pending_request_list_.back().buffer_.get(),
+                send_queue_->pending_request_list_.back()->buffer_.get(),
                 oss.str().length()+1,
                 MPI_BYTE,
                 receiver_id,
                 MPI_DATA_TAG,
                 MPI_COMM_WORLD,
-                &send_queue_->pending_request_list_.back().request_) != MPI_SUCCESS) {
+                &send_queue_->pending_request_list_.back()->request_) != MPI_SUCCESS) {
 
             send_queue_->msg_list_lock_.unlock();
             return requests;
@@ -145,16 +146,17 @@ unsigned int TimeWarpMPICommunicationManager::startReceiveRequests() {
             &status);
 
         if (flag) {
-            recv_queue_->pending_request_list_.emplace_back(make_unique<uint8_t[]>(max_buffer_size_));
+            auto new_request = make_unique<PendingRequest>(make_unique<uint8_t[]>(max_buffer_size_));
+            recv_queue_->pending_request_list_.push_back(std::move(new_request));
 
             if (MPI_Irecv(
-                    recv_queue_->pending_request_list_.back().buffer_.get(),
+                    recv_queue_->pending_request_list_.back()->buffer_.get(),
                     max_buffer_size_,
                     MPI_BYTE,
                     MPI_ANY_SOURCE,
                     MPI_DATA_TAG,
                     MPI_COMM_WORLD,
-                    &recv_queue_->pending_request_list_.back().request_) != MPI_SUCCESS) {
+                    &recv_queue_->pending_request_list_.back()->request_) != MPI_SUCCESS) {
 
                 return requests;
             }
@@ -172,15 +174,15 @@ unsigned int TimeWarpMPICommunicationManager::testSendRequests() {
     unsigned int count = 0;
 
     for (auto &pr : send_queue_->pending_request_list_) {
-        MPI_Test(&pr.request_, &pr.flag_, &pr.status_);
-        if (pr.flag_) count++;
+        MPI_Test(&pr->request_, &pr->flag_, &pr->status_);
+        if (pr->flag_) count++;
     }
 
     send_queue_->pending_request_list_.erase(
         std::remove_if(
             send_queue_->pending_request_list_.begin(),
             send_queue_->pending_request_list_.end(),
-            [&](const PendingRequest& pr) { return pr.flag_; }),
+            [&](const std::unique_ptr<PendingRequest>& pr) { return pr->flag_; }),
         send_queue_->pending_request_list_.end());
 
     return count;
@@ -190,12 +192,12 @@ unsigned int TimeWarpMPICommunicationManager::testReceiveRequests() {
     unsigned int count = 0;
 
     for (auto &pr : recv_queue_->pending_request_list_) {
-        MPI_Test(&pr.request_, &pr.flag_, &pr.status_);
-        if (pr.flag_) {
+        MPI_Test(&pr->request_, &pr->flag_, &pr->status_);
+        if (pr->flag_) {
             count++;
 
             std::unique_ptr<TimeWarpKernelMessage> msg = nullptr;
-            std::istringstream iss(std::string(reinterpret_cast<char*>(pr.buffer_.get()), max_buffer_size_));
+            std::istringstream iss(std::string(reinterpret_cast<char*>(pr->buffer_.get()), max_buffer_size_));
             cereal::PortableBinaryInputArchive iarchive(iss);
             iarchive(msg);
 
@@ -209,7 +211,7 @@ unsigned int TimeWarpMPICommunicationManager::testReceiveRequests() {
         std::remove_if(
             recv_queue_->pending_request_list_.begin(),
             recv_queue_->pending_request_list_.end(),
-            [&](const PendingRequest& pr) { return pr.flag_; }),
+            [&](const std::unique_ptr<PendingRequest>& pr) { return pr->flag_; }),
         recv_queue_->pending_request_list_.end());
 
     return count;

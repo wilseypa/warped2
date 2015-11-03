@@ -70,7 +70,7 @@ struct MessageQueue {
     std::deque<std::unique_ptr<TimeWarpKernelMessage>>  msg_list_;
     TicketLock msg_list_lock_;
 
-    std::vector<PendingRequest> pending_request_list_;
+    std::vector<std::unique_ptr<PendingRequest>> pending_request_list_;
 };
 
 } // namespace warped
