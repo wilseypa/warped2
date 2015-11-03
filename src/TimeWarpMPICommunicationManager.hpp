@@ -30,8 +30,12 @@ public:
     int waitForAllProcesses();
 
     void insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
-    void sendMessages();
-    std::unique_ptr<TimeWarpKernelMessage> getMessage();
+    void handleMessages();
+
+    unsigned int startSendRequests();
+    unsigned int startReceiveRequests();
+    unsigned int testSendRequests();
+    unsigned int testReceiveRequests();
 
     bool isInitiatingThread();
 
@@ -39,40 +43,34 @@ public:
     int gatherUint64(uint64_t* send_local, uint64_t* recv_root);
 
 private:
-    int testQueue(std::shared_ptr<MessageQueue> msg_queue);
-
     unsigned int max_buffer_size_;
 
-    std::shared_ptr<MPISendQueue> send_queue_;
-    std::shared_ptr<MPIRecvQueue> recv_queue_;
+    int num_processes_;
+    int my_rank_;
+
+    std::shared_ptr<MessageQueue> send_queue_;
+    std::shared_ptr<MessageQueue> recv_queue_;
+};
+
+struct PendingRequest {
+    PendingRequest(std::unique_ptr<uint8_t[]> buffer) : buffer_(std::move(buffer)) {}
+
+    std::unique_ptr<uint8_t[]> buffer_;
+    MPI_Request request_;
+    int flag_;
+    MPI_Status status_;
 };
 
 struct MessageQueue {
     MessageQueue(unsigned int max_buffer_size) :
         max_buffer_size_(max_buffer_size) {}
 
-    virtual unsigned int startRequests() = 0;
-    virtual void completeRequest(uint8_t *buffer) = 0;
-
     unsigned int max_buffer_size_;
 
     std::deque<std::unique_ptr<TimeWarpKernelMessage>>  msg_list_;
     TicketLock msg_list_lock_;
 
-    std::vector<std::unique_ptr<uint8_t []>>             buffer_list_;
-    std::vector<MPI_Request>                             request_list_;
-};
-
-struct MPISendQueue : public MessageQueue {
-    MPISendQueue(unsigned int max_buffer_size) : MessageQueue(max_buffer_size) {}
-    unsigned int startRequests();
-    void completeRequest(uint8_t *buffer);
-};
-
-struct MPIRecvQueue : public MessageQueue {
-    MPIRecvQueue(unsigned int max_buffer_size) : MessageQueue(max_buffer_size) {}
-    unsigned int startRequests();
-    void completeRequest(uint8_t *buffer);
+    std::vector<PendingRequest> pending_request_list_;
 };
 
 } // namespace warped

@@ -29,8 +29,11 @@ unsigned int TimeWarpMPICommunicationManager::initialize() {
                   << std::endl;
     }
 
-    send_queue_ = std::make_shared<MPISendQueue>(max_buffer_size_);
-    recv_queue_ = std::make_shared<MPIRecvQueue>(max_buffer_size_);
+    send_queue_ = std::make_shared<MessageQueue>(max_buffer_size_);
+    recv_queue_ = std::make_shared<MessageQueue>(max_buffer_size_);
+
+    MPI_Comm_size(MPI_COMM_WORLD, &num_processes_);
+    MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
 
     return getNumProcesses();
 }
@@ -41,15 +44,11 @@ void TimeWarpMPICommunicationManager::finalize() {
 }
 
 unsigned int TimeWarpMPICommunicationManager::getNumProcesses() {
-    int size = 0;
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-    return size;
+    return num_processes_;
 }
 
 unsigned int TimeWarpMPICommunicationManager::getID() {
-    int id = 0;
-    MPI_Comm_rank(MPI_COMM_WORLD, &id);
-    return id;
+    return my_rank_;
 }
 
 int TimeWarpMPICommunicationManager::waitForAllProcesses() {
@@ -81,79 +80,57 @@ void TimeWarpMPICommunicationManager::insertMessage(std::unique_ptr<TimeWarpKern
     send_queue_->msg_list_lock_.unlock();
 }
 
-void TimeWarpMPICommunicationManager::sendMessages() {
-
-    // Get pending recvs
-    testQueue(recv_queue_);
-
-    // Complete pending sends
-    testQueue(send_queue_);
-
-    // Start recvs
-    recv_queue_->startRequests();
-
-    // Start more sends
-    send_queue_->startRequests();
+void TimeWarpMPICommunicationManager::handleMessages() {
+    testReceiveRequests();
+    testSendRequests();
+    startReceiveRequests();
+    startSendRequests();
 }
 
-std::unique_ptr<TimeWarpKernelMessage> TimeWarpMPICommunicationManager::getMessage() {
-    if (recv_queue_->msg_list_.empty()) {
-        return nullptr;
-    }
-    auto msg = std::move(recv_queue_->msg_list_.front());
-    recv_queue_->msg_list_.pop_front();
-
-    return std::move(msg);
-}
-
-unsigned int MPISendQueue::startRequests() {
-    int length = 0;
+unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
     unsigned int requests = 0;
 
-    msg_list_lock_.lock();
+    send_queue_->msg_list_lock_.lock();
 
-    while (!msg_list_.empty()) {
+    while (!send_queue_->msg_list_.empty()) {
 
-        auto msg = std::move(msg_list_.front());
-        msg_list_.pop_front();
+        auto msg = std::move(send_queue_->msg_list_.front());
+        send_queue_->msg_list_.pop_front();
 
-        // Serialize message
+        unsigned int receiver_id = msg->receiver_id;
+
         std::ostringstream oss;
         {
             cereal::PortableBinaryOutputArchive oarchive(oss);
-            oarchive(msg);
+            oarchive(std::move(msg));
         }
 
-        // Copy serialized message to buffer
-        length = oss.str().length();
-        buffer_list_.emplace_back(new uint8_t[max_buffer_size_]);
-        std::memcpy(buffer_list_.back().get(), oss.str().c_str(), length*sizeof(uint8_t));
+        send_queue_->pending_request_list_.emplace_back(make_unique<uint8_t[]>(max_buffer_size_));
+        std::memcpy(send_queue_->pending_request_list_.back().buffer_.get(), oss.str().c_str(),
+                    oss.str().length()+1);
 
-        request_list_.emplace_back();
-
-        // Send message
         if (MPI_Isend(
-                buffer_list_.back().get(),
-                length,
+                send_queue_->pending_request_list_.back().buffer_.get(),
+                oss.str().length()+1,
                 MPI_BYTE,
-                msg->receiver_id,
+                receiver_id,
                 MPI_DATA_TAG,
                 MPI_COMM_WORLD,
-                &request_list_.back()) != MPI_SUCCESS) {
+                &send_queue_->pending_request_list_.back().request_) != MPI_SUCCESS) {
 
-            msg_list_lock_.unlock();
+            send_queue_->msg_list_lock_.unlock();
             return requests;
         }
 
         requests++;
     }
 
-    msg_list_lock_.unlock();
+    send_queue_->msg_list_lock_.unlock();
 
     return requests;
 }
 
-unsigned int MPIRecvQueue::startRequests() {
+unsigned int TimeWarpMPICommunicationManager::startReceiveRequests() {
     int flag = 0;
     MPI_Status status;
     unsigned int requests = 0;
@@ -168,17 +145,16 @@ unsigned int MPIRecvQueue::startRequests() {
             &status);
 
         if (flag) {
-            buffer_list_.emplace_back(new uint8_t[max_buffer_size_]);
-            request_list_.emplace_back();
+            recv_queue_->pending_request_list_.emplace_back(make_unique<uint8_t[]>(max_buffer_size_));
 
             if (MPI_Irecv(
-                    buffer_list_.back().get(),
+                    recv_queue_->pending_request_list_.back().buffer_.get(),
                     max_buffer_size_,
                     MPI_BYTE,
                     MPI_ANY_SOURCE,
                     MPI_DATA_TAG,
                     MPI_COMM_WORLD,
-                    &request_list_.back()) != MPI_SUCCESS) {
+                    &recv_queue_->pending_request_list_.back().request_) != MPI_SUCCESS) {
 
                 return requests;
             }
@@ -192,59 +168,52 @@ unsigned int MPIRecvQueue::startRequests() {
     return requests;
 }
 
-int TimeWarpMPICommunicationManager::testQueue(std::shared_ptr<MessageQueue> msg_queue) {
-    int ready = 0;
-    unsigned int n;
+unsigned int TimeWarpMPICommunicationManager::testSendRequests() {
+    unsigned int count = 0;
 
-    if (msg_queue->buffer_list_.empty())
-        return 0;
-
-    std::vector<int> index_list(msg_queue->buffer_list_.size());
-
-    if (MPI_Testsome(
-            msg_queue->buffer_list_.size(),
-            &msg_queue->request_list_[0],
-            &ready,
-            &index_list[0],
-            MPI_STATUSES_IGNORE) != MPI_SUCCESS) {
-        return 0;
+    for (auto &pr : send_queue_->pending_request_list_) {
+        MPI_Test(&pr.request_, &pr.flag_, &pr.status_);
+        if (pr.flag_) count++;
     }
 
-    if (ready < 1)
-        return 0;
+    send_queue_->pending_request_list_.erase(
+        std::remove_if(
+            send_queue_->pending_request_list_.begin(),
+            send_queue_->pending_request_list_.end(),
+            [&](const PendingRequest& pr) { return pr.flag_; }),
+        send_queue_->pending_request_list_.end());
 
-    // Complete pending sends/recvs
-    for (int i = 0; i < ready; i++) {
-        n = index_list[i];
-        msg_queue->completeRequest(msg_queue->buffer_list_[n].get());
-
-    }
-
-    for (int i = (ready-1); i >= 0; i--) {
-        n = index_list[i];
-        msg_queue->buffer_list_.erase(msg_queue->buffer_list_.begin() + n);
-        msg_queue->request_list_.erase(msg_queue->request_list_.begin() + n);
-    }
-
-    return ready;
+    return count;
 }
 
-void MPIRecvQueue::completeRequest(uint8_t *buffer) {
+unsigned int TimeWarpMPICommunicationManager::testReceiveRequests() {
+    unsigned int count = 0;
 
-    std::unique_ptr<TimeWarpKernelMessage> msg = nullptr;
+    for (auto &pr : recv_queue_->pending_request_list_) {
+        MPI_Test(&pr.request_, &pr.flag_, &pr.status_);
+        if (pr.flag_) {
+            count++;
 
-    // Deserialize message
-    std::istringstream iss(std::string(reinterpret_cast<char*>(buffer), max_buffer_size_));
-    {
-        cereal::PortableBinaryInputArchive iarchive(iss);
-        iarchive(msg);
+            std::unique_ptr<TimeWarpKernelMessage> msg = nullptr;
+            std::istringstream iss(std::string(reinterpret_cast<char*>(pr.buffer_.get()), max_buffer_size_));
+            cereal::PortableBinaryInputArchive iarchive(iss);
+            iarchive(msg);
+
+            MessageType msg_type = msg->get_type();
+            int msg_type_int = static_cast<int>(msg_type);
+            msg_handler_by_msg_type_[msg_type_int](std::move(msg));
+        }
     }
 
-    msg_list_.push_back(std::move(msg));
-}
+    recv_queue_->pending_request_list_.erase(
+        std::remove_if(
+            recv_queue_->pending_request_list_.begin(),
+            recv_queue_->pending_request_list_.end(),
+            [&](const PendingRequest& pr) { return pr.flag_; }),
+        recv_queue_->pending_request_list_.end());
 
-void MPISendQueue::completeRequest(uint8_t *buffer) {
-    unused(buffer);
+    return count;
+
 }
 
 } // namespace warped
