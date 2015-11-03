@@ -13,7 +13,7 @@ std::vector<std::vector<LogicalProcess*>> RoundRobinPartitioner::partition(
 
     std::vector<std::vector<LogicalProcess*>> partitions(num_partitions);
 
-    if (block_size_ == 0) {
+    if ((block_size_ == 0) || block_size_ > lps.size()/num_partitions) {
         block_size_ = lps.size()/num_partitions;
     }
 
