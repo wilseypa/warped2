@@ -18,6 +18,7 @@
 #include "utility/memory.hpp"
 #include "TicketLock.hpp"
 #include "LadderQueue.hpp"
+#include "SplayTree.hpp"
 
 namespace warped {
 

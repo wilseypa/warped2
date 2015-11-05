@@ -33,6 +33,7 @@ WARPED_NOINST_HPP_FILES = \
     src/SequentialEventDispatcher.hpp \
     src/STLLTSFQueue.hpp \
     src/LadderQueue.hpp \
+    src/SplayTree.hpp \
 	src/RandomNumberGenerator.hpp \
     src/TimeWarpEventDispatcher.hpp \
     src/utility/strings.hpp \
@@ -65,6 +66,7 @@ WARPED_CPP_FILES = \
     src/Simulation.cpp \
     src/STLLTSFQueue.cpp \
     src/LadderQueue.cpp \
+    src/SplayTree.cpp \
     src/LogicalProcess.cpp \
     src/TimeWarpEventDispatcher.cpp \
     src/TimeWarpMatternGVTManager.cpp \
