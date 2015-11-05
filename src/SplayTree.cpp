@@ -4,7 +4,7 @@
 namespace warped {
 
 SplayTree::SplayTree():
-    root(nullptr), current(nullptr) {}
+    root_(nullptr), current_(nullptr) {}
 
 /* Search lowest event */
 std::shared_ptr<Event> SplayTree::begin() {
@@ -45,7 +45,7 @@ bool SplayTree::erase(std::shared_ptr<Event> event) {
             node = node->getLeftNode();
         }
         current_ = node;
-        return;
+        return false;
     }
 
     // Search for the event to be deleted
@@ -65,7 +65,7 @@ bool SplayTree::erase(std::shared_ptr<Event> event) {
         }
     }
     if (!node) {
-        return;
+        return false;
     }
 
     // Remove the node if found
@@ -103,6 +103,7 @@ bool SplayTree::erase(std::shared_ptr<Event> event) {
             current_ = current_->getLeftNode();
         }
     }
+    return true;
 }
 
 /* Insert event */
@@ -164,7 +165,7 @@ void SplayTree::insert(std::shared_ptr<Event> event) {
 }
 
 /* Splay */
-void splay(std::shared_ptr<Node> node) {
+void SplayTree::splay(std::shared_ptr<Node> node) {
 
     std::shared_ptr<Node> parent       = nullptr;
     std::shared_ptr<Node> grand_parent = nullptr;
@@ -211,7 +212,7 @@ void splay(std::shared_ptr<Node> node) {
 }
 
 /* Rotate Left */
-std::shared_ptr<Node> rotateLeft(std::shared_ptr<Node> node) {
+std::shared_ptr<Node> SplayTree::rotateLeft(std::shared_ptr<Node> node) {
 
     std::shared_ptr<Node> right  = nullptr;
     std::shared_ptr<Node> left   = nullptr;
@@ -245,7 +246,7 @@ std::shared_ptr<Node> rotateLeft(std::shared_ptr<Node> node) {
 }
 
 /* Rotate Right */
-std::shared_ptr<Node> rotateRight(std::shared_ptr<Node> node) {
+std::shared_ptr<Node> SplayTree::rotateRight(std::shared_ptr<Node> node) {
 
     std::shared_ptr<Node> right  = nullptr;
     std::shared_ptr<Node> left   = nullptr;

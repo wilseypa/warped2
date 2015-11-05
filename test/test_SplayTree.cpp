@@ -4,17 +4,17 @@
 #include <memory>
 #include <utility>
 
-#include "LadderQueue.hpp"
+#include "SplayTree.hpp"
 #include "Event.hpp"
 #include "mocks.hpp"
 
-TEST_CASE("Ladder Queue operations") {
+TEST_CASE("Splay Tree operations") {
 
-    warped::LadderQueue q;
+    warped::SplayTree q;
     std::shared_ptr<warped::Event> e;
     REQUIRE(q.begin() == nullptr);
 
-    SECTION("Insert, read and erase event on a Laddder Queue") {
+    SECTION("Insert, read and erase event on a Splay Tree") {
 
         // Basic check for insert(), begin() and erase()
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 10}));
