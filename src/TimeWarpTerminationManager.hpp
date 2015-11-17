@@ -19,7 +19,7 @@ public:
     void initialize(unsigned int num_worker_threads);
 
     // Send termination token
-    bool sendTerminationToken(State state, unsigned int initiator);
+    bool sendTerminationToken(State state, unsigned int initiator, int count);
 
     // Message handler for a termination token
     void receiveTerminationToken(std::unique_ptr<TimeWarpKernelMessage> kmsg);
@@ -45,6 +45,8 @@ public:
     // Check to see if we should terminate
     bool terminationStatus();
 
+    void updateMsgCount(int delta);
+
 private:
 
     State state_ = State::ACTIVE;
@@ -56,6 +58,8 @@ private:
     std::unique_ptr<State []> state_by_thread_;
     unsigned int active_thread_count_;
 
+    int msg_count_ = 0;
+
     bool is_master_ = false;
 
     bool terminate_ = false;
@@ -63,17 +67,21 @@ private:
 
 struct TerminationToken : public TimeWarpKernelMessage {
     TerminationToken() = default;
-    TerminationToken(unsigned int sender_id, unsigned int receiver_id, State state, unsigned int initiator) :
-        TimeWarpKernelMessage(sender_id, receiver_id), state_(state), initiator_(initiator) {}
+    TerminationToken(unsigned int sender_id, unsigned int receiver_id,
+                     State state, unsigned int initiator, int count) :
+        TimeWarpKernelMessage(sender_id, receiver_id), state_(state), initiator_(initiator),
+        count_(count) {}
 
     State state_;
 
     unsigned int initiator_;
 
+    int count_;
+
     MessageType get_type() { return MessageType::TerminationToken; }
 
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<TimeWarpKernelMessage>(this), state_,
-                                         initiator_)
+                                         initiator_, count_)
 };
 
 struct Terminator : public TimeWarpKernelMessage {

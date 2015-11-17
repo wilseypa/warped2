@@ -22,7 +22,13 @@ void TimeWarpTerminationManager::initialize(unsigned int num_worker_threads) {
     WARPED_REGISTER_MSG_HANDLER(TimeWarpTerminationManager, receiveTerminator, Terminator);
 }
 
-bool TimeWarpTerminationManager::sendTerminationToken(State state, unsigned int initiator) {
+void TimeWarpTerminationManager::updateMsgCount(int delta) {
+    state_lock_.lock();
+    msg_count_ += delta;
+    state_lock_.unlock();
+}
+
+bool TimeWarpTerminationManager::sendTerminationToken(State state, unsigned int initiator, int msg_count) {
     unsigned int sender_id = comm_manager_->getID();
     unsigned int num_processes = comm_manager_->getNumProcesses();
 
@@ -34,7 +40,10 @@ bool TimeWarpTerminationManager::sendTerminationToken(State state, unsigned int 
     // When we send a token, we are not master any more.
     is_master_ = false;
 
-    auto msg = make_unique<TerminationToken>(sender_id, (sender_id + 1) % num_processes, state, initiator);
+    state_lock_.lock();
+    auto msg = make_unique<TerminationToken>(sender_id, (sender_id + 1) % num_processes, state, initiator, msg_count_ + msg_count);
+    msg_count_ = 0;
+    state_lock_.unlock();
 
     comm_manager_->insertMessage(std::move(msg));
 
@@ -50,7 +59,7 @@ void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWar
     // If sticky state is passive, and the token has reached it's originator, then the token
     //  has circulated twice with no change state and we must terminate.
     if ((sticky_state_ == State::PASSIVE) && (msg->receiver_id == msg->initiator_)) {
-        if (msg->state_ == State::PASSIVE) {
+        if ((msg->state_ == State::PASSIVE) && (msg->count_ == 0)) {
             // Signal termination to all nodes including self
             sendTerminator();
         }
@@ -59,7 +68,7 @@ void TimeWarpTerminationManager::receiveTerminationToken(std::unique_ptr<TimeWar
         // }
 
     } else if (sticky_state_ == State::PASSIVE) {
-        sendTerminationToken(msg->state_, msg->initiator_);
+        sendTerminationToken(msg->state_, msg->initiator_, msg->count_);
     }
 
     // Set sticky_state AFTER sending token
