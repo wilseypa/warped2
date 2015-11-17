@@ -35,6 +35,9 @@ unsigned int TimeWarpMPICommunicationManager::initialize() {
     MPI_Comm_size(MPI_COMM_WORLD, &num_processes_);
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
 
+    aggregate_message_count_by_receiver_ = make_unique<unsigned int[]>(num_processes_);
+    aggregate_messages_ = make_unique<std::list<std::unique_ptr<TimeWarpKernelMessage>>[]>(num_processes_);
+
     return getNumProcesses();
 }
 
@@ -98,32 +101,51 @@ unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
         send_queue_->msg_list_.pop_front();
 
         unsigned int receiver_id = msg->receiver_id;
+        auto msg_type = msg->get_type();
 
-        std::ostringstream oss;
-        {
-            cereal::PortableBinaryOutputArchive oarchive(oss);
-            oarchive(std::move(msg));
+        aggregate_messages_[receiver_id].push_back(std::move(msg));
+
+        if ((++aggregate_message_count_by_receiver_[receiver_id] >= max_aggregate_) ||
+            (msg_type != MessageType::EventMessage)) {
+
+            int position = 0;
+            uint8_t* message_buffer = new uint8_t[max_buffer_size_];
+            int num_messages = aggregate_messages_[receiver_id].size();
+            int header_size = sizeof(int)*(num_messages+1);
+            int message_position = header_size;
+
+            MPI_Pack(&num_messages, 1, MPI_INT, message_buffer, max_buffer_size_, &position, MPI_COMM_WORLD);
+            for (auto& m : aggregate_messages_[receiver_id]) {
+                std::ostringstream oss;
+                cereal::PortableBinaryOutputArchive oarchive(oss);
+                oarchive(m);
+
+                int length = oss.str().length();
+                MPI_Pack(&length, 1, MPI_INT, message_buffer, max_buffer_size_, &position, MPI_COMM_WORLD);
+                MPI_Pack(const_cast<char*>(oss.str().c_str()), length, MPI_BYTE, message_buffer,
+                         max_buffer_size_, &message_position, MPI_COMM_WORLD);
+            }
+
+            auto new_request = make_unique<PendingRequest>(std::unique_ptr<uint8_t[]>(message_buffer), message_position);
+            send_queue_->pending_request_list_.push_back(std::move(new_request));
+
+            if (MPI_Isend(
+                    send_queue_->pending_request_list_.back()->buffer_.get(),
+                    send_queue_->pending_request_list_.back()->count_,
+                    MPI_PACKED,
+                    receiver_id,
+                    MPI_DATA_TAG,
+                    MPI_COMM_WORLD,
+                    &send_queue_->pending_request_list_.back()->request_) != MPI_SUCCESS) {
+                throw std::runtime_error("MPI_Isend failed");
+                return requests;
+            }
+
+            aggregate_messages_[receiver_id].clear();
+            aggregate_message_count_by_receiver_[receiver_id] = 0;
+
+            requests++;
         }
-
-        auto new_request = make_unique<PendingRequest>(make_unique<uint8_t[]>(max_buffer_size_));
-        send_queue_->pending_request_list_.push_back(std::move(new_request));
-        std::memcpy(send_queue_->pending_request_list_.back()->buffer_.get(), oss.str().c_str(),
-                    oss.str().length()+1);
-
-        if (MPI_Isend(
-                send_queue_->pending_request_list_.back()->buffer_.get(),
-                oss.str().length()+1,
-                MPI_BYTE,
-                receiver_id,
-                MPI_DATA_TAG,
-                MPI_COMM_WORLD,
-                &send_queue_->pending_request_list_.back()->request_) != MPI_SUCCESS) {
-
-            send_queue_->msg_list_lock_.unlock();
-            return requests;
-        }
-
-        requests++;
     }
 
     send_queue_->msg_list_lock_.unlock();
@@ -146,13 +168,16 @@ unsigned int TimeWarpMPICommunicationManager::startReceiveRequests() {
             &status);
 
         if (flag) {
-            auto new_request = make_unique<PendingRequest>(make_unique<uint8_t[]>(max_buffer_size_));
+
+            int count;
+            MPI_Get_count(&status, MPI_BYTE, &count);
+            auto new_request = make_unique<PendingRequest>(make_unique<uint8_t[]>(count), count);
             recv_queue_->pending_request_list_.push_back(std::move(new_request));
 
             if (MPI_Irecv(
                     recv_queue_->pending_request_list_.back()->buffer_.get(),
-                    max_buffer_size_,
-                    MPI_BYTE,
+                    recv_queue_->pending_request_list_.back()->count_,
+                    MPI_PACKED,
                     MPI_ANY_SOURCE,
                     MPI_DATA_TAG,
                     MPI_COMM_WORLD,
@@ -196,14 +221,33 @@ unsigned int TimeWarpMPICommunicationManager::testReceiveRequests() {
         if (pr->flag_) {
             count++;
 
-            std::unique_ptr<TimeWarpKernelMessage> msg = nullptr;
-            std::istringstream iss(std::string(reinterpret_cast<char*>(pr->buffer_.get()), max_buffer_size_));
-            cereal::PortableBinaryInputArchive iarchive(iss);
-            iarchive(msg);
+            int num_messages;
+            char* message_buffer = reinterpret_cast<char*>(pr->buffer_.get());
+            int message_length = pr->count_;
+            int position = 0;
 
-            MessageType msg_type = msg->get_type();
-            int msg_type_int = static_cast<int>(msg_type);
-            msg_handler_by_msg_type_[msg_type_int](std::move(msg));
+            MPI_Unpack(message_buffer, message_length, &position, &num_messages, 1, MPI_INT, MPI_COMM_WORLD);
+            int header_length = (num_messages+1)*sizeof(int);
+            int msg_position = header_length;
+
+            for (int i = 0; i < num_messages; i++) {
+                std::unique_ptr<TimeWarpKernelMessage> msg = nullptr;
+
+                // Unpack from aggregate buffer
+                int msg_length = reinterpret_cast<int*>(message_buffer)[i + 1];
+                auto msg_buffer = make_unique<char[]>(msg_length);
+                MPI_Unpack(message_buffer, message_length, &msg_position, msg_buffer.get(), msg_length,
+                           MPI_BYTE, MPI_COMM_WORLD);
+
+                // Deserialize
+                std::istringstream iss(std::string(msg_buffer.get(), msg_length));
+                cereal::PortableBinaryInputArchive iarchive(iss);
+                iarchive(msg);
+
+                MessageType msg_type = msg->get_type();
+                int msg_type_int = static_cast<int>(msg_type);
+                msg_handler_by_msg_type_[msg_type_int](std::move(msg));
+            }
         }
     }
 

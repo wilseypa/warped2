@@ -32,10 +32,11 @@ struct Stats {
         uint64_t,                   // Events committed             11
         uint64_t,                   // Total negative events sent   12
         uint64_t,                   // Cancelled events             13
-        uint64_t,                   // Average Maximum Memory       14
-        uint64_t,                   // GVT cycles                   15
-        uint64_t,                   // Number of objects            16
-        uint64_t                    // dummy/number of elements     17
+        uint64_t,                   // Total Events Received        14
+        uint64_t,                   // Average Maximum Memory       15
+        uint64_t,                   // GVT cycles                   16
+        uint64_t,                   // Number of objects            17
+        uint64_t                    // dummy/number of elements     18
     > stats_;
 
     template<unsigned I>
@@ -59,10 +60,11 @@ const stats_index<10> EVENTS_PROCESSED;
 const stats_index<11> EVENTS_COMMITTED;
 const stats_index<12> TOTAL_NEGATIVE_EVENTS;
 const stats_index<13> CANCELLED_EVENTS;
-const stats_index<14> AVERAGE_MAX_MEMORY;
-const stats_index<15> GVT_CYCLES;
-const stats_index<16> NUM_OBJECTS;
-const stats_index<17> NUM_STATISTICS;
+const stats_index<14> TOTAL_EVENTS_RECEIVED;
+const stats_index<15> AVERAGE_MAX_MEMORY;
+const stats_index<16> GVT_CYCLES;
+const stats_index<17> NUM_OBJECTS;
+const stats_index<18> NUM_STATISTICS;
 
 class TimeWarpStatistics {
 public:
@@ -120,6 +122,7 @@ private:
     uint64_t *cancelled_events_by_node_;
     uint64_t *processed_events_by_node_;
     uint64_t *committed_events_by_node_;
+    uint64_t *total_events_received_by_node_;
     uint64_t *num_objects_by_node_;
 
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;

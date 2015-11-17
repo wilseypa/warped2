@@ -69,6 +69,9 @@ void TimeWarpStatistics::calculateStats() {
             case COAST_FORWARDED_EVENTS.value:
                 sumReduceLocal(COAST_FORWARDED_EVENTS, coast_forward_events_by_node_);
                 break;
+            case TOTAL_EVENTS_RECEIVED.value:
+                sumReduceLocal(TOTAL_EVENTS_RECEIVED, total_events_received_by_node_);
+                break;
             case AVERAGE_MAX_MEMORY.value:
                 global_stats_[AVERAGE_MAX_MEMORY] /= (1024*1024); // B to MB
                 break;
@@ -163,7 +166,8 @@ void TimeWarpStatistics::printStats() {
 
               << "\tCoast forward events:      " << global_stats_[COAST_FORWARDED_EVENTS] << "\n\n"
 
-              << "\tTotal events sent:         " << global_stats_[TOTAL_EVENTS_SENT] << "\n"
+              << "\tTotal events sent:         " << global_stats_[TOTAL_EVENTS_SENT] << "\n\n"
+              << "\tTotal events received:     " << global_stats_[TOTAL_EVENTS_RECEIVED] << "\n"
 
               << "\tTotal events processed:    " << global_stats_[EVENTS_PROCESSED] << "\n"
               << "\tTotal events committed:    " << global_stats_[EVENTS_COMMITTED] << "\n\n"
@@ -180,6 +184,7 @@ void TimeWarpStatistics::printStats() {
     delete [] secondary_rollbacks_by_node_;
     delete [] coast_forward_events_by_node_;
     delete [] cancelled_events_by_node_;
+    delete [] total_events_received_by_node_;
     delete [] num_objects_by_node_;
     delete [] processed_events_by_node_;
     delete [] committed_events_by_node_;

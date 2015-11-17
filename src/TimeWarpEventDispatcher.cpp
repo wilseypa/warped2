@@ -41,6 +41,7 @@ WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::NegativeEvent)
 
 namespace warped {
 
+pthread_barrier_t stop_barrier;
 thread_local unsigned int TimeWarpEventDispatcher::thread_id;
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
@@ -67,6 +68,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
                                               lps) {
     initialize(lps);
 
+    pthread_barrier_init(&stop_barrier, NULL, num_worker_threads_+1);
+
     // Create worker threads
     std::vector<std::thread> threads;
     for (unsigned int i = 0; i < num_worker_threads_; ++i) {
@@ -85,7 +88,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
 
         // Check to see if we should start/continue the termination process
         if (termination_manager_->nodePassive()) {
-            termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID());
+            termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID(), 0);
         }
 
         // Check to see if a "local GVT calculation" has completed so we can forward a Mattern
@@ -126,6 +129,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     if (comm_manager_->getID() == 0) {
         std::cout << "\nSimulation completed in " << num_seconds << " second(s)" << "\n\n";
     }
+
+    pthread_barrier_wait(&stop_barrier);
 
     gvt = (unsigned int)-1;
     for (unsigned int current_lp_id = 0; current_lp_id < num_local_lps_; current_lp_id++) {
@@ -283,17 +288,19 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 thread_id, local_gvt_flag);
         }
     }
+    pthread_barrier_wait(&stop_barrier);
 }
 
 void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
 
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
-
     assert(msg->event != nullptr);
 
-    sendLocalEvent(msg->event);
+    tw_stats_->upCount(TOTAL_EVENTS_RECEIVED, thread_id);
 
+    termination_manager_->updateMsgCount(-1);
     mattern_gvt_manager_->receiveUpdate(msg->gvt_mattern_color);
+    sendLocalEvent(msg->event);
 }
 
 void TimeWarpEventDispatcher::sendEvents(std::shared_ptr<Event> source_event,
@@ -468,6 +475,8 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<LogicalProcess
     // Initialize statistics data structures
     tw_stats_->initialize(num_worker_threads_, num_local_lps_);
 
+    comm_manager_->waitForAllProcesses();
+
     // Send local initial events and enqueue remote initial events
     auto initial_event = std::make_shared<InitialEvent>();
     for (auto& partition : lps) {
@@ -498,6 +507,7 @@ void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
     if (event->timestamp() <= max_sim_time_) {
         auto color = mattern_gvt_manager_->sendUpdate(event->timestamp());
         auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id, event, color);
+        termination_manager_->updateMsgCount(1);
         comm_manager_->insertMessage(std::move(event_msg));
     }
 }
