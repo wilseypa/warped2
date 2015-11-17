@@ -80,7 +80,7 @@ const static std::string DEFAULT_CONFIG = R"x({
 
     "communication" : {
         "max-msg-size" : 512,
-        "max-aggregate" : 10
+        "max-aggregate" : 20
     }
 },
 
