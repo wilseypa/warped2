@@ -36,6 +36,8 @@ unsigned int TimeWarpMPICommunicationManager::initialize() {
     MPI_Comm_rank(MPI_COMM_WORLD, &my_rank_);
 
     aggregate_message_count_by_receiver_ = make_unique<unsigned int[]>(num_processes_);
+    std::memset(aggregate_message_count_by_receiver_.get(), 0, num_processes_*sizeof(unsigned int));
+
     aggregate_messages_ = make_unique<std::list<std::unique_ptr<TimeWarpKernelMessage>>[]>(num_processes_);
 
     return getNumProcesses();
