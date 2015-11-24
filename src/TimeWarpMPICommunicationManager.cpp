@@ -5,7 +5,6 @@
 
 #include "TimeWarpMPICommunicationManager.hpp"
 #include "TimeWarpEventDispatcher.hpp"          // for EventMessage
-#include "TimeWarpMatternGVTManager.hpp"
 #include "utility/memory.hpp"
 #include "utility/warnings.hpp"
 

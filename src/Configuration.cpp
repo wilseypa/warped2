@@ -25,8 +25,7 @@
 #include "ProfileGuidedPartitioner.hpp"
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
-#include "TimeWarpMatternGVTManager.hpp"
-#include "TimeWarpLocalGVTManager.hpp"
+#include "TimeWarpAsynchronousGVTManager.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 #include "utility/memory.hpp"
 #include "TimeWarpMPICommunicationManager.hpp"
@@ -280,10 +279,8 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
         if (!checkTimeWarpConfigs(gvt_period, all_config_ids, comm_manager)) {
             invalid_string += std::string("\tGVT period\n");
         }
-        std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager
-            = make_unique<TimeWarpMatternGVTManager>(comm_manager, gvt_period);
-        std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager =
-            make_unique<TimeWarpLocalGVTManager>();
+        std::unique_ptr<TimeWarpGVTManager> gvt_manager =
+            make_unique<TimeWarpAsynchronousGVTManager>(comm_manager, gvt_period, num_worker_threads);
 
         // TERMINATION
         std::unique_ptr<TimeWarpTerminationManager> termination_manager =
@@ -358,8 +355,8 @@ check the following configurations:\n") + invalid_string);
 
         return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
             num_worker_threads, is_lp_migration_on, comm_manager,
-            std::move(event_set), std::move(mattern_gvt_manager), std::move(local_gvt_manager),
-            std::move(state_manager),std::move(output_manager), std::move(twfs_manager),
+            std::move(event_set), std::move(gvt_manager), std::move(state_manager),
+            std::move(output_manager), std::move(twfs_manager),
             std::move(termination_manager), std::move(tw_stats));
     }
 

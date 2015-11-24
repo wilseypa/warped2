@@ -38,9 +38,10 @@ WARPED_NOINST_HPP_FILES = \
     src/TimeWarpEventDispatcher.hpp \
     src/utility/strings.hpp \
 	src/TicketLock.hpp \
-    src/TimeWarpMatternGVTManager.hpp \
+    src/TimeWarpAsynchronousGVTManager.hpp \
     src/TimeWarpKernelMessage.hpp \
     src/TimeWarpCommunicationManager.hpp \
+	src/TimeWarpGVTManager.hpp \
     src/TimeWarpMPICommunicationManager.hpp \
     src/TimeWarpStateManager.hpp \
     src/TimeWarpPeriodicStateManager.hpp \
@@ -49,7 +50,6 @@ WARPED_NOINST_HPP_FILES = \
     src/TimeWarpFileStreamManager.hpp \
     src/TimeWarpFileStream.hpp \
     src/TimeWarpEventSet.hpp \
-	src/TimeWarpLocalGVTManager.hpp \
 	src/TimeWarpTerminationManager.hpp \
 	src/TimeWarpStatistics.hpp
 
@@ -69,8 +69,9 @@ WARPED_CPP_FILES = \
     src/SplayTree.cpp \
     src/LogicalProcess.cpp \
     src/TimeWarpEventDispatcher.cpp \
-    src/TimeWarpMatternGVTManager.cpp \
+    src/TimeWarpAsynchronousGVTManager.cpp \
     src/TimeWarpCommunicationManager.cpp \
+	src/TimeWarpGVTManager.cpp \
     src/TimeWarpMPICommunicationManager.cpp \
     src/TimeWarpStateManager.cpp \
     src/TimeWarpPeriodicStateManager.cpp \
@@ -80,7 +81,6 @@ WARPED_CPP_FILES = \
     src/FileStream.cpp \
     src/TimeWarpFileStream.cpp \
     src/TimeWarpEventSet.cpp \
-	src/TimeWarpLocalGVTManager.cpp \
 	src/TimeWarpTerminationManager.cpp \
 	src/TimeWarpStatistics.cpp
 

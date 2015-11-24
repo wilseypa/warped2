@@ -25,8 +25,7 @@
 #include "Partitioner.hpp"
 #include "LogicalProcess.hpp"
 #include "TimeWarpMPICommunicationManager.hpp"
-#include "TimeWarpMatternGVTManager.hpp"
-#include "TimeWarpLocalGVTManager.hpp"
+#include "TimeWarpGVTManager.hpp"
 #include "TimeWarpStateManager.hpp"
 #include "TimeWarpOutputManager.hpp"
 #include "TimeWarpFileStreamManager.hpp"
@@ -49,8 +48,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     bool is_lp_migration_on,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<TimeWarpEventSet> event_set,
-    std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager,
-    std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager,
+    std::unique_ptr<TimeWarpGVTManager> gvt_manager,
     std::unique_ptr<TimeWarpStateManager> state_manager,
     std::unique_ptr<TimeWarpOutputManager> output_manager,
     std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
@@ -59,8 +57,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
         is_lp_migration_on_(is_lp_migration_on), 
         comm_manager_(comm_manager), event_set_(std::move(event_set)), 
-        mattern_gvt_manager_(std::move(mattern_gvt_manager)),
-        local_gvt_manager_(std::move(local_gvt_manager)), state_manager_(std::move(state_manager)),
+        gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
         termination_manager_(std::move(termination_manager)), tw_stats_(std::move(tw_stats)) {}
 
@@ -91,31 +88,11 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
             termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID(), 0);
         }
 
-        // Check to see if a "local GVT calculation" has completed so we can forward a Mattern
-        //  token or updated GVT if this is just a single node simulation.
-        if (local_gvt_manager_->completeGVT()) {
-            if (comm_manager_->getNumProcesses() > 1) {
-                mattern_gvt_manager_->sendMatternGVTToken(local_gvt_manager_->getGVT());
-            } else {
-                gvt = local_gvt_manager_->getGVT();
-                mattern_gvt_manager_->setGVT(gvt);
-                onGVT(gvt);
-            }
-        }
+        gvt_manager_->checkProgressGVT();
 
-        // Check to see if we have received a GVT update message so we can print the GVT and reset
-        //  the Mattern state and a new GVT calculation can be done.
-        if (mattern_gvt_manager_->gvtUpdated()) {
-            gvt = mattern_gvt_manager_->getGVT();
+        if (gvt_manager_->gvtUpdated()) {
+            gvt = gvt_manager_->getGVT();
             onGVT(gvt);
-        }
-
-        // We can start a "local GVT calculation" two different ways
-        //      1. We are the master node and it is time to start a new "global GVT calculation"
-        //      2. We have received a Mattern token and a local minimum time is needed so the
-        //          token can be forwarded to next node.
-        if (mattern_gvt_manager_->startGVT() || mattern_gvt_manager_->needLocalGVT()) {
-            local_gvt_manager_->startGVT();
         }
 
     }
@@ -172,7 +149,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     while (!termination_manager_->terminationStatus()) {
         // NOTE: local_gvt_flag must be obtained before getting the next event to avoid the
         //  "simultaneous reporting problem"
-        local_gvt_flag = local_gvt_manager_->getLocalGVTFlag();
+        local_gvt_flag = gvt_manager_->getLocalGVTFlag();
 
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
@@ -234,8 +211,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 #endif
 #endif
 
-            local_gvt_manager_->receiveEventUpdateState(
-                    lowest_timestamp, thread_id, local_gvt_flag);
+            gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
 
             // process event and get new events
             auto new_events = current_lp->receiveEvent(*event);
@@ -248,11 +224,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Send new events
             sendEvents(event, new_events, current_lp_id, current_lp);
 
-            if (comm_manager_->getNumProcesses() > 1) {
-                gvt = mattern_gvt_manager_->getGVT();
-            } else {
-                gvt = local_gvt_manager_->getGVT();
-            }
+            gvt = gvt_manager_->getGVT();
 
             if (gvt > current_lp->last_fossil_collect_gvt_) {
                 current_lp->last_fossil_collect_gvt_ = gvt;
@@ -284,8 +256,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             // We must have this so that the GVT calculations can continue with passive threads.
             // Just report infinite for a time.
-            local_gvt_manager_->receiveEventUpdateState((unsigned int)-1,
-                thread_id, local_gvt_flag);
+            gvt_manager_->reportThreadMin((unsigned int)-1, thread_id, local_gvt_flag);
         }
     }
     pthread_barrier_wait(&stop_barrier);
@@ -299,7 +270,7 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
     tw_stats_->upCount(TOTAL_EVENTS_RECEIVED, thread_id);
 
     termination_manager_->updateMsgCount(-1);
-    mattern_gvt_manager_->receiveUpdate(msg->gvt_mattern_color);
+    gvt_manager_->receiveEventUpdate(msg->event, msg->color_);
     sendLocalEvent(msg->event);
 }
 
@@ -328,11 +299,6 @@ void TimeWarpEventDispatcher::sendEvents(std::shared_ptr<Event> source_event,
                 enqueueRemoteEvent(e, node_id);
                 tw_stats_->upCount(REMOTE_POSITIVE_EVENTS_SENT, thread_id);
             }
-
-            // Make sure to track sends if we are in the middle of a GVT calculation.
-            // NOTE: this must come AFTER sending the events in order to avoid the
-            //  "simultaneous reporting problem"
-            local_gvt_manager_->sendEventUpdateState(e->timestamp(), thread_id);
         }
     }
 }
@@ -344,6 +310,11 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     event_set_->acquireInputQueueLock(receiver_lp_id);
     event_set_->insertEvent(receiver_lp_id, event);
     event_set_->releaseInputQueueLock(receiver_lp_id);
+
+   // Make sure to track sends if we are in the middle of a GVT calculation.
+   // NOTE: this must come AFTER sending the events in order to avoid the
+   //  "simultaneous reporting problem"
+   gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
 }
 
 void TimeWarpEventDispatcher::cancelEvents(
@@ -391,7 +362,7 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
     twfs_manager_->rollback(straggler_event, local_lp_id);
 
     // We have major problems if we are rolling back past the GVT
-    assert(straggler_event->timestamp() >= mattern_gvt_manager_->getGVT());
+    assert(straggler_event->timestamp() >= gvt_manager_->getGVT());
 
     // Move processed events larger  than straggler back to input queue.
     event_set_->acquireInputQueueLock(local_lp_id);
@@ -465,12 +436,9 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<LogicalProcess
     twfs_manager_->initialize(num_local_lps_);
 
     // Register message handlers
-    mattern_gvt_manager_->initialize();
+    gvt_manager_->initialize();
     termination_manager_->initialize(num_worker_threads_);
     WARPED_REGISTER_MSG_HANDLER(TimeWarpEventDispatcher, receiveEventMessage, EventMessage);
-
-    // Prepare local min lvt computation
-    local_gvt_manager_->initialize(num_worker_threads_);
 
     // Initialize statistics data structures
     tw_stats_->initialize(num_worker_threads_, num_local_lps_);
@@ -505,7 +473,9 @@ void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
     unsigned int receiver_id) {
 
     if (event->timestamp() <= max_sim_time_) {
-        auto color = mattern_gvt_manager_->sendUpdate(event->timestamp());
+
+        Color color = gvt_manager_->sendEventUpdate(event);
+
         auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id, event, color);
         termination_manager_->updateMsgCount(1);
         comm_manager_->insertMessage(std::move(event_msg));

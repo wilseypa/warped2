@@ -29,10 +29,9 @@ class TimeWarpStateManager;
 class TimeWarpOutputManager;
 class TimeWarpFileStreamManager;
 class TimeWarpEventSet;
-class TimeWarpMatternGVTManager;
-class TimeWarpLocalGVTManager;
+class TimeWarpGVTManager;
 class TimeWarpTerminationManager;
-enum class MatternColor;
+enum class Color;
 
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
@@ -43,8 +42,7 @@ public:
         bool is_lp_migration_on,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
         std::unique_ptr<TimeWarpEventSet> event_set,
-        std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager,
-        std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager,
+        std::unique_ptr<TimeWarpGVTManager> gvt_manager,
         std::unique_ptr<TimeWarpStateManager> state_manager,
         std::unique_ptr<TimeWarpOutputManager> output_manager,
         std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
@@ -92,8 +90,7 @@ private:
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<TimeWarpEventSet> event_set_;
-    const std::unique_ptr<TimeWarpMatternGVTManager> mattern_gvt_manager_;
-    const std::unique_ptr<TimeWarpLocalGVTManager> local_gvt_manager_;
+    const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
     const std::unique_ptr<TimeWarpStateManager> state_manager_;
     const std::unique_ptr<TimeWarpOutputManager> output_manager_;
     const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
@@ -106,18 +103,18 @@ private:
 struct EventMessage : public TimeWarpKernelMessage {
     EventMessage() = default;
     EventMessage(unsigned int sender, unsigned int receiver, std::shared_ptr<Event> e,
-      MatternColor c) :
+      Color c) :
         TimeWarpKernelMessage(sender, receiver),
         event(e),
-        gvt_mattern_color(c) {}
+        color_(c) {}
 
     std::shared_ptr<Event> event;
-    MatternColor gvt_mattern_color; // 0 for white, 1 for red
+    Color color_;
 
     MessageType get_type() { return MessageType::EventMessage; }
 
     WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<TimeWarpKernelMessage>(this), event,
-        gvt_mattern_color)
+        color_)
 };
 
 } // namespace warped
