@@ -26,63 +26,65 @@ WARPED_NOINST_HPP_FILES = \
     src/EventDispatcher.hpp \
     src/EventStatistics.hpp \
     src/IndividualEventStatistics.hpp \
+    src/LadderQueue.hpp \
     src/LTSFQueue.hpp \
     src/NullEventStatistics.hpp \
     src/ProfileGuidedPartitioner.hpp \
+	src/RandomNumberGenerator.hpp \
     src/RoundRobinPartitioner.hpp \
     src/SequentialEventDispatcher.hpp \
     src/STLLTSFQueue.hpp \
-    src/LadderQueue.hpp \
     src/SplayTree.hpp \
-	src/RandomNumberGenerator.hpp \
     src/TimeWarpEventDispatcher.hpp \
-    src/utility/strings.hpp \
 	src/TicketLock.hpp \
-    src/TimeWarpAsynchronousGVTManager.hpp \
-    src/TimeWarpKernelMessage.hpp \
-    src/TimeWarpCommunicationManager.hpp \
-	src/TimeWarpGVTManager.hpp \
-    src/TimeWarpMPICommunicationManager.hpp \
-    src/TimeWarpStateManager.hpp \
-    src/TimeWarpPeriodicStateManager.hpp \
-    src/TimeWarpOutputManager.hpp \
     src/TimeWarpAggressiveOutputManager.hpp \
-    src/TimeWarpFileStreamManager.hpp \
-    src/TimeWarpFileStream.hpp \
+    src/TimeWarpAsynchronousGVTManager.hpp \
+    src/TimeWarpCommunicationManager.hpp \
     src/TimeWarpEventSet.hpp \
+    src/TimeWarpFileStream.hpp \
+    src/TimeWarpFileStreamManager.hpp \
+	src/TimeWarpGVTManager.hpp \
+    src/TimeWarpKernelMessage.hpp \
+    src/TimeWarpMPICommunicationManager.hpp \
+    src/TimeWarpOutputManager.hpp \
+    src/TimeWarpPeriodicStateManager.hpp \
+    src/TimeWarpStateManager.hpp \
+	src/TimeWarpStatistics.hpp \
+	src/TimeWarpSynchronousGVTManager.hpp \
 	src/TimeWarpTerminationManager.hpp \
-	src/TimeWarpStatistics.hpp
+    src/utility/strings.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
     src/AggregateEventStatistics.cpp \
     src/CommandLineConfiguration.cpp \
     src/Configuration.cpp \
+    src/TimeWarpEventSet.cpp \
     src/EventStatistics.cpp \
+    src/FileStream.cpp \
     src/IndividualEventStatistics.cpp \
+    src/LogicalProcess.cpp \
+    src/LadderQueue.cpp \
     src/ProfileGuidedPartitioner.cpp \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
     src/Simulation.cpp \
-    src/STLLTSFQueue.cpp \
-    src/LadderQueue.cpp \
     src/SplayTree.cpp \
-    src/LogicalProcess.cpp \
-    src/TimeWarpEventDispatcher.cpp \
+    src/STLLTSFQueue.cpp \
+    src/TimeWarpAggressiveOutputManager.cpp \
     src/TimeWarpAsynchronousGVTManager.cpp \
     src/TimeWarpCommunicationManager.cpp \
+    src/TimeWarpEventDispatcher.cpp \
+    src/TimeWarpFileStream.cpp \
+    src/TimeWarpFileStreamManager.cpp \
 	src/TimeWarpGVTManager.cpp \
     src/TimeWarpMPICommunicationManager.cpp \
-    src/TimeWarpStateManager.cpp \
-    src/TimeWarpPeriodicStateManager.cpp \
     src/TimeWarpOutputManager.cpp \
-    src/TimeWarpAggressiveOutputManager.cpp \
-    src/TimeWarpFileStreamManager.cpp \
-    src/FileStream.cpp \
-    src/TimeWarpFileStream.cpp \
-    src/TimeWarpEventSet.cpp \
-	src/TimeWarpTerminationManager.cpp \
-	src/TimeWarpStatistics.cpp
+    src/TimeWarpPeriodicStateManager.cpp \
+    src/TimeWarpStateManager.cpp \
+	src/TimeWarpStatistics.cpp \
+	src/TimeWarpSynchronousGVTManager.cpp \
+	src/TimeWarpTerminationManager.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \

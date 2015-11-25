@@ -26,6 +26,7 @@
 #include "RoundRobinPartitioner.hpp"
 #include "SequentialEventDispatcher.hpp"
 #include "TimeWarpAsynchronousGVTManager.hpp"
+#include "TimeWarpSynchronousGVTManager.hpp"
 #include "TimeWarpEventDispatcher.hpp"
 #include "utility/memory.hpp"
 #include "TimeWarpMPICommunicationManager.hpp"
@@ -55,7 +56,9 @@ const static std::string DEFAULT_CONFIG = R"x({
 
 "time-warp" : {
     "gvt-calculation": {
-        "period": 1000
+        "period": 1000,
+        // "synchronous" or "asynchronous"
+        "method": "asynchronous"
     },
 
     "state-saving": {
@@ -279,8 +282,16 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
         if (!checkTimeWarpConfigs(gvt_period, all_config_ids, comm_manager)) {
             invalid_string += std::string("\tGVT period\n");
         }
-        std::unique_ptr<TimeWarpGVTManager> gvt_manager =
-            make_unique<TimeWarpAsynchronousGVTManager>(comm_manager, gvt_period, num_worker_threads);
+
+        std::unique_ptr<TimeWarpGVTManager> gvt_manager;
+        auto gvt_method = (*root_)["time-warp"]["gvt-calculation"]["method"].asString();
+        if (gvt_method == "synchronous") {
+            gvt_manager =
+                make_unique<TimeWarpSynchronousGVTManager>(comm_manager, gvt_period, num_worker_threads);
+        } else if (gvt_method == "asynchronous") {
+            gvt_manager =
+                make_unique<TimeWarpAsynchronousGVTManager>(comm_manager, gvt_period, num_worker_threads);
+        }
 
         // TERMINATION
         std::unique_ptr<TimeWarpTerminationManager> termination_manager =
@@ -434,6 +445,11 @@ std::unique_ptr<Partitioner> Configuration::makeLocalPartitioner(unsigned int no
 std::shared_ptr<TimeWarpCommunicationManager> Configuration::makeCommunicationManager() {
     unsigned int max_msg_size = (*root_)["time-warp"]["communication"]["max-msg-size"].asUInt();
     unsigned int max_aggregate = (*root_)["time-warp"]["communication"]["max-aggregate"].asUInt();
+
+    auto gvt_method = (*root_)["time-warp"]["gvt-calculation"]["method"].asString();
+    if (gvt_method == "synchronous") {
+        max_aggregate = 1;
+    }
 
     return std::make_shared<TimeWarpMPICommunicationManager>(max_msg_size, max_aggregate);
 }

@@ -271,6 +271,7 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
 
     termination_manager_->updateMsgCount(-1);
     gvt_manager_->receiveEventUpdate(msg->event, msg->color_);
+
     sendLocalEvent(msg->event);
 }
 
@@ -312,8 +313,6 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     event_set_->releaseInputQueueLock(receiver_lp_id);
 
    // Make sure to track sends if we are in the middle of a GVT calculation.
-   // NOTE: this must come AFTER sending the events in order to avoid the
-   //  "simultaneous reporting problem"
    gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
 }
 
@@ -479,6 +478,8 @@ void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
         auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id, event, color);
         termination_manager_->updateMsgCount(1);
         comm_manager_->insertMessage(std::move(event_msg));
+
+        gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
     }
 }
 

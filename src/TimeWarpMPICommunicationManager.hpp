@@ -41,6 +41,8 @@ public:
 
     int sumReduceUint64(uint64_t* send_local, uint64_t* recv_global);
     int gatherUint64(uint64_t* send_local, uint64_t* recv_root);
+    int sumAllReduceInt64(int64_t* send_local, int64_t* recv_global);
+    int minAllReduceUint(unsigned int* send_local, unsigned int* recv_global);
 
 private:
     unsigned int max_buffer_size_;

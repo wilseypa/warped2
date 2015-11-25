@@ -78,6 +78,16 @@ TimeWarpMPICommunicationManager::gatherUint64(uint64_t *send_local, uint64_t *re
     return MPI_Gather(send_local, 1, MPI_UINT64_T, recv_root, 1, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 }
 
+int TimeWarpMPICommunicationManager::sumAllReduceInt64(int64_t* send_local, int64_t* recv_global) {
+    assert(isInitiatingThread());
+    return MPI_Allreduce(send_local, recv_global, 1, MPI_INT64_T, MPI_SUM, MPI_COMM_WORLD);
+}
+
+int TimeWarpMPICommunicationManager::minAllReduceUint(unsigned int* send_local, unsigned int* recv_global) {
+    assert(isInitiatingThread());
+    return MPI_Allreduce(send_local, recv_global, 1, MPI_UNSIGNED, MPI_MIN, MPI_COMM_WORLD);
+}
+
 void TimeWarpMPICommunicationManager::insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg) {
     send_queue_->msg_list_lock_.lock();
     send_queue_->msg_list_.push_back(std::move(msg));

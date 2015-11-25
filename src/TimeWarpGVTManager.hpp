@@ -10,6 +10,7 @@
 namespace warped {
 
 enum class GVTState { IDLE, LOCAL, GLOBAL };
+enum class Color { WHITE, RED };
 
 class TimeWarpGVTManager {
 public:
@@ -20,6 +21,8 @@ public:
     virtual void initialize();
 
     void checkProgressGVT();
+
+    virtual bool readyToStart() = 0;
 
     virtual void progressGVT() = 0;
 

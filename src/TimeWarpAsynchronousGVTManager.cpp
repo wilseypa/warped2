@@ -24,6 +24,12 @@ void TimeWarpAsynchronousGVTManager::initialize() {
     TimeWarpGVTManager::initialize();
 }
 
+bool TimeWarpAsynchronousGVTManager::readyToStart() {
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - gvt_start).count();
+    return ((elapsed >= gvt_period_) && (comm_manager_->getID() == 0));
+}
+
 void TimeWarpAsynchronousGVTManager::progressGVT() {
 
     if (gvt_state_ == GVTState::LOCAL) {
@@ -71,7 +77,6 @@ void TimeWarpAsynchronousGVTManager::progressGVT() {
 
             started_local_gvt_ = false;
         }
-
     }
 }
 

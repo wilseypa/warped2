@@ -11,8 +11,6 @@
 
 namespace warped {
 
-enum class Color { WHITE, RED };
-
 class TimeWarpAsynchronousGVTManager : public TimeWarpGVTManager {
 public:
     TimeWarpAsynchronousGVTManager(std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
@@ -20,23 +18,24 @@ public:
         : TimeWarpGVTManager(comm_manager, period, num_worker_threads) {}
 
     // Registers message handlers and initializes data
-    virtual void initialize();
+    void initialize() override;
 
-    // Start a new GVT calculation
-    virtual void progressGVT();
+    bool readyToStart();
 
-    virtual void receiveEventUpdate(std::shared_ptr<Event>& event, Color color);
+    void progressGVT();
 
-    virtual Color sendEventUpdate(std::shared_ptr<Event>& event);
+    void receiveEventUpdate(std::shared_ptr<Event>& event, Color color);
+
+    Color sendEventUpdate(std::shared_ptr<Event>& event);
 
     bool gvtUpdated();
 
-    virtual void reportThreadMin(unsigned int timestamp, unsigned int thread_id,
+    void reportThreadMin(unsigned int timestamp, unsigned int thread_id,
                                  unsigned int local_gvt_flag);
 
-    virtual void reportThreadSendMin(unsigned int timestamp, unsigned int thread_id);
+    void reportThreadSendMin(unsigned int timestamp, unsigned int thread_id);
 
-    virtual unsigned int getLocalGVTFlag();
+    unsigned int getLocalGVTFlag();
 
 protected:
     // Message handler for a Mattern token
@@ -74,9 +73,6 @@ private:
 
     // Used to hold accumulated white msg count from last token received
     unsigned int msg_count_ = 0;
-
-    // How often we should start a new GVT calculation
-    unsigned int gvt_period_;
 
     // Flag to indicate that GVT has been updated
     bool gvt_updated_ = false;
