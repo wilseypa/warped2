@@ -101,6 +101,12 @@ void TimeWarpMPICommunicationManager::handleMessages() {
     startSendRequests();
 }
 
+void TimeWarpMPICommunicationManager::flushMessages() {
+    for (unsigned int receiver_id = 0; receiver_id < getNumProcesses(); receiver_id++) {
+        packAndSend(receiver_id);
+    }
+}
+
 unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
     unsigned int requests = 0;
 
@@ -119,41 +125,7 @@ unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
         if ((++aggregate_message_count_by_receiver_[receiver_id] >= max_aggregate_) ||
             (msg_type != MessageType::EventMessage)) {
 
-            int position = 0;
-            uint8_t* message_buffer = new uint8_t[max_buffer_size_];
-            int num_messages = aggregate_messages_[receiver_id].size();
-            int header_size = sizeof(int)*(num_messages+1);
-            int message_position = header_size;
-
-            MPI_Pack(&num_messages, 1, MPI_INT, message_buffer, max_buffer_size_, &position, MPI_COMM_WORLD);
-            for (auto& m : aggregate_messages_[receiver_id]) {
-                std::ostringstream oss;
-                cereal::PortableBinaryOutputArchive oarchive(oss);
-                oarchive(m);
-
-                int length = oss.str().length();
-                MPI_Pack(&length, 1, MPI_INT, message_buffer, max_buffer_size_, &position, MPI_COMM_WORLD);
-                MPI_Pack(const_cast<char*>(oss.str().c_str()), length, MPI_BYTE, message_buffer,
-                         max_buffer_size_, &message_position, MPI_COMM_WORLD);
-            }
-
-            auto new_request = make_unique<PendingRequest>(std::unique_ptr<uint8_t[]>(message_buffer), message_position);
-            send_queue_->pending_request_list_.push_back(std::move(new_request));
-
-            if (MPI_Isend(
-                    send_queue_->pending_request_list_.back()->buffer_.get(),
-                    send_queue_->pending_request_list_.back()->count_,
-                    MPI_PACKED,
-                    receiver_id,
-                    MPI_DATA_TAG,
-                    MPI_COMM_WORLD,
-                    &send_queue_->pending_request_list_.back()->request_) != MPI_SUCCESS) {
-                throw std::runtime_error("MPI_Isend failed");
-                return requests;
-            }
-
-            aggregate_messages_[receiver_id].clear();
-            aggregate_message_count_by_receiver_[receiver_id] = 0;
+            packAndSend(receiver_id);
 
             requests++;
         }
@@ -162,6 +134,44 @@ unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
     send_queue_->msg_list_lock_.unlock();
 
     return requests;
+}
+
+void TimeWarpMPICommunicationManager::packAndSend(unsigned int receiver_id) {
+
+    int position = 0;
+    uint8_t* message_buffer = new uint8_t[max_buffer_size_];
+    int num_messages = aggregate_messages_[receiver_id].size();
+    int header_size = sizeof(int)*(num_messages+1);
+    int message_position = header_size;
+
+    MPI_Pack(&num_messages, 1, MPI_INT, message_buffer, max_buffer_size_, &position, MPI_COMM_WORLD);
+    for (auto& m : aggregate_messages_[receiver_id]) {
+        std::ostringstream oss;
+        cereal::PortableBinaryOutputArchive oarchive(oss);
+        oarchive(m);
+
+        int length = oss.str().length();
+        MPI_Pack(&length, 1, MPI_INT, message_buffer, max_buffer_size_, &position, MPI_COMM_WORLD);
+        MPI_Pack(const_cast<char*>(oss.str().c_str()), length, MPI_BYTE, message_buffer,
+                 max_buffer_size_, &message_position, MPI_COMM_WORLD);
+    }
+
+    auto new_request = make_unique<PendingRequest>(std::unique_ptr<uint8_t[]>(message_buffer), message_position);
+    send_queue_->pending_request_list_.push_back(std::move(new_request));
+
+    if (MPI_Isend(
+            send_queue_->pending_request_list_.back()->buffer_.get(),
+            send_queue_->pending_request_list_.back()->count_,
+            MPI_PACKED,
+            receiver_id,
+            MPI_DATA_TAG,
+            MPI_COMM_WORLD,
+            &send_queue_->pending_request_list_.back()->request_) != MPI_SUCCESS) {
+        throw std::runtime_error("MPI_Isend failed");
+    }
+
+    aggregate_messages_[receiver_id].clear();
+    aggregate_message_count_by_receiver_[receiver_id] = 0;
 }
 
 unsigned int TimeWarpMPICommunicationManager::startReceiveRequests() {

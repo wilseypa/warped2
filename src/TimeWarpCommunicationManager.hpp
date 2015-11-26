@@ -48,6 +48,8 @@ public:
     // Sends all messages inserted into queue
     virtual void handleMessages() = 0;
 
+    virtual void flushMessages() = 0;
+
     // Adds a MessageType/Message handler pair for dispatching messages
     void addRecvMessageHandler(MessageType msg_type,
         std::function<void(std::unique_ptr<TimeWarpKernelMessage>)> msg_handler);

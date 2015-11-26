@@ -82,7 +82,7 @@ const static std::string DEFAULT_CONFIG = R"x({
 
     "communication" : {
         "max-msg-size" : 512,
-        "max-aggregate" : 20
+        "max-aggregate" : 5
     }
 },
 
@@ -445,11 +445,6 @@ std::unique_ptr<Partitioner> Configuration::makeLocalPartitioner(unsigned int no
 std::shared_ptr<TimeWarpCommunicationManager> Configuration::makeCommunicationManager() {
     unsigned int max_msg_size = (*root_)["time-warp"]["communication"]["max-msg-size"].asUInt();
     unsigned int max_aggregate = (*root_)["time-warp"]["communication"]["max-aggregate"].asUInt();
-
-    auto gvt_method = (*root_)["time-warp"]["gvt-calculation"]["method"].asString();
-    if (gvt_method == "synchronous") {
-        max_aggregate = 1;
-    }
 
     return std::make_shared<TimeWarpMPICommunicationManager>(max_msg_size, max_aggregate);
 }

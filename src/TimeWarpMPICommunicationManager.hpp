@@ -8,7 +8,6 @@
 
 #include "TimeWarpCommunicationManager.hpp"
 #include "TimeWarpKernelMessage.hpp"
-#include "TicketLock.hpp"
 
 namespace warped {
 
@@ -31,6 +30,15 @@ public:
 
     void insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
     void handleMessages();
+    void flushMessages();
+
+    int sumReduceUint64(uint64_t* send_local, uint64_t* recv_global);
+    int gatherUint64(uint64_t* send_local, uint64_t* recv_root);
+    int sumAllReduceInt64(int64_t* send_local, int64_t* recv_global);
+    int minAllReduceUint(unsigned int* send_local, unsigned int* recv_global);
+
+protected:
+    void packAndSend(unsigned int receiver_id);
 
     unsigned int startSendRequests();
     unsigned int startReceiveRequests();
@@ -38,11 +46,6 @@ public:
     unsigned int testReceiveRequests();
 
     bool isInitiatingThread();
-
-    int sumReduceUint64(uint64_t* send_local, uint64_t* recv_global);
-    int gatherUint64(uint64_t* send_local, uint64_t* recv_root);
-    int sumAllReduceInt64(int64_t* send_local, int64_t* recv_global);
-    int minAllReduceUint(unsigned int* send_local, unsigned int* recv_global);
 
 private:
     unsigned int max_buffer_size_;
@@ -76,7 +79,7 @@ struct MessageQueue {
     unsigned int max_buffer_size_;
 
     std::deque<std::unique_ptr<TimeWarpKernelMessage>>  msg_list_;
-    TicketLock msg_list_lock_;
+    std::mutex msg_list_lock_;
 
     std::vector<std::unique_ptr<PendingRequest>> pending_request_list_;
 };

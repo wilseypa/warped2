@@ -39,6 +39,7 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
 
         int64_t total_msg_count;
         while (true) {
+            comm_manager_->flushMessages();
             comm_manager_->handleMessages();
             int64_t local_msg_count = msg_count_.load();
             comm_manager_->sumAllReduceInt64(&local_msg_count, &total_msg_count);

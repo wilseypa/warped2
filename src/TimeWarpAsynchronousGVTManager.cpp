@@ -144,6 +144,7 @@ void TimeWarpAsynchronousGVTManager::sendMatternGVTToken(unsigned int local_mini
     state_.lock_.unlock();
 
     comm_manager_->insertMessage(std::move(msg));
+    comm_manager_->flushMessages();
 }
 
 void TimeWarpAsynchronousGVTManager::receiveMatternGVTToken(
@@ -202,7 +203,10 @@ void TimeWarpAsynchronousGVTManager::receiveGVTUpdate(std::unique_ptr<TimeWarpKe
 
     global_min_clock_ = (unsigned int)-1;
     toggleInitialColor();
-    gvt_state_ = GVTState::IDLE;
+
+    if (gvt_state_ == GVTState::GLOBAL) {
+        gvt_state_ = GVTState::IDLE;
+    }
 
     gvt_updated_ = true;
 }
