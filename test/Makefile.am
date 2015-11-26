@@ -21,7 +21,7 @@ WARPED_TEST_PROGS = \
     test_serialization \
     test_Simulation \
     test_STLLTSFQueue \
-    test_TimeWarpMatternGVTManager \
+    test_TimeWarpAsynchronousGVTManager \
     test_TimeWarpPeriodicStateManager \
     test_TimeWarpAggressiveOutputManager \
     test_TimeWarpFileStreamManager \
