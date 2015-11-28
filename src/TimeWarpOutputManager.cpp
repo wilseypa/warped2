@@ -48,10 +48,10 @@ TimeWarpOutputManager::removeEventsSentAfter(std::shared_ptr<Event> straggler_ev
     auto max = output_queue_[local_lp_id].rbegin(); // Start at the largest event
 
     while ((max != output_queue_[local_lp_id].rend()) && (*max->input_event_ >= *straggler_event)) {
-        auto event = output_queue_[local_lp_id].back();
+        auto back = std::move(output_queue_[local_lp_id].back());
         output_queue_[local_lp_id].pop_back();
         // Events are returned in order of LARGEST to SMALLEST
-        events_to_cancel->push_back(max->output_event_);
+        events_to_cancel->push_back(back.output_event_);
         max = output_queue_[local_lp_id].rbegin();
     }
 

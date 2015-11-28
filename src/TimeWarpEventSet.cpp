@@ -179,7 +179,7 @@ void TimeWarpEventSet::rollback (unsigned int lp_id, std::shared_ptr<Event> stra
 
     while (event_riterator != processed_queue_[lp_id]->rend() && (**event_riterator >= *straggler_event)){
 
-        auto event = processed_queue_[lp_id]->back(); // Starting from largest event
+        auto event = std::move(processed_queue_[lp_id]->back()); // Starting from largest event
         assert(event);
         processed_queue_[lp_id]->pop_back();
         input_queue_[lp_id]->insert(event);
