@@ -25,7 +25,7 @@ void TimeWarpSynchronousGVTManager::initialize() {
 
 bool TimeWarpSynchronousGVTManager::readyToStart() {
     auto now = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - gvt_start).count();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - gvt_stop).count();
     return  (elapsed >= gvt_period_);
 }
 
@@ -61,6 +61,7 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
         local_gvt_flag_.store(0);
         pthread_barrier_wait(&min_report_barrier_);
 
+        gvt_stop = std::chrono::steady_clock::now();
         gvt_state_ = GVTState::IDLE;
     }
 }

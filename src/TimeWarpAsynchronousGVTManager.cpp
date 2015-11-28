@@ -70,6 +70,7 @@ void TimeWarpAsynchronousGVTManager::progressGVT() {
                 gvt_state_ = GVTState::GLOBAL;
                 sendMatternGVTToken(min);
             } else {
+                gvt_stop = std::chrono::steady_clock::now();
                 gvt_state_ = GVTState::IDLE;
                 gVT_ = min;
                 gvt_updated_ = true;
@@ -205,6 +206,7 @@ void TimeWarpAsynchronousGVTManager::receiveGVTUpdate(std::unique_ptr<TimeWarpKe
     toggleInitialColor();
 
     if (gvt_state_ == GVTState::GLOBAL) {
+        gvt_stop = std::chrono::steady_clock::now();
         gvt_state_ = GVTState::IDLE;
     }
 

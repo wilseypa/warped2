@@ -6,6 +6,7 @@ namespace warped {
 void TimeWarpGVTManager::initialize() {
     gvt_state_ = GVTState::IDLE;
     gvt_start = std::chrono::steady_clock::now();
+    gvt_stop = std::chrono::steady_clock::now();
 }
 
 void TimeWarpGVTManager::checkProgressGVT() {

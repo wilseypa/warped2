@@ -48,6 +48,8 @@ protected:
 
     std::chrono::time_point<std::chrono::steady_clock> gvt_start;
 
+    std::chrono::time_point<std::chrono::steady_clock> gvt_stop;
+
     unsigned int gvt_period_;
 
     GVTState gvt_state_;
