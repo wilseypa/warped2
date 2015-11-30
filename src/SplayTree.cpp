@@ -9,38 +9,31 @@ SplayTree::SplayTree():
 /* Search lowest event */
 std::shared_ptr<Event> SplayTree::begin() {
 
-    std::shared_ptr<Event> event = nullptr;
+    // If splay tree is invalid
     if (!root_ || !num_nodes_) {
         root_    = nullptr;
         current_ = nullptr;
         num_nodes_ = 0;
-    } else {
-        if (!current_) {
-            std::shared_ptr<Node> node = root_;
-            while (node->getLeftNode()) {
-                node = node->getLeftNode();
-            }
-            current_ = node;
-        } else {
-            event = current_->getData();
-        }
+        return nullptr;
     }
-    return event;
+
+    if (!current_) {
+        std::shared_ptr<Node> node = root_;
+        while (node->getLeftNode()) {
+            node = node->getLeftNode();
+        }
+        current_ = node;
+    }
+    return current_->getData();
 }
 
 /* Erase event */
 bool SplayTree::erase(std::shared_ptr<Event> event) {
 
-    std::shared_ptr<Node> del_node = nullptr;
-    std::shared_ptr<Node> node     = nullptr;
-    std::shared_ptr<Node> left     = nullptr;
-    std::shared_ptr<Node> right    = nullptr;
-
-    assert(event != nullptr);
-
-    if (!root_) assert(!current_);
+    assert(event);
+    assert(root_);
     if (!current_) {
-        node = root_;
+        std::shared_ptr<Node> node = root_;
         while (node->getLeftNode()) {
             node = node->getLeftNode();
         }
@@ -50,11 +43,7 @@ bool SplayTree::erase(std::shared_ptr<Event> event) {
 
     // Search for the event to be deleted
     // Also handles the condition when current = root
-    if (event <= current_->getData()) {
-        node = current_;
-    } else {
-        node = root_;
-    }
+    std::shared_ptr<Node> node = (event <= current_->getData()) ? current_ : root_;
     while (node) {
         if (event < node->getData()) {
             node = node->getLeftNode();
@@ -73,9 +62,8 @@ bool SplayTree::erase(std::shared_ptr<Event> event) {
         splay(node);
         if (node != root_) assert(0);
     }
-    left  = root_->getLeftNode();
-    right = root_->getRightNode();
-
+    std::shared_ptr<Node> left  = root_->getLeftNode();
+    std::shared_ptr<Node> right = root_->getRightNode();
     num_nodes_--;
 
     // Re-construct the tree
@@ -98,10 +86,11 @@ bool SplayTree::erase(std::shared_ptr<Event> event) {
 
     // Re-calculate the current
     if (root_) {
-        current_ = root_;
-        while (current_->getLeftNode()) {
-            current_ = current_->getLeftNode();
+        std::shared_ptr<Node> node = root_;
+        while (node->getLeftNode()) {
+            node = node->getLeftNode();
         }
+        current_ = node;
     }
     return true;
 }
@@ -109,12 +98,9 @@ bool SplayTree::erase(std::shared_ptr<Event> event) {
 /* Insert event */
 void SplayTree::insert(std::shared_ptr<Event> event) {
 
-    std::shared_ptr<Node> node  = nullptr;
-    std::shared_ptr<Node> left  = nullptr;
-    std::shared_ptr<Node> right = nullptr;
     assert(event);
-
     std::shared_ptr<Node> new_node = std::make_shared<Node>(event);
+    assert(new_node);
     num_nodes_++;
 
     if (!root_) {
@@ -123,13 +109,13 @@ void SplayTree::insert(std::shared_ptr<Event> event) {
         return;
     }
 
+    assert(current_);
     if (!current_->getData()) {
-        node = root_;
+        std::shared_ptr<Node> node = root_;
         while (node->getLeftNode()) {
             node = node->getLeftNode();
         }
         current_ = node;
-        assert(current_->getData());
     }
 
     if (event <= current_->getData()) {
@@ -140,10 +126,10 @@ void SplayTree::insert(std::shared_ptr<Event> event) {
         return;
     }
 
-    node = root_;
+    std::shared_ptr<Node> node = root_;
     while (1) {
         if (event <= node->getData()) {
-            left = node->getLeftNode();
+            std::shared_ptr<Node> left = node->getLeftNode();
             if (left) {
                 node = left;
             } else {
@@ -151,7 +137,7 @@ void SplayTree::insert(std::shared_ptr<Event> event) {
                 break;
             }
         } else {
-            right = node->getRightNode();
+            std::shared_ptr<Node> right = node->getRightNode();
             if (right) {
                 node = right;
             } else {

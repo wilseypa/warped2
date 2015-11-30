@@ -32,34 +32,34 @@ TEST_CASE("Splay Tree operations") {
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"r2", 5}));
         e = q.begin();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r2");
-        CHECK(e->timestamp() == 5);
+        CHECK(e->receiverName() == "r1");
+        CHECK(e->timestamp() == 10);
         q.erase(e);
         e = q.begin();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
-        CHECK(e->timestamp() == 10);
+        CHECK(e->receiverName() == "r2");
+        CHECK(e->timestamp() == 5);
 
         // Add event with a larger timestamp
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 15}));
         e = q.begin();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
-        CHECK(e->timestamp() == 10);
+        CHECK(e->receiverName() == "r2");
+        CHECK(e->timestamp() == 5);
 
         // Add event with a smaller timestamp
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"r3", 8}));
         e = q.begin();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r3");
-        CHECK(e->timestamp() == 8);
+        CHECK(e->receiverName() == "r2");
+        CHECK(e->timestamp() == 5);
 
         // Delete the 3 events
         q.erase(e);
         e = q.begin();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
-        CHECK(e->timestamp() == 10);
+        CHECK(e->receiverName() == "r3");
+        CHECK(e->timestamp() == 8);
         q.erase(e);
         e = q.begin();
         REQUIRE(e != nullptr);
