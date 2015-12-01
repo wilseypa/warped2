@@ -154,6 +154,17 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
 
+            // If needed, report event for this thread so GVT can be calculated
+            auto lowest_timestamp = event->timestamp();
+
+#if LADDER_QUEUE_SCHEDULER
+#if PARTIALLY_UNSORTED_EVENT_SET
+            lowest_timestamp = event_set_->lowestTimestamp(thread_id);
+#endif
+#endif
+
+            gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
+
             // Make sure that if this thread is currently seen as passive, we update it's state
             //  so we don't terminate early.
             if (termination_manager_->threadPassive(thread_id)) {
@@ -194,24 +205,13 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Check to see if event is NEGATIVE and cancel
             if (event->event_type_ == EventType::NEGATIVE) {
                 event_set_->acquireInputQueueLock(current_lp_id);
-                event_set_->cancelEvent(current_lp_id, event);
+                bool found = event_set_->cancelEvent(current_lp_id, event);
                 event_set_->startScheduling(current_lp_id);
                 event_set_->releaseInputQueueLock(current_lp_id);
 
-                tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
+                if (found) tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
                 continue;
             }
-
-            // If needed, report event for this thread so GVT can be calculated
-            auto lowest_timestamp = event->timestamp();
-
-#if LADDER_QUEUE_SCHEDULER
-#if PARTIALLY_UNSORTED_EVENT_SET
-            lowest_timestamp = event_set_->lowestTimestamp(thread_id);
-#endif
-#endif
-
-            gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
 
             // process event and get new events
             auto new_events = current_lp->receiveEvent(*event);

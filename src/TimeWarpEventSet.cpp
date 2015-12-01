@@ -289,16 +289,21 @@ void TimeWarpEventSet::replenishScheduler (unsigned int lp_id) {
     }
 }
 
-void TimeWarpEventSet::cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event) {
+bool TimeWarpEventSet::cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event) {
 
+    bool found = false;
     auto neg_iterator = input_queue_[lp_id]->find(cancel_event);
     assert(neg_iterator != input_queue_[lp_id]->end());
     auto pos_iterator = std::next(neg_iterator);
     assert(pos_iterator != input_queue_[lp_id]->end());
 
-    assert(**pos_iterator == **neg_iterator);
-    input_queue_[lp_id]->erase(neg_iterator);
-    input_queue_[lp_id]->erase(pos_iterator);
+    if (**pos_iterator == **neg_iterator) {
+        input_queue_[lp_id]->erase(neg_iterator);
+        input_queue_[lp_id]->erase(pos_iterator);
+        found = true;
+    }
+
+    return found;
 }
 
 // For debugging

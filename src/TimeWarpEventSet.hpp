@@ -58,7 +58,7 @@ public:
 
     void replenishScheduler (unsigned int lp_id);
 
-    void cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
+    bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 
     void printEvent (std::shared_ptr<Event> event);
 
