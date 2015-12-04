@@ -190,9 +190,7 @@ unsigned int TimeWarpMPICommunicationManager::startReceiveRequests() {
 
         if (flag) {
 
-            int count;
-            MPI_Get_count(&status, MPI_BYTE, &count);
-            auto new_request = make_unique<PendingRequest>(make_unique<uint8_t[]>(count), count);
+            auto new_request = make_unique<PendingRequest>(make_unique<uint8_t[]>(max_buffer_size_), max_buffer_size_);
             recv_queue_->pending_request_list_.push_back(std::move(new_request));
 
             if (MPI_Irecv(
@@ -220,7 +218,9 @@ unsigned int TimeWarpMPICommunicationManager::testSendRequests() {
     unsigned int count = 0;
 
     for (auto &pr : send_queue_->pending_request_list_) {
-        MPI_Test(&pr->request_, &pr->flag_, &pr->status_);
+        if (MPI_Test(&pr->request_, &pr->flag_, &pr->status_) != MPI_SUCCESS) {
+            throw std::runtime_error("MPI_Test failed in testSendRequest");
+        }
         if (pr->flag_) count++;
     }
 
@@ -238,13 +238,15 @@ unsigned int TimeWarpMPICommunicationManager::testReceiveRequests() {
     unsigned int count = 0;
 
     for (auto &pr : recv_queue_->pending_request_list_) {
-        MPI_Test(&pr->request_, &pr->flag_, &pr->status_);
+        if (MPI_Test(&pr->request_, &pr->flag_, &pr->status_) != MPI_SUCCESS) {
+            throw std::runtime_error("MPI_Test failed in testSendRequest");
+        }
         if (pr->flag_) {
             count++;
 
             int num_messages;
             char* message_buffer = reinterpret_cast<char*>(pr->buffer_.get());
-            int message_length = pr->count_;
+            int message_length = pr->count_;;
             int position = 0;
 
             MPI_Unpack(message_buffer, message_length, &position, &num_messages, 1, MPI_INT, MPI_COMM_WORLD);
