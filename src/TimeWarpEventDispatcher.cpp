@@ -13,7 +13,6 @@
 #include <iostream>
 #include <cassert>
 
-#include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -40,7 +39,6 @@ WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::NegativeEvent)
 
 namespace warped {
 
-pthread_barrier_t stop_barrier;
 thread_local unsigned int TimeWarpEventDispatcher::thread_id;
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
@@ -65,13 +63,10 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
                                               lps) {
     initialize(lps);
 
-    pthread_barrier_init(&stop_barrier, NULL, num_worker_threads_+1);
-
     // Create worker threads
     std::vector<std::thread> threads;
     for (unsigned int i = 0; i < num_worker_threads_; ++i) {
         auto thread(std::thread {&TimeWarpEventDispatcher::processEvents, this, i});
-        thread.detach();
         threads.push_back(std::move(thread));
     }
 
@@ -107,7 +102,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
         std::cout << "\nSimulation completed in " << num_seconds << " second(s)" << "\n\n";
     }
 
-    pthread_barrier_wait(&stop_barrier);
+    for (auto& t: threads) {
+        t.join();
+    }
 
     gvt = (unsigned int)-1;
     for (unsigned int current_lp_id = 0; current_lp_id < num_local_lps_; current_lp_id++) {
@@ -259,7 +256,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             gvt_manager_->reportThreadMin((unsigned int)-1, thread_id, local_gvt_flag);
         }
     }
-    pthread_barrier_wait(&stop_barrier);
 }
 
 void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
