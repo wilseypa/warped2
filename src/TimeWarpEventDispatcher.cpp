@@ -455,6 +455,16 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<LogicalProcess
         }
     }
 
+    int64_t total_msg_count;
+    while (true) {
+        comm_manager_->flushMessages();
+        comm_manager_->handleMessages();
+        int64_t local_msg_count = gvt_manager_->getMessageCount();
+        comm_manager_->sumAllReduceInt64(&local_msg_count, &total_msg_count);
+        if(total_msg_count == 0)
+            break;
+    }
+
     comm_manager_->handleMessages();
     comm_manager_->waitForAllProcesses();
 }

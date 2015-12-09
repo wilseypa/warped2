@@ -39,6 +39,8 @@ public:
 
     virtual bool gvtUpdated() = 0;
 
+    virtual int64_t getMessageCount() = 0;
+
     unsigned int getGVT() { return gVT_; }
 
 protected:

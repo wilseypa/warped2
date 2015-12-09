@@ -30,6 +30,10 @@ public:
 
     bool gvtUpdated();
 
+    int64_t getMessageCount() {
+        return initialColorCount();
+    }
+
     void reportThreadMin(unsigned int timestamp, unsigned int thread_id,
                                  unsigned int local_gvt_flag);
 
