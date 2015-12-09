@@ -129,26 +129,6 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
 
 void TimeWarpStatistics::printStats() {
 
-    for (unsigned int i = 0; i < comm_manager_->getNumProcesses(); i++) {
-        std::cout << "Node "                      << i                              << "\n"
-                  << "\tNumber of objects:        " << num_objects_by_node_[i]        << "\n\n"
-
-                  << "\tLocal events sent:        " << local_pos_sent_by_node_[i]     << "\n"
-                  << "\tRemote events sent:       " << remote_pos_sent_by_node_[i]    << "\n"
-                  << "\tLocal anti-messages sent: " << local_neg_sent_by_node_[i]     << "\n"
-                  << "\tRemote anti-messages sent:" << remote_neg_sent_by_node_[i]   << "\n\n"
-
-                  << "\tPrimary rollbacks:        " << primary_rollbacks_by_node_[i]  << "\n"
-                  << "\tSecondary rollbacks:      " << secondary_rollbacks_by_node_[i] << "\n\n"
-
-                  << "\tCoast forward events:     " << coast_forward_events_by_node_[i] << "\n\n"
-
-                  << "\tCancelled events:         " << cancelled_events_by_node_[i]    << "\n\n"
-
-                  << "\tEvents processed:         " << processed_events_by_node_[i]   << "\n"
-                  << "\tEvents committed:         " << committed_events_by_node_[i]   << std::endl << std::endl;
-    }
-
     std::cout << "Totals"                      << "\n"
               << "\tNumber of objects:         " << global_stats_[NUM_OBJECTS] << "\n"
               << "\tLocal events sent:         " << global_stats_[LOCAL_POSITIVE_EVENTS_SENT] << "\n"
@@ -174,7 +154,6 @@ void TimeWarpStatistics::printStats() {
 
               << "\tAverage maximum memory:    " << global_stats_[AVERAGE_MAX_MEMORY] << " MB\n"
               << "\tGVT cycles:                " << global_stats_[GVT_CYCLES] << std::endl << std::endl;
-
 
     delete [] local_pos_sent_by_node_;
     delete [] local_neg_sent_by_node_;
