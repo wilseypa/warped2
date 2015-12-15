@@ -68,7 +68,8 @@ private:
         Color initial_color_ = Color::WHITE;
         int white_msg_count_ = 0;
         int red_msg_count_ = 0;
-        unsigned int min_timestamp_ = (unsigned int)-1;
+        unsigned int min_send_timestamp_ = (unsigned int)-1;
+        unsigned int min_recv_timestamp_ = (unsigned int)-1;
         std::mutex lock_;
     } state_;
 

@@ -40,7 +40,8 @@ void TimeWarpAsynchronousGVTManager::progressGVT() {
             if (!started_global_gvt_ && (comm_manager_->getID() == 0)) {
                 state_.lock_.lock();
 
-                state_.min_timestamp_ = (unsigned int)-1;
+                state_.min_send_timestamp_ = (unsigned int)-1;
+                state_.min_recv_timestamp_ = (unsigned int)-1;
 
                 assert(state_.color_ == state_.initial_color_);
                 toggleColor();
@@ -93,7 +94,7 @@ Color TimeWarpAsynchronousGVTManager::sendEventUpdate(std::shared_ptr<Event>& ev
     }
 
     if (color != state_.initial_color_) {
-        state_.min_timestamp_ = std::min(state_.min_timestamp_, event->timestamp());
+        state_.min_send_timestamp_ = std::min(state_.min_send_timestamp_, event->timestamp());
     }
 
     state_.lock_.unlock();
@@ -110,6 +111,11 @@ void TimeWarpAsynchronousGVTManager::receiveEventUpdate(std::shared_ptr<Event>& 
     } else {
         state_.red_msg_count_--;
     }
+
+    if (color == state_.initial_color_) {
+        state_.min_recv_timestamp_ = std::min(state_.min_recv_timestamp_, event->timestamp());
+    }
+
     state_.lock_.unlock();
 }
 
@@ -135,11 +141,13 @@ void TimeWarpAsynchronousGVTManager::sendMatternGVTToken(unsigned int local_mini
 
     state_.lock_.lock();
 
+    local_minimum = std::min(state_.min_recv_timestamp_, local_minimum);
+
     auto msg = make_unique<MatternGVTToken>(
         sender_id,                                      // Sender
         (sender_id + 1) % num_processes,                // Receiver
         std::min(local_minimum, global_min_clock_),     // Accumulated minimum clock nodes
-        state_.min_timestamp_,                          // Accumulated Minimum red messages
+        state_.min_send_timestamp_,                     // Accumulated Minimum sent "red" timestamp
         msg_count_);                                    // Accumulated white msg count
 
     state_.lock_.unlock();
@@ -168,7 +176,7 @@ void TimeWarpAsynchronousGVTManager::receiveMatternGVTToken(
 
         } else {
             // Account for minumum red msg timestamp from nodes that the token has visited so far
-            state_.min_timestamp_ = std::min(msg->m_send, state_.min_timestamp_);
+            state_.min_send_timestamp_ = std::min(msg->m_send, state_.min_send_timestamp_);
 
             // Hold the white message count so it can be used when the token is sent
             msg_count_ = initialColorCount() + msg->count;
@@ -180,12 +188,13 @@ void TimeWarpAsynchronousGVTManager::receiveMatternGVTToken(
     } else {
         // A node other than the initiator is now receiving a control message
         if (state_.color_ == state_.initial_color_) {
-            state_.min_timestamp_ = (unsigned int)-1;
+            state_.min_send_timestamp_ = (unsigned int)-1;
+            state_.min_recv_timestamp_ = (unsigned int)-1;
             toggleColor();
         }
 
         // Accumulations
-        state_.min_timestamp_ = std::min(msg->m_send, state_.min_timestamp_);
+        state_.min_send_timestamp_ = std::min(msg->m_send, state_.min_send_timestamp_);
         global_min_clock_ = std::min(global_min_clock_, msg->m_clock);
 
         // Hold count from message

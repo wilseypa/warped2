@@ -20,6 +20,8 @@ void TimeWarpSynchronousGVTManager::initialize() {
         send_min_[i] = std::numeric_limits<unsigned int>::max();
     }
 
+    recv_min_ = std::numeric_limits<unsigned int>::max();
+
     TimeWarpGVTManager::initialize();
 }
 
@@ -32,6 +34,7 @@ bool TimeWarpSynchronousGVTManager::readyToStart() {
 void TimeWarpSynchronousGVTManager::progressGVT() {
     if (gvt_state_ == GVTState::LOCAL) {
 
+        color_.store(Color::RED);
         local_gvt_flag_.store(1);
         pthread_barrier_wait(&min_report_barrier_);
 
@@ -41,13 +44,14 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
         while (true) {
             comm_manager_->flushMessages();
             comm_manager_->handleMessages();
-            int64_t local_msg_count = msg_count_.load();
+            int64_t local_msg_count = white_msg_count_.load();
             comm_manager_->sumAllReduceInt64(&local_msg_count, &total_msg_count);
             if(total_msg_count == 0)
                 break;
         }
 
-        unsigned int local_min = std::numeric_limits<unsigned int>::max();
+        unsigned int local_min = recv_min_;
+        recv_min_ = std::numeric_limits<unsigned int>::max();
         for (unsigned int i = 0; i <= num_worker_threads_; i++) {
             local_min = std::min(local_min, std::min(local_min_[i], send_min_[i]));
             local_min_[i] = std::numeric_limits<unsigned int>::max();
@@ -58,6 +62,7 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
 
         gvt_updated_ = true;
 
+        color_.store(Color::WHITE);
         local_gvt_flag_.store(0);
         pthread_barrier_wait(&min_report_barrier_);
 
@@ -68,16 +73,23 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
 
 Color TimeWarpSynchronousGVTManager::sendEventUpdate(std::shared_ptr<Event>& event) {
     unused(event);
-    msg_count_++;
 
-    return Color::WHITE;
+    Color color = color_.load();
+
+    if (color == Color::WHITE) {
+        white_msg_count_++;
+    }
+
+    return color;
 }
 
 void TimeWarpSynchronousGVTManager::receiveEventUpdate(std::shared_ptr<Event>& event, Color color) {
-    unused(event);
-    unused(color);
 
-    msg_count_--;
+    if (color == Color::WHITE) {
+        white_msg_count_--;
+    } else {
+        recv_min_ = std::min(recv_min_, event->timestamp());
+    }
 }
 
 bool TimeWarpSynchronousGVTManager::gvtUpdated() {

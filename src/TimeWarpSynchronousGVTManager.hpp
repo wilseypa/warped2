@@ -30,7 +30,7 @@ public:
     bool gvtUpdated();
 
     int64_t getMessageCount() {
-        return msg_count_.load();
+        return white_msg_count_.load();
     }
 
     void reportThreadMin(unsigned int timestamp, unsigned int thread_id,
@@ -43,13 +43,17 @@ public:
 protected:
     bool gvt_updated_ = false;
 
-    std::atomic<int64_t> msg_count_ = ATOMIC_VAR_INIT(0);
+    std::atomic<int64_t> white_msg_count_ = ATOMIC_VAR_INIT(0);
+
+    std::atomic<Color> color_ = ATOMIC_VAR_INIT(Color::WHITE);
 
     std::atomic<unsigned int> local_gvt_flag_ = ATOMIC_VAR_INIT(0);
 
     std::unique_ptr<unsigned int []> local_min_;
 
     std::unique_ptr<unsigned int []> send_min_;
+
+    unsigned int recv_min_;
 
     pthread_barrier_t min_report_barrier_;
 
