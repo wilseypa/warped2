@@ -80,6 +80,21 @@ void TimeWarpStatistics::calculateStats() {
                 break;
             case NUM_OBJECTS.value:
                 sumReduceLocal(NUM_OBJECTS, num_objects_by_node_);
+            case EVENTS_ROLLEDBACK.value:
+                global_stats_[EVENTS_ROLLEDBACK] =
+                    global_stats_[EVENTS_PROCESSED] -
+                    global_stats_[EVENTS_COMMITTED];
+                break;
+            case AVERAGE_RBLENGTH.value:
+                global_stats_[AVERAGE_RBLENGTH] = (global_stats_[TOTAL_ROLLBACKS] == 0) ? 0 :
+                    (static_cast<double>(global_stats_[EVENTS_ROLLEDBACK]) /
+                     (static_cast<double>(global_stats_[TOTAL_ROLLBACKS])));
+                break;
+            case EFFICIENCY.value:
+                global_stats_[EFFICIENCY] = 
+                    static_cast<double>(global_stats_[EVENTS_COMMITTED]) /
+                    static_cast<double>(global_stats_[EVENTS_PROCESSED]);
+                break;
             default:
                 break;
         }
@@ -130,11 +145,13 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
 void TimeWarpStatistics::printStats() {
 
     std::cout << "Totals"                      << "\n"
-              << "\tNumber of objects:         " << global_stats_[NUM_OBJECTS] << "\n"
+              << "\tNumber of objects:         " << global_stats_[NUM_OBJECTS] << "\n\n"
+
               << "\tLocal events sent:         " << global_stats_[LOCAL_POSITIVE_EVENTS_SENT] << "\n"
               << "\tRemote events sent:        " << global_stats_[REMOTE_POSITIVE_EVENTS_SENT] << "\n"
               << "\tLocal anti-messages sent:  " << global_stats_[LOCAL_NEGATIVE_EVENTS_SENT] << "\n"
               << "\tRemote anti-messages sent: " << global_stats_[REMOTE_NEGATIVE_EVENTS_SENT] << "\n"
+              << "\tTotal events sent:         " << global_stats_[TOTAL_EVENTS_SENT] << "\n"
               << "\tPercent remote:            " << global_stats_[PERCENT_REMOTE]*100.0 << "%\n\n"
 
               << "\tPrimary rollbacks:         " << global_stats_[PRIMARY_ROLLBACKS] << "\n"
@@ -146,11 +163,12 @@ void TimeWarpStatistics::printStats() {
 
               << "\tCoast forward events:      " << global_stats_[COAST_FORWARDED_EVENTS] << "\n\n"
 
-              << "\tTotal events sent:         " << global_stats_[TOTAL_EVENTS_SENT] << "\n\n"
-              << "\tTotal events received:     " << global_stats_[TOTAL_EVENTS_RECEIVED] << "\n"
-
               << "\tTotal events processed:    " << global_stats_[EVENTS_PROCESSED] << "\n"
-              << "\tTotal events committed:    " << global_stats_[EVENTS_COMMITTED] << "\n\n"
+              << "\tTotal events committed:    " << global_stats_[EVENTS_COMMITTED] << "\n"
+              << "\tTotal events rolled back:  " << global_stats_[EVENTS_ROLLEDBACK] << "\n\n"
+
+              << "\tAverage rollback length:   " << global_stats_[AVERAGE_RBLENGTH] << "\n"
+              << "\tEfficiency:                " << global_stats_[EFFICIENCY]*100.0 << "%\n\n"
 
               << "\tAverage maximum memory:    " << global_stats_[AVERAGE_MAX_MEMORY] << " MB\n"
               << "\tGVT cycles:                " << global_stats_[GVT_CYCLES] << std::endl << std::endl;

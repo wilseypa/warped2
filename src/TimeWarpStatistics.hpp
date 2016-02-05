@@ -36,7 +36,10 @@ struct Stats {
         uint64_t,                   // Average Maximum Memory       15
         uint64_t,                   // GVT cycles                   16
         uint64_t,                   // Number of objects            17
-        uint64_t                    // dummy/number of elements     18
+        uint64_t,                   // Rolled back events           18
+        double,                     // Average Rollback Length      19
+        double,                     // Efficiency                   20
+        uint64_t                    // dummy/number of elements     21
     > stats_;
 
     template<unsigned I>
@@ -64,7 +67,10 @@ const stats_index<14> TOTAL_EVENTS_RECEIVED;
 const stats_index<15> AVERAGE_MAX_MEMORY;
 const stats_index<16> GVT_CYCLES;
 const stats_index<17> NUM_OBJECTS;
-const stats_index<18> NUM_STATISTICS;
+const stats_index<18> EVENTS_ROLLEDBACK;
+const stats_index<19> AVERAGE_RBLENGTH;
+const stats_index<20> EFFICIENCY;
+const stats_index<21> NUM_STATISTICS;
 
 class TimeWarpStatistics {
 public:
