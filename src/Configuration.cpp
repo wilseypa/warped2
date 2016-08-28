@@ -327,18 +327,12 @@ check the following configurations:\n") + invalid_string);
                       << "Number of Schedule queues: " << num_schedulers << "\n";
 
             std::cout << "Type of Schedule queue:    ";
-#ifdef LADDER_QUEUE_SCHEDULER
-            std::cout << "Ladder Queue - ";
-
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
-            std::cout << "Partially unsorted (Relaxed)\n";
-#else
-            std::cout << "Strictly sorted\n";
-#endif
-
-#elif defined(SPLAY_TREE_SCHEDULER)
+#ifdef SORTED_LADDER_QUEUE
+            std::cout << "Sorted Ladder Queue\n";
+#elif defined(PARTIALLY_SORTED_LADDER_QUEUE)
+            std::cout << "Partially Sorted Ladder Queue\n";
+#elif defined(SPLAY_TREE)
             std::cout << "Splay Tree\n";
-
 #else
             std::cout << "MultiSet\n";
 #endif

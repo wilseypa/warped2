@@ -39,9 +39,9 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
 
     /* Create the schedule queues */
     for (unsigned int scheduler_id = 0; scheduler_id < num_of_schedulers_; scheduler_id++) {
-#ifdef LADDER_QUEUE_SCHEDULER
+#if defined(SORTED_LADDER_QUEUE) || defined(PARTIALLY_SORTED_LADDER_QUEUE)
         schedule_queue_.push_back(make_unique<LadderQueue>());
-#elif defined(SPLAY_TREE_SCHEDULER)
+#elif defined(SPLAY_TREE)
         schedule_queue_.push_back(make_unique<SplayTree>());
 #else
         schedule_queue_.push_back(
@@ -121,7 +121,8 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
     schedule_queue_lock_[scheduler_id].lock();
 
-#if defined(LADDER_QUEUE_SCHEDULER) || defined(SPLAY_TREE_SCHEDULER)
+#if defined(SORTED_LADDER_QUEUE) || \
+        defined(PARTIALLY_SORTED_LADDER_QUEUE) || defined(SPLAY_TREE)
     auto event = schedule_queue_[scheduler_id]->begin();
     if (event != nullptr) {
         schedule_queue_[scheduler_id]->erase(event);
@@ -147,7 +148,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     return event;
 }
 
-#if defined(LADDER_QUEUE_SCHEDULER) && defined(PARTIALLY_UNSORTED_EVENT_SET)
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
 /*
  *  NOTE: This is needed only for partially unsorted ladder queue
  */

@@ -29,7 +29,7 @@ public:
     bool erase(std::shared_ptr<Event> event);
     void insert(std::shared_ptr<Event> event);
 
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     unsigned int lowestTimestamp();
 #endif
 
@@ -60,7 +60,7 @@ private:
     unsigned int r_current_[MAX_RUNG_CNT];
 
     /* Bottom */
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     std::list<std::shared_ptr<Event>> bottom_;
     unsigned int bottom_start_ = 0;
 #else

@@ -36,7 +36,7 @@ std::shared_ptr<Event> LadderQueue::begin() {
     /* Check required because rung recursion can affect n_rung_ value */
     if (n_rung_) {
 
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
         for (auto event : *rung_[n_rung_-1][bucket_index]) {
             bottom_.push_front(event);
         }
@@ -103,7 +103,7 @@ std::shared_ptr<Event> LadderQueue::begin() {
         assert(0);
     }
 
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     for (auto event : *rung_[n_rung_-1][bucket_index]) {
         bottom_.push_front(event);
     }
@@ -214,7 +214,7 @@ bool LadderQueue::erase(std::shared_ptr<Event> event) {
     /* Check and erase from bottom, if present */
     if (bottom_.empty()) assert(0);
 
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     (void) bottom_.remove(event);
 #else
     (void) bottom_.erase(event);
@@ -272,7 +272,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
             /* Intentionally let the bottom continue to overflow */
             //ref sec 2.4 of ladderq + when bucket width becomes static
 
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
             bottom_.push_front(event);
 #else
             bottom_.insert(event);
@@ -282,7 +282,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
         }
 
         /* Check if new event to be inserted is smaller than what is present in BOTTOM */
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
         if (bottom_start_ > timestamp) {
             bottom_start_ = timestamp;
         }
@@ -326,7 +326,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
         rung_[n_rung_-1][bucket_index]->push_front(event);
 
     } else { /* If BOTTOM is within threshold */
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
         bottom_.push_front(event);
 #else
         bottom_.insert(event);
@@ -334,7 +334,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
     }
 }
 
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
 unsigned int LadderQueue::lowestTimestamp() {
 
     return bottom_start_;
