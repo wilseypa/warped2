@@ -336,6 +336,9 @@ check the following configurations:\n") + invalid_string);
             std::cout << "Strictly sorted\n";
 #endif
 
+#elif defined(SPLAY_TREE_SCHEDULER)
+            std::cout << "Splay Tree\n";
+
 #else
             std::cout << "MultiSet\n";
 #endif

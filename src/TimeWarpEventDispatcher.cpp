@@ -154,10 +154,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // If needed, report event for this thread so GVT can be calculated
             auto lowest_timestamp = event->timestamp();
 
-#if LADDER_QUEUE_SCHEDULER
-#if PARTIALLY_UNSORTED_EVENT_SET
+#if defined(LADDER_QUEUE_SCHEDULER) && defined(PARTIALLY_UNSORTED_EVENT_SET)
             lowest_timestamp = event_set_->lowestTimestamp(thread_id);
-#endif
 #endif
 
             gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);

@@ -41,6 +41,8 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
     for (unsigned int scheduler_id = 0; scheduler_id < num_of_schedulers_; scheduler_id++) {
 #ifdef LADDER_QUEUE_SCHEDULER
         schedule_queue_.push_back(make_unique<LadderQueue>());
+#elif defined(SPLAY_TREE_SCHEDULER)
+        schedule_queue_.push_back(make_unique<SplayTree>());
 #else
         schedule_queue_.push_back(
                 make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
@@ -119,7 +121,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
     schedule_queue_lock_[scheduler_id].lock();
 
-#ifdef LADDER_QUEUE_SCHEDULER
+#if defined(LADDER_QUEUE_SCHEDULER) || defined(SPLAY_TREE_SCHEDULER)
     auto event = schedule_queue_[scheduler_id]->begin();
     if (event != nullptr) {
         schedule_queue_[scheduler_id]->erase(event);
@@ -145,8 +147,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     return event;
 }
 
-#ifdef LADDER_QUEUE_SCHEDULER
-#ifdef PARTIALLY_UNSORTED_EVENT_SET
+#if defined(LADDER_QUEUE_SCHEDULER) && defined(PARTIALLY_UNSORTED_EVENT_SET)
 /*
  *  NOTE: This is needed only for partially unsorted ladder queue
  */
@@ -155,7 +156,6 @@ unsigned int lowestTimestamp (unsigned int thread_id) {
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
     return schedule_queue_[scheduler_id]->lowestTimestamp();
 }
-#endif
 #endif
 
 /*
