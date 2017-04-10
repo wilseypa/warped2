@@ -89,21 +89,21 @@ public:
     }
 
     /* Reads the value from head */
-    T read_head() {
+    T read_front() {
         assert(size_);
         auto value = head_->data_;
         return value;
     }
 
     /* Reads the value next to head */
-    T read_next2head() {
+    T read_second() {
         assert(size_ >= 2);
         auto value = head_->next_->data_;
         return value;
     }
 
     /* Reads the value from tail */
-    T read_tail() {
+    T read_back() {
         assert(size_);
         auto value = tail_->data_;
         return value;
@@ -123,7 +123,6 @@ private:
     size_t size_     = 0; /* Size of the circular list currently in use */
     size_t capacity_ = 0; /* Capacity of the circular list */ 
 };
-
 
 #endif /* CIRCULAR_LIST_HPP */
 
