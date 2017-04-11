@@ -17,14 +17,18 @@ public:
 
     /* Create a circular queue of specified length */
     CircularQueue( unsigned int length ) {
+
         assert(length); /* Length can't be 0 */
+
         auto new_node = new Node();
         head_         = new_node;
         head_->next_  = head_;
         head_->prev_  = head_;
         tail_         = nullptr; /* Tail will be null when list is empty */
         capacity_++;
+
         for (unsigned int i = 1; i < length; i++) {
+
             auto prev_node   = new_node;
             new_node         = new Node();
             prev_node->next_ = new_node;
@@ -36,24 +40,23 @@ public:
     }
 
     /* Check if circular queue is empty */
-    bool empty() {
-        return (!size_);
-    }
+    bool empty() { return (!size_); }
 
     /* Query the event count inside the circular queue */
-    size_t size() {
-        return size_;
-    }
+    size_t size() { return size_; }
 
     /* Insert an event into the circular queue */
     void insert( std::shared_ptr<Event> e ) {
 
         /* If Circular Queue is empty */
-        if (tail_ == nullptr) {
+        if (!size_) {
             tail_ = head_;
             tail_->data_ = e;
+            size_++;
 
-        } else { /* If Circular Queue has no empty spaces left */
+        } else {
+            /* If Circular Queue has no empty spaces left */
+            /* Increase capacity by 1 */
             if (size_ == capacity_) {
                 auto new_node       = new Node();
                 new_node->next_     = head_;
@@ -64,11 +67,12 @@ public:
             }
             head_ = head_->prev_; /* Set as new head */
             head_->data_ = e;
+            size_++;
 
             /* Compare and swap data if needed while sorting */
             auto first  = head_;
             auto second = head_->next_;
-            for (unsigned int index = 0; (index < size_) && 
+            for (unsigned int index = 0; (index < size_-1) &&
                     !compareEvents(first->data_, second->data_); index++) {
                 auto temp_data = first->data_;
                 first_->data_  = second_->data_;
@@ -77,34 +81,59 @@ public:
                 second = first->next_;
             }
         }
-        size_++;
     }
 
     /* Erase an event from the circular queue */
     void erase( std::shared_ptr<Event> e ) {
-        auto node  = head_;
-        for (unsigned int index = 0; index < size_; index++) {
-            //TODO
-            node = node->next_;
+
+        assert(size_);
+
+        /* If head needs erasing */
+        if (head_->data_ == e) {
+            head_ = head_->next_;
+            size_--;
+            if (!size_) tail_ = nullptr;
+
+        } else if (tail_->data_ == e) { /* Else if tail needs erasing */
+            tail_ = tail_->prev_;
+            size_--;
+
+        } else { /* Else a middle node needs erasing */
+            auto node = head_->next_;
+            for (unsigned int index = 1; index < size_-1; index++) {
+                if (node->data_ == e) {
+                    node->prev_->next_  = node->next_;
+                    node->next_->prev_  = node->prev_;
+                    node->next_         = head_;
+                    node->prev_         = head_->prev_;
+                    head_->prev_->next_ = node;
+                    head_->prev_        = node;
+                    size_--;
+                    break;
+                }
+                node = node->next_;
+            }
         }
     }
 
     /* Pop an event from the head of the circular queue */
     std::shared_ptr<Event> pop_front() {
+
         assert(size_);
         auto e = head_->data_;
         head_ = head_->next_;
         size_--;
-        if (!size_) {
-            tail_ = nullptr;
-        }
+        if (!size_) tail_ = nullptr;
+
         return e;
     }
 
     /* Reads the event from the head of the circular queue */
     std::shared_ptr<Event> read_front() {
+
         assert(size_);
         auto e = head_->data_;
+
         return e;
     }
 
@@ -112,6 +141,7 @@ private:
 
     /* Node : Structure of each node */
     struct Node {
+
         std::shared_ptr<Event> data_;
         Node *prev_ = nullptr;
         Node *next_ = nullptr;
