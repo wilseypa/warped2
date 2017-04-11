@@ -27,6 +27,8 @@ WARPED_NOINST_HPP_FILES = \
     src/EventStatistics.hpp \
     src/IndividualEventStatistics.hpp \
     src/LadderQueue.hpp \
+    src/CircularList.hpp \
+    src/CircularQueue.hpp \
     src/LTSFQueue.hpp \
     src/NullEventStatistics.hpp \
     src/ProfileGuidedPartitioner.hpp \

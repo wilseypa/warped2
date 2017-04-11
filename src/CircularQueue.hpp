@@ -72,11 +72,12 @@ public:
             /* Compare and swap data if needed while sorting */
             auto first  = head_;
             auto second = head_->next_;
+            warped::compareEvents compare;
             for (unsigned int index = 0; (index < size_-1) &&
-                    !compareEvents(first->data_, second->data_); index++) {
+                    !compare(first->data_, second->data_); index++) {
                 auto temp_data = first->data_;
-                first_->data_  = second_->data_;
-                second_->data_ = temp_data;
+                first->data_  = second->data_;
+                second->data_ = temp_data;
                 first = second;
                 second = first->next_;
             }

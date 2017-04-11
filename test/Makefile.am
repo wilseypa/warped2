@@ -12,6 +12,7 @@ WARPED_TEST_PROGS = \
     test_Event \
     test_IndividualEventStatistics \
     test_LadderQueue \
+    test_CircularQueue \
     test_SplayTree \
     test_LogicalProcess \
     test_LPState \
