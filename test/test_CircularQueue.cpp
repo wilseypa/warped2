@@ -26,8 +26,8 @@ TEST_CASE("Circular Queue operations") {
         REQUIRE(q.empty());
 
         // Check for priority ordering
-        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 10}));
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"r2", 10}));
+        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 11}));
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 9}));
 
         e = q.read_front();
@@ -40,7 +40,7 @@ TEST_CASE("Circular Queue operations") {
 
         e = q.read_front();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
+        CHECK(e->receiverName() == "r2");
         CHECK(e->timestamp() == 10);
         REQUIRE(q.size() == 2);
 
@@ -48,18 +48,34 @@ TEST_CASE("Circular Queue operations") {
 
         e = q.read_front();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r2");
-        CHECK(e->timestamp() == 10);
+        CHECK(e->receiverName() == "r1");
+        CHECK(e->timestamp() == 11);
         REQUIRE(q.size() == 1);
 
+        e_temp = e;
+        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r2", 11}));
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 9}));
 
-        q.erase(e);
-        REQUIRE(q.size() == 1);
+        e = q.read_front();
+        REQUIRE(e != nullptr);
+        CHECK(e->receiverName() == "r1");
+        CHECK(e->timestamp() == 9);
+        REQUIRE(q.size() == 3);
+
+        q.erase(e_temp);
+        REQUIRE(q.size() == 2);
 
         e == q.read_front();
         REQUIRE(e != nullptr);
-        //CHECK(e->receiverName() == "r1");
-        //CHECK(e->timestamp() == 9);
+        CHECK(e->receiverName() == "r1");
+        CHECK(e->timestamp() == 9);
+
+        REQUIRE(e == q.pop_front());
+
+        e = q.read_front();
+        REQUIRE(e != nullptr);
+        CHECK(e->receiverName() == "r2");
+        CHECK(e->timestamp() == 11);
+        REQUIRE(q.size() == 1);
     }
 }
