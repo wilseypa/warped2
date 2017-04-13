@@ -333,6 +333,8 @@ check the following configurations:\n") + invalid_string);
             std::cout << "Partially Sorted Ladder Queue\n";
 #elif defined(SPLAY_TREE)
             std::cout << "Splay Tree\n";
+#elif defined(CIRCULAR_QUEUE)
+            std::cout << "Circular Queue\n";
 #else
             std::cout << "MultiSet\n";
 #endif
