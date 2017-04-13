@@ -85,19 +85,22 @@ public:
     }
 
     /* Erase an event from the circular queue */
-    void erase( std::shared_ptr<Event> e ) {
+    bool erase( std::shared_ptr<Event> e ) {
 
-        assert(size_);
+        if (!size_) return false;
 
         /* If head needs erasing */
+        bool status = false;
         if (head_->data_ == e) {
             head_ = head_->next_;
             size_--;
             if (!size_) tail_ = nullptr;
+            status = true;
 
         } else if (tail_->data_ == e) { /* Else if tail needs erasing */
             tail_ = tail_->prev_;
             size_--;
+            status = true;
 
         } else { /* Else a middle node needs erasing */
             auto node = head_->next_;
@@ -110,32 +113,31 @@ public:
                     head_->prev_->next_ = node;
                     head_->prev_        = node;
                     size_--;
+                    status = true;
                     break;
                 }
                 node = node->next_;
             }
         }
+        return status;
     }
 
     /* Pop an event from the head of the circular queue */
     std::shared_ptr<Event> pop_front() {
 
-        assert(size_);
+        if (!size_) return nullptr;
+
         auto e = head_->data_;
         head_ = head_->next_;
         size_--;
         if (!size_) tail_ = nullptr;
-
         return e;
     }
 
     /* Reads the event from the head of the circular queue */
     std::shared_ptr<Event> read_front() {
 
-        assert(size_);
-        auto e = head_->data_;
-
-        return e;
+        return (size_ ? head_->data_ : nullptr);
     }
 
 private:
