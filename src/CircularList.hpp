@@ -11,12 +11,8 @@ template <class T>
 class CircularList {
 public:
 
-    CircularList() = default;
-
-    /* Create a circular list of specified length */
-    CircularList( unsigned int length ) {
-
-        assert(length); /* Length can't be 0 */
+    /* Create a circular list */
+    CircularList() {
 
         auto new_node = new ListNode();
         head_         = new_node;
@@ -24,17 +20,6 @@ public:
         head_->prev_  = head_;
         tail_         = nullptr; /* Tail will be null when list is empty */
         capacity_++;
-
-        for (unsigned int i = 1; i < length; i++) {
-
-            auto prev_node   = new_node;
-            new_node         = new ListNode();
-            prev_node->next_ = new_node;
-            new_node->prev_  = prev_node;
-            head_->prev_     = new_node;
-            new_node->next_  = head_;
-            capacity_++;
-        }
     }
 
     /* Check if circular list is empty */
