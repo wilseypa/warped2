@@ -10,29 +10,29 @@
 
 TEST_CASE("Circular Queue operations") {
 
-    warped::CircularQueue q(1);
+    warped::CircularQueue q(5);
     std::shared_ptr<warped::Event> e, e_temp;
     REQUIRE(q.empty());
 
     SECTION("Insert, read and erase event on a Circular Queue") {
 
         // Check for single entry
-        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 10}));
+        q.insert(std::shared_ptr<warped::Event>(new test_Event {"a", 10}));
         e = q.read_front();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
+        CHECK(e->receiverName() == "a");
         CHECK(e->timestamp() == 10);
         q.erase(e);
         REQUIRE(q.empty());
 
         // Check for priority ordering
-        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r2", 10}));
-        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 11}));
-        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 9}));
+        q.insert(std::shared_ptr<warped::Event>(new test_Event {"b", 10}));
+        q.insert(std::shared_ptr<warped::Event>(new test_Event {"a", 11}));
+        q.insert(std::shared_ptr<warped::Event>(new test_Event {"a", 9}));
 
         e = q.read_front();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
+        CHECK(e->receiverName() == "a");
         CHECK(e->timestamp() == 9);
         REQUIRE(q.size() == 3);
 
@@ -40,7 +40,7 @@ TEST_CASE("Circular Queue operations") {
 
         e = q.read_front();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r2");
+        CHECK(e->receiverName() == "b");
         CHECK(e->timestamp() == 10);
         REQUIRE(q.size() == 2);
 
@@ -48,17 +48,17 @@ TEST_CASE("Circular Queue operations") {
 
         e = q.read_front();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
+        CHECK(e->receiverName() == "a");
         CHECK(e->timestamp() == 11);
         REQUIRE(q.size() == 1);
 
         e_temp = e;
-        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r2", 11}));
-        q.insert(std::shared_ptr<warped::Event>(new test_Event {"r1", 9}));
+        q.insert(std::shared_ptr<warped::Event>(new test_Event {"b", 9}));
+        q.insert(std::shared_ptr<warped::Event>(new test_Event {"a", 9}));
 
         e = q.read_front();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
+        CHECK(e->receiverName() == "b");
         CHECK(e->timestamp() == 9);
         REQUIRE(q.size() == 3);
 
@@ -67,15 +67,16 @@ TEST_CASE("Circular Queue operations") {
 
         e == q.read_front();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r1");
+        CHECK(e->receiverName() == "b");
         CHECK(e->timestamp() == 9);
 
         REQUIRE(e == q.pop_front());
+        REQUIRE(q.size() == 1);
 
         e = q.read_front();
         REQUIRE(e != nullptr);
-        CHECK(e->receiverName() == "r2");
-        CHECK(e->timestamp() == 11);
+        CHECK(e->receiverName() == "a");
+        CHECK(e->timestamp() == 9);
         REQUIRE(q.size() == 1);
     }
 }
