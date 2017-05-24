@@ -67,7 +67,6 @@ public:
             node->next_->prev_  = tail_;
         }
         node->data_ = e;
-        size_++;
 
         /* Compare and insert node at the right place */
         warped::compareEvents less;
@@ -88,55 +87,46 @@ public:
             tail_               = node;
 
         } else { /* Else insert inside the queue */
+
             auto comp  = head_->next_;
-            for (unsigned int index = 1; index < size_; index += HOP_DISTANCE) {
+            /* Index starts from 1 since comparison starts from second node */
+            unsigned int index = 1;
 
-                /* If new event is larger than the compared event */
-                if (less(comp->data_, e)) {
-
-                    /* If next node is tail */
-                    if (index == size_-1) break;
-
-                    if (index + HOP_DISTANCE >= size_) {
-                        comp = tail_;
-                        index = size_- HOP_DISTANCE - 1;
-                    } else {
-                        for (unsigned int h_index = 0; h_index < HOP_DISTANCE; h_index++) {
-                            comp = comp->next_;
-                        }
-                    }
-                    continue;
-                }
-
-                /* If previous node is head which has already been checked */
-                if (index == 1) {
-                    node->prev_     = head_;
-                    node->next_     = comp;
-                    head_->next_    = node;
-                    comp->prev_     = node;
+            /* While new event is larger than the compared event */
+            while (less(comp->data_, e)) {
+                /* If next hop is tail or exceeds the queue size */
+                unsigned int next_index = index + HOP_DISTANCE;
+                if (next_index >= size_-1) {
+                    comp = tail_;
+                    index = size_-1;
                     break;
                 }
-
-                /* If any previous hopped node contains that event */
-                for (unsigned int h_index = 1; h_index < HOP_DISTANCE; h_index++) {
-                    comp = comp->prev_;
-                    if (less(comp->data_, e)) {
-                        node->prev_         = comp;
-                        node->next_         = comp->next_;
-                        comp->next_->prev_  = node;
-                        comp->next_         = node;
-                        break;
-                    }
+                /* Hop to the next comparison marker */
+                while (index < next_index) {
+                    comp = comp->next_;
+                    index++;
                 }
-                /* If ideal place is just before previous hop marker */
-                node->prev_         = comp->prev_;
-                node->next_         = comp;
-                comp->prev_->next_  = node;
-                comp->prev_         = node;
+            }
 
-                break;
+            /* If insert position is just after head */
+            if (index == 1) {
+                node->prev_  = head_;
+                node->next_  = comp;
+                head_->next_ = node;
+                comp->prev_  = node;
+
+            } else { /* Search backwards for insert position from last comparison marker */
+                comp = comp->prev_;
+                while (less(e, comp->data_)) {
+                    comp = comp->prev_;
+                }
+                node->prev_         = comp;
+                node->next_         = comp->next_;
+                comp->next_->prev_  = node;
+                comp->next_         = node;
             }
         }
+        size_++; /* Increment the queue size */
     }
 
     /* Deactivate an event from the circular queue */
