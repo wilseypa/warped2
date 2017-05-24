@@ -24,21 +24,17 @@ public:
 
         auto new_node = new Node();
         head_         = new_node;
-        head_->next_  = head_;
-        head_->prev_  = head_;
         tail_         = nullptr; /* Tail will be null when list is empty */
-        capacity_++;
 
         for (unsigned int i = 1; i < length; i++) {
-
             auto prev_node   = new_node;
             new_node         = new Node();
             prev_node->next_ = new_node;
             new_node->prev_  = prev_node;
-            head_->prev_     = new_node;
-            new_node->next_  = head_;
-            capacity_++;
         }
+        head_->prev_    = new_node;
+        new_node->next_ = head_;
+        capacity_ = length;
     }
 
     /* Check if circular queue is empty */
@@ -65,10 +61,10 @@ public:
             node = new Node();
             capacity_++;
 
-        } else { /* Else release last free node from the queue chain */
-            node                = head_->prev_;
-            head_->prev_        = node->prev_;
-            node->prev_->next_  = head_;
+        } else { /* Else release the free node after tail from the queue chain */
+            node                = tail_->next_;
+            tail_->next_        = node->next_;
+            node->next_->prev_  = tail_;
         }
         node->data_ = e;
         size_++;
