@@ -130,81 +130,86 @@ public:
     }
 
     /* Deactivate an event from the circular queue */
-    bool erase( std::shared_ptr<Event> e ) {
+    bool deactivate( std::shared_ptr<Event> e ) {
 
         if (!size_) return false;
 
-        /* If head needs erasing */
-        bool status = false;
-        if (head_->data_ == e) {
+        /* If node to be deleted is tail */
+        if (tail_->data == e) {
+
+            /* If size = 1, then empty the queue.
+               Else make the previous element tail */
+            tail_ = (size == 1) ? nullptr : tail_->prev_;
+
+            size_--;
+            return true;
+        }
+
+        /* If node to be deleted is head */
+        /* Queue size > 1 based on previous check */
+        if (head_->data == e) {
+
+            auto node = head_;
             head_ = head_->next_;
+
+            /* Delete node from head */
+            node->prev_->next_  = head_;
+            head_->prev_        = node->prev_;
+
+            /* Add deleted node after tail */
+            tail_->next_->prev_ = node;
+            node->next_         = tail_->next_;
+            tail_->next_        = node;
+            node->prev_         = tail_;
+
             size_--;
-            if (!size_) tail_ = nullptr;
-            status = true;
+            return true;
+        }
 
-        } else if (tail_->data_ == e) { /* Else if tail needs erasing */
-            tail_ = tail_->prev_;
-            size_--;
-            status = true;
+        /* If event to be deleted is less that or 
+           greater than events in the circular queue.
+           Queues of size <= 2 already checked.        */
+        if ( (size_ <= 2) || (*e < *head_->data) || (*tail_->data < *e) ) {
+            return false;
+        }
 
-        } else { /* Else a middle node needs erasing */
-            auto node = head_->next_;
-            for (unsigned int index = 1; index < size_-1; index += HOP_DISTANCE) {
+        /* Delete event from internal nodes of the circular queue */
+        /* Index starts from 2 since comparison starts from third node */
+        auto comp  = head_->next_->next_;
+        unsigned int index = 2;
 
-                /* If node contains a smaller event */
-                if (*node->data_ < *e) {
-
-                    /* If next node is tail */
-                    if (index == size_-2) break;
-
-                    /* If it is the last iteration, check for remaining nodes before tail */
-                    if (index + HOP_DISTANCE >= size_-1) {
-                        node = tail_->prev_;
-                        index = size_- HOP_DISTANCE - 2;
-
-                    } else {
-                        for (unsigned int h_index = 0; h_index < HOP_DISTANCE; h_index++) {
-                            node = node->next_;
-                        }
-                    }
-                    continue;
-                }
-
-                /* If node contains that event */
-                if (node->data_ == e) {
-                    node->prev_->next_  = node->next_;
-                    node->next_->prev_  = node->prev_;
-                    node->next_         = head_;
-                    node->prev_         = head_->prev_;
-                    head_->prev_->next_ = node;
-                    head_->prev_        = node;
-                    size_--;
-                    status = true;
-                    break;
-                }
-
-                /* If previous node is head which has already been checked */
-                if (index == 1) break;
-
-                /* If any previous hopped node contains that event */
-                for (unsigned int h_index = 1; h_index < HOP_DISTANCE; h_index++) {
-                    node = node->prev_;
-                    if (node->data_ == e) {
-                        node->prev_->next_  = node->next_;
-                        node->next_->prev_  = node->prev_;
-                        node->next_         = head_;
-                        node->prev_         = head_->prev_;
-                        head_->prev_->next_ = node;
-                        head_->prev_        = node;
-                        size_--;
-                        status = true;
-                        break;
-                    }
-                }
+        /* While event e is larger than the compared event */
+        while (*comp->data_ < *e) {
+            /* If next hop is tail or exceeds the queue size */
+            unsigned int next_index = index + HOP_DISTANCE;
+            if (next_index >= size_-2) {
+                comp = tail_->prev_;
                 break;
             }
+            /* Hop to the next comparison marker */
+            while (index < next_index) {
+                comp = comp->next_;
+                index++;
+            }
         }
-        return status;
+
+        /* Search backwards for the event */
+        while (e != comp->data_) {
+            comp = comp->prev_;
+            if (comp == head_ || *comp->data < *e) return false;
+        }
+
+        /* Node found, delete it and attach it after tail */
+        comp->prev_->next_  = comp->next_;
+        comp->next_->prev_  = comp->prev_;
+
+        tail_->next_->prev_ = comp;
+        comp->next_         = tail_->next_;
+        tail_->next_        = comp;
+        comp->prev_         = tail_;
+
+        size_--;
+        return true;
     }
 
     /* Pop an event from the head of the circular queue */

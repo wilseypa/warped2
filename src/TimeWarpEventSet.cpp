@@ -99,7 +99,11 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
             // that means we should update the schedule queue...
 
             schedule_queue_lock_[scheduler_id].lock();
+#if defined(CIRCULAR_QUEUE)
+            if (schedule_queue_[scheduler_id]->deactivate(scheduled_event_pointer_[lp_id])) {
+#else
             if (schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[lp_id])) {
+#endif
                 // ...but only if the event was successfully erased from the schedule queue. If it is
                 // not then the event is already being processed and a rollback will have to occur.
 
