@@ -135,11 +135,11 @@ public:
         if (!size_) return false;
 
         /* If node to be deleted is tail */
-        if (tail_->data == e) {
+        if (tail_->data_ == e) {
 
             /* If size = 1, then empty the queue.
                Else make the previous element tail */
-            tail_ = (size == 1) ? nullptr : tail_->prev_;
+            tail_ = (size_ == 1) ? nullptr : tail_->prev_;
 
             size_--;
             return true;
@@ -147,7 +147,7 @@ public:
 
         /* If node to be deleted is head */
         /* Queue size > 1 based on previous check */
-        if (head_->data == e) {
+        if (head_->data_ == e) {
 
             auto node = head_;
             head_ = head_->next_;
@@ -169,7 +169,7 @@ public:
         /* If event to be deleted is less that or 
            greater than events in the circular queue.
            Queues of size <= 2 already checked.        */
-        if ( (size_ <= 2) || (*e < *head_->data) || (*tail_->data < *e) ) {
+        if ( (size_ <= 2) || (*e < *head_->data_) || (*tail_->data_ < *e) ) {
             return false;
         }
 
@@ -196,7 +196,7 @@ public:
         /* Search backwards for the event */
         while (e != comp->data_) {
             comp = comp->prev_;
-            if (comp == head_ || *comp->data < *e) return false;
+            if (comp == head_ || *comp->data_ < *e) return false;
         }
 
         /* Node found, delete it and attach it after tail */
