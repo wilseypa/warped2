@@ -14,7 +14,7 @@ TEST_CASE("Circular Queue operations") {
     std::shared_ptr<warped::Event> e, e_temp;
     REQUIRE(q.empty());
 
-    SECTION("Insert, read and erase event on a Circular Queue") {
+    SECTION("Insert, read and deactivate event on a Circular Queue") {
 
         // Check for single entry
         q.insert(std::shared_ptr<warped::Event>(new test_Event {"a", 10}));
@@ -22,7 +22,7 @@ TEST_CASE("Circular Queue operations") {
         REQUIRE(e != nullptr);
         CHECK(e->receiverName() == "a");
         CHECK(e->timestamp() == 10);
-        q.erase(e);
+        q.deactivate(e);
         REQUIRE(q.empty());
 
         // Check for priority ordering
@@ -62,7 +62,7 @@ TEST_CASE("Circular Queue operations") {
         CHECK(e->timestamp() == 9);
         REQUIRE(q.size() == 3);
 
-        q.erase(e_temp);
+        q.deactivate(e_temp);
         REQUIRE(q.size() == 2);
 
         e == q.read_front();
