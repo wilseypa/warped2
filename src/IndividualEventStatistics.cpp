@@ -38,7 +38,11 @@ IndividualEventStatistics::IndividualEventStatistics(std::string filename, Outpu
 
 void IndividualEventStatistics::record(const std::string& source, unsigned int send_time,
                                        Event* event) {
-    entries_.emplace_back(source, event->receiverName(), send_time, event->timestamp());
+    entries_.emplace_back(  source,
+                            event->receiverName(),
+                            send_time,
+                            event->timestamp(),
+                            event->size() + event->base_size()  );
 }
 
 std::ostream& IndividualEventStatistics::printStats(std::ostream& stream) const {
@@ -57,18 +61,20 @@ std::ostream& IndividualEventStatistics::printJson(std::ostream& stream) const {
         root[i]["dest"] = entries_[i].dest;
         root[i]["send_time"] = entries_[i].send_time;
         root[i]["receive_time"] = entries_[i].receive_time;
+        root[i]["event_size"] = entries_[i].event_size;
     }
 
     return stream << root;
 }
 
 std::ostream& IndividualEventStatistics::printCsv(std::ostream& stream) const {
-    stream << "Source,Destination,Send Time,Receive Time\n";
+    stream << "Source,Destination,Send Time,Receive Time,Event Size\n";
     for (const auto& entry : entries_) {
         stream << csvEscape(entry.source) << ','
                << csvEscape(entry.dest) << ','
                << std::to_string(entry.send_time) << ','
-               << std::to_string(entry.receive_time) << '\n';
+               << std::to_string(entry.receive_time) << ','
+               << std::to_string(entry.event_size) << '\n';
     }
 
     return stream;

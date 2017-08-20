@@ -56,6 +56,18 @@ public:
     // The timestamp of when the event should be received.
     virtual unsigned int timestamp() const = 0;
 
+    // Size of the model-specific event parameters
+    virtual unsigned int size() const = 0;
+
+    // Size of the base event parameters
+    unsigned int base_size() {
+        unsigned int size = sender_name_.length() +
+                            sizeof(event_type_) +
+                            sizeof(send_time_) +
+                            sizeof(generation_);
+        return size;
+    }
+
     // The name of the SimualtionObject that sends this event.
     std::string sender_name_;
 
@@ -88,6 +100,10 @@ public:
     const std::string& receiverName() const {return receiver_name_;}
     unsigned int timestamp() const {return receive_time_;}
 
+    unsigned int size() const {
+        return receiver_name_.length() + sizeof(receive_time_);
+    }
+
     std::string receiver_name_;
     unsigned int receive_time_;
 
@@ -105,6 +121,7 @@ public:
 
     const std::string& receiverName() const { return receiver_name_; }
     unsigned int timestamp() const { return 0; }
+    unsigned int size() const { return 0; } // receiver_name is a null string
 
     std::string receiver_name_ = "";
 };
