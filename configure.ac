@@ -38,6 +38,9 @@ CHECK_PARTIALLY_SORTED_LADDER_QUEUE
 m4_include([m4/check_splay_tree.m4])
 CHECK_SPLAY_TREE
 
+m4_include([m4/check_circular_queue.m4])
+CHECK_CIRCULAR_QUEUE
+
 AC_CONFIG_HEADERS([config.h])
 
 AC_CONFIG_FILES([deps/cereal/Makefile])

@@ -43,6 +43,8 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
         schedule_queue_.push_back(make_unique<LadderQueue>());
 #elif defined(SPLAY_TREE)
         schedule_queue_.push_back(make_unique<SplayTree>());
+#elif defined(CIRCULAR_QUEUE)
+        schedule_queue_.push_back(make_unique<CircularQueue>( lps[scheduler_id].size() ));
 #else
         schedule_queue_.push_back(
                 make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
@@ -97,12 +99,13 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
             // that means we should update the schedule queue...
 
             schedule_queue_lock_[scheduler_id].lock();
-            if (auto num_erased = schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[lp_id])) {
+#if defined(CIRCULAR_QUEUE)
+            if (schedule_queue_[scheduler_id]->deactivate(scheduled_event_pointer_[lp_id])) {
+#else
+            if (schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[lp_id])) {
+#endif
                 // ...but only if the event was successfully erased from the schedule queue. If it is
                 // not then the event is already being processed and a rollback will have to occur.
-
-                assert(num_erased == 1);
-                unused(num_erased);
 
                 schedule_queue_[scheduler_id]->insert(smallest_event);
                 scheduled_event_pointer_[lp_id] = smallest_event;
@@ -127,6 +130,8 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     if (event != nullptr) {
         schedule_queue_[scheduler_id]->erase(event);
     }
+#elif defined(CIRCULAR_QUEUE)
+    auto event = schedule_queue_[scheduler_id]->pop_front();
 #else
     auto event_iterator = schedule_queue_[scheduler_id]->begin();
     auto event = (event_iterator != schedule_queue_[scheduler_id]->end()) ?

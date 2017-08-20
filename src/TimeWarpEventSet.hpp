@@ -19,6 +19,7 @@
 #include "TicketLock.hpp"
 #include "LadderQueue.hpp"
 #include "SplayTree.hpp"
+#include "CircularQueue.hpp"
 
 namespace warped {
 
@@ -92,6 +93,8 @@ private:
     std::vector<std::unique_ptr<LadderQueue>> schedule_queue_;
 #elif defined(SPLAY_TREE)
     std::vector<std::unique_ptr<SplayTree>> schedule_queue_;
+#elif defined(CIRCULAR_QUEUE)
+    std::vector<std::unique_ptr<CircularQueue>> schedule_queue_;
 #else
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
                                             compareEvents>>> schedule_queue_;
