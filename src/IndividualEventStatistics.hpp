@@ -19,12 +19,13 @@ public:
 
     struct entry {
         entry() = default;
-        entry(std::string s, std::string d, unsigned int st, unsigned int rt)
-            : source(s), dest(d), send_time(st), receive_time(rt) {}
+        entry(std::string s, std::string d, unsigned int st, unsigned int rt, unsigned es)
+            : source(s), dest(d), send_time(st), receive_time(rt), event_size(es) {}
         std::string source;
         std::string dest;
         unsigned int send_time;
         unsigned int receive_time;
+        unsigned int event_size;
     };
 
     IndividualEventStatistics(std::string filename, OutputType output_type);
