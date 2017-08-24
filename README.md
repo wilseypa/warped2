@@ -6,6 +6,14 @@ A Parallel & Distributed Discrete Simulation Library
 
 WARPED is built with Autotools and a C++11 compiler.
 
+# Prerequisites
+
+WARPED requires than an MPI implementation such as [MPICH](http://www.mpich.org/) or
+[OpenMPI](http://www.open-mpi.org/) is installed.
+
+If building from the git repository instead of a tarball, you  will also need the GNU
+Autotools tool-chain, including Automake, Autoconf, and Libtool. 
+
 #### Building from the Git repository
 
 To build from the git repository, first clone a local copy.
@@ -15,19 +23,10 @@ To build from the git repository, first clone a local copy.
 You can run the Autotools build without any options, although specifying a prefix (install
 location) is recommended.
 
-	autoreconf -i && ./configure --prefix=$HOME/lib/warped2 && make && make install
-
-#### Building from a tarball
-
-To build from a source tarball, first download and extract [the latest release from
-GitHub](https://github.com/wilseypa/warped/releases). `cd` into the directory you
-extracted the tarball to, and run the following commands:
-
-    export CXX=mpicxx
-	./configure --prefix=$HOME/lib/warped2 && make && make install
-
-This will build and install the warped library to the path specified by the `--prefix`
-configuration option. If you omit the prefix, the library will be installed to `/usr`.
+    autoreconf -i
+    ./configure --prefix=$HOME/lib/warped2
+    make
+    make install
 
 #### Troubleshooting
 
@@ -40,6 +39,18 @@ and the header location with the `--with-mpi-includedir` option.
 
 Replace the paths in the above example with the locations of the MPI libraries and headers
 on your machine.   
+
+#### Building from a tarball
+
+To build from a source tarball, first download and extract [the latest release from
+GitHub](https://github.com/wilseypa/warped/releases). `cd` into the directory you
+extracted the tarball to, and run the following commands:
+
+    export CXX=mpicxx
+	./configure --prefix=$HOME/lib/warped2 && make && make install
+
+This will build and install the warped library to the path specified by the `--prefix`
+configuration option. If you omit the prefix, the library will be installed to `/usr`.
 
 #### Silent Build Rules
 
@@ -58,14 +69,6 @@ or
 WARPED can be configured to build in debug mode using the `--enable-debug` flag.
 
     ./configure --prefix=$HOME/lib/warped2 --enable-debug
-
-# Prerequisites
-
-WARPED requires than an MPI implementation such as [MPICH](http://www.mpich.org/) or
-[OpenMPI](http://www.open-mpi.org/) is installed.  
-
-If building from the git repository instead of a tarball, you  will also need the GNU
-Autotools tool-chain, including Automake, Autoconf, and Libtool. 
 
 # License
 
