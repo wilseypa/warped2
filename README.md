@@ -2,11 +2,11 @@
 
 A Parallel & Distributed Discrete Simulation Library
 
-# Building
+## Building
 
 WARPED is built with Autotools and a C++11 compiler.
 
-# Prerequisites
+#### Prerequisites
 
 WARPED requires than an MPI implementation such as [MPICH](http://www.mpich.org/) or
 [OpenMPI](http://www.open-mpi.org/) is installed.
@@ -70,7 +70,7 @@ WARPED can be configured to build in debug mode using the `--enable-debug` flag.
 
     ./configure --prefix=$HOME/lib/warped2 --enable-debug
 
-# License
+## License
 
 The WARPED code in this repository is licensed under the MIT license, unless otherwise
 specified. The full text of the MIT license can be found in the `LICENSE.txt` file.  
