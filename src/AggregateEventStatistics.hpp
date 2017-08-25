@@ -17,7 +17,7 @@ class Event;
 // of an edge is the count of events sent between objects incident that edge.
 class AggregateEventStatistics : public EventStatistics {
 public:
-    enum class OutputType {Graphviz, Metis};
+    enum class OutputType {Graphviz, Louvain};
     typedef std::pair<std::string, std::string> Edge;
     typedef unsigned int stat_type;
 
@@ -38,7 +38,7 @@ private:
     // Print stats by delegating to the different output formats
     std::ostream& printStats(std::ostream& stream) const;
     std::ostream& printGraphviz(std::ostream& stream) const;
-    std::ostream& printMetis(std::ostream& stream) const;
+    std::ostream& printLouvain(std::ostream& stream) const;
 };
 
 } // namespace warped

@@ -47,7 +47,7 @@ const static std::string DEFAULT_CONFIG = R"x({
 "simulation-type": "time-warp",
 
 "statistics": {
-    // Valid options are "none", "json", "csv", "graphviz", and "metis".
+    // Valid options are "none", "json", "csv", "graphviz", and "louvain".
     // "json" and "csv" are individual statistics, others are aggregate.
     "type": "none",
     // If statistics-type is not "none", save the output in this file
@@ -391,8 +391,8 @@ check the following configurations:\n") + invalid_string);
     } else if (statistics_type == "graphviz") {
         auto type = AggregateEventStatistics::OutputType::Graphviz;
         stats = make_unique<AggregateEventStatistics>(statistics_file, type);
-    } else if (statistics_type == "metis") {
-        auto type = AggregateEventStatistics::OutputType::Metis;
+    } else if (statistics_type == "louvain") {
+        auto type = AggregateEventStatistics::OutputType::Louvain;
         stats = make_unique<AggregateEventStatistics>(statistics_file, type);
     } else {
         stats = make_unique<NullEventStatistics>();

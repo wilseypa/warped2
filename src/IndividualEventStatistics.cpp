@@ -38,6 +38,7 @@ IndividualEventStatistics::IndividualEventStatistics(std::string filename, Outpu
 
 void IndividualEventStatistics::record(const std::string& source, unsigned int send_time,
                                        Event* event) {
+    if (event == nullptr) return;
     entries_.emplace_back(  source,
                             event->receiverName(),
                             send_time,
