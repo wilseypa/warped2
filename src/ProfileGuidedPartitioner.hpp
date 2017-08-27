@@ -5,8 +5,6 @@
 #include <vector>
 #include <string>
 
-#include "metis/include/metis.h"
-
 #include "Partitioner.hpp"
 
 namespace warped {
@@ -20,14 +18,6 @@ public:
     std::vector<std::vector<LogicalProcess*>> partition(
              const std::vector<LogicalProcess*>& lps,
              const unsigned int num_partitions) const;
-
-protected:
-    void savePartition(unsigned int part_id,
-                       const std::vector<LogicalProcess*>& lps,
-                       const std::vector<idx_t>& xadj,
-                       const std::vector<idx_t>& adjncy,
-                       const std::vector<idx_t>& adjwgt,
-                       const std::vector<unsigned int>& numbering = {}) const;
 
 private:
     std::string stats_file_;

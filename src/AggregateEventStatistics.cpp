@@ -70,18 +70,18 @@ std::ostream& AggregateEventStatistics::printLouvain(std::ostream& stream) const
         return stream;
     }
 
-    // Vertex numbering starts at 1 and is contiguous, so we map the
+    // Vertex numbering starts at 0 and is contiguous, so we map the
     // object names to numbers. This also takes care of the case where
     // there is a vertex with no edges.
     std::map<std::string, unsigned int> numbering;
-    unsigned int i = 1;
+    unsigned int i = 0;
     for (const auto& vertex : vertices) {
         numbering[vertex] = i++;
     }
 
     // Feed data to the output stream
     stream << "LP_x,LP_y,Frequency" << std::endl;
-    for (const auto& edge : edge_stats_) {
+    for (const auto& edge : full_graph) {
         stream << numbering[edge.first.first]  << ","
                << numbering[edge.first.second] << ","
                << edge.second                  << std::endl;
