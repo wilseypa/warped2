@@ -13,16 +13,18 @@ class LogicalProcess;
 
 class ProfileGuidedPartitioner : public Partitioner {
 public:
-    ProfileGuidedPartitioner(std::string stats_file, std::string output_prefix);
+    ProfileGuidedPartitioner(std::string stats_file)
+        : stats_file_(stats_file) {}
 
-    std::vector<std::vector<LogicalProcess*>> partition(
-             const std::vector<LogicalProcess*>& lps,
-             const unsigned int num_partitions) const;
+    std::vector<std::vector<LogicalProcess*>> interNodePartition(
+                                const std::vector<LogicalProcess*>& lps,
+                                const unsigned int num_nodes    ) const;
+
+    std::vector<std::vector<LogicalProcess*>> intraNodePartition(
+                                const std::vector<LogicalProcess*>& lps ) const;
 
 private:
     std::string stats_file_;
-
-    std::string output_prefix_;
 
 };
 

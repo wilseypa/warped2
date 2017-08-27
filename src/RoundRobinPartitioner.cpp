@@ -1,37 +1,42 @@
 #include "RoundRobinPartitioner.hpp"
 
 #include <vector>
+#include <cassert>
 #include <iostream>
 
 #include "LogicalProcess.hpp"
 
 namespace warped {
 
-std::vector<std::vector<LogicalProcess*>> RoundRobinPartitioner::partition(
+std::vector<std::vector<LogicalProcess*>> RoundRobinPartitioner::interNodePartition(
                                              const std::vector<LogicalProcess*>& lps,
-                                             const unsigned int num_partitions) const {
+                                             const unsigned int num_nodes) const {
 
-    std::vector<std::vector<LogicalProcess*>> partitions(num_partitions);
+    std::vector<std::vector<LogicalProcess*>> partitions(num_nodes);
+    assert(num_nodes && num_nodes <= lps.size());
+    if (num_nodes == 1) {
+        partitions.push_back(lps);
 
-    if ((block_size_ == 0) || block_size_ > lps.size()/num_partitions) {
-        block_size_ = lps.size()/num_partitions;
-    }
-
-    unsigned int num_blocks = lps.size()/block_size_;
-
-    unsigned int i = 0, j = 0;
-    for (i = 0; i < num_blocks; i++) {
-        for (j = 0; j < block_size_; j++) {
-            partitions[i % num_partitions].push_back(lps[block_size_*i+j]);
+    } else {
+        for (unsigned int i = 0; i < lps.size(); i++) {
+            partitions[i % num_nodes].push_back( lps[i] );
         }
     }
+    return partitions;
+}
 
-    i--;
-    while ((block_size_*i+j) < lps.size()) {
-        partitions[j % num_partitions].push_back(lps[block_size_*i+j]);
-        j++;
+std::vector<std::vector<LogicalProcess*>> RoundRobinPartitioner::intraNodePartition(
+                                            const std::vector<LogicalProcess*>& lps ) const {
+
+    std::vector<std::vector<LogicalProcess*>> partitions;
+    if (!block_size_ || block_size_ >= lps.size()) {
+        partitions.push_back(lps);
+
+    } else {
+        for (unsigned int i = 0; i < lps.size(); i++) {
+            partitions[i % block_size_].push_back( lps[i] );
+        }
     }
-
     return partitions;
 }
 

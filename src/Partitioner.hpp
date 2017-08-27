@@ -9,9 +9,12 @@ class LogicalProcess;
 
 class Partitioner {
 public:
-    virtual std::vector<std::vector<LogicalProcess*>> partition(
-             const std::vector<LogicalProcess*>& lps,
-             const unsigned int num_partitions) const = 0;
+    virtual std::vector<std::vector<LogicalProcess*>> interNodePartition(
+                                const std::vector<LogicalProcess*>& lps,
+                                const unsigned int num_nodes    ) const = 0;
+
+    virtual std::vector<std::vector<LogicalProcess*>> intraNodePartition(
+                                const std::vector<LogicalProcess*>& lps ) const = 0;
 };
 
 } // namespace warped

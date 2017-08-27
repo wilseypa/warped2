@@ -401,14 +401,17 @@ check the following configurations:\n") + invalid_string);
 }
 
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
+
     auto partitioner_type = (*root_)["partitioning"]["type"].asString();
     if (partitioner_type == "default" || partitioner_type == "round-robin") {
         auto blocksize = (*root_)["partitioning"]["blocksize"].asUInt();
         return make_unique<RoundRobinPartitioner>(blocksize);
+
     } else if (partitioner_type == "profile-guided") {
         auto filename = (*root_)["partitioning"]["file"].asString();
-        return make_unique<ProfileGuidedPartitioner>(filename, "partition");
+        return make_unique<ProfileGuidedPartitioner>(filename);
     }
+
     throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
 }
 
@@ -419,26 +422,6 @@ Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
         return std::move(user_partitioner);
     }
     return makePartitioner();
-}
-
-std::unique_ptr<Partitioner> Configuration::makeLocalPartitioner(unsigned int node_id,
-    unsigned int& num_schedulers) {
-
-    unsigned int num_partitions = num_schedulers;
-    num_schedulers = (*root_)["time-warp"]["scheduler-count"].asUInt();
-
-    if (num_partitions == 1)
-        return makePartitioner();
-
-    auto partitioner_type = (*root_)["partitioning"]["type"].asString();
-    if (partitioner_type == "default" || partitioner_type == "round-robin") {
-        auto blocksize = (*root_)["partitioning"]["blocksize"].asUInt();
-        return make_unique<RoundRobinPartitioner>(blocksize);
-    } else if (partitioner_type == "profile-guided") {
-        return make_unique<ProfileGuidedPartitioner>("partitions/partition"+std::to_string(node_id)+".out",
-            "partition"+std::to_string(node_id));
-    }
-    throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
 }
 
 std::shared_ptr<TimeWarpCommunicationManager> Configuration::makeCommunicationManager() {

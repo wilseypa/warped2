@@ -10,29 +10,21 @@
 #include <vector>
 #include <cassert>
 
-#include <Python.h>
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "Partitioner.hpp"
 #include "LogicalProcess.hpp"
+#include "utility/warnings.hpp"
 
 namespace warped {
 
-ProfileGuidedPartitioner::ProfileGuidedPartitioner(
-            std::string stats_file,
-            std::string output_prefix   ) :
-    stats_file_(stats_file),
-    output_prefix_(output_prefix) {}
+std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePartition(
+        const std::vector<LogicalProcess*>& lps, const unsigned int num_nodes ) const {
 
-std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::partition(
-                                            const std::vector<LogicalProcess*>& lps,
-                                            const unsigned int num_partitions   ) const {
-
-    assert (num_partitions && num_partitions <= lps.size());
-    if (num_partitions == 1) {
+    assert (num_nodes && num_nodes <= lps.size());
+    if (num_nodes == 1) {
         return {lps};
     }
 
@@ -56,6 +48,14 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::partition(
     // Add the vertices missing from Louvain output
 
 
+    return lps_by_partition;
+}
+
+std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::intraNodePartition(
+                                    const std::vector<LogicalProcess*>& lps ) const {
+
+    unused(lps);
+    std::vector<std::vector<LogicalProcess*>> lps_by_partition;
     return lps_by_partition;
 }
 

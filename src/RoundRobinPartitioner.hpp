@@ -14,9 +14,12 @@ public:
     RoundRobinPartitioner(unsigned int block_size) :
         block_size_(block_size) {}
 
-    std::vector<std::vector<LogicalProcess*>> partition(
-             const std::vector<LogicalProcess*>& lps,
-             const unsigned int num_partitions) const;
+    std::vector<std::vector<LogicalProcess*>> interNodePartition(
+                                const std::vector<LogicalProcess*>& lps,
+                                const unsigned int num_nodes    ) const;
+
+    std::vector<std::vector<LogicalProcess*>> intraNodePartition(
+                                const std::vector<LogicalProcess*>& lps ) const;
 
 private:
     mutable unsigned int block_size_;

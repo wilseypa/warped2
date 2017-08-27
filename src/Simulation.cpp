@@ -36,16 +36,15 @@ void Simulation::simulate(const std::vector<LogicalProcess*>& lps) {
 
     auto comm_manager = config_.makeCommunicationManager();
 
-    unsigned int num_partitions = comm_manager->initialize();
-    auto partitioned_lps = config_.makePartitioner()->partition(lps, num_partitions);
+    unsigned int num_nodes = comm_manager->initialize();
+    auto partitioner = config_.makePartitioner();
+    auto partitioned_lps = partitioner->interNodePartition(lps, num_nodes);
     comm_manager->initializeLPMap(partitioned_lps);
 
     comm_manager->waitForAllProcesses();
 
-    unsigned int num_schedulers = num_partitions;
-    auto local_partitioner = config_.makeLocalPartitioner(comm_manager->getID(), num_schedulers);
-    auto local_partitions =
-        local_partitioner->partition(partitioned_lps[comm_manager->getID()], num_schedulers);
+    auto local_partitions = 
+                partitioner->intraNodePartition(partitioned_lps[comm_manager->getID()]);
 
     event_dispatcher_ = config_.makeDispatcher(comm_manager);
     event_dispatcher_->startSimulation(local_partitions);
@@ -59,17 +58,15 @@ void Simulation::simulate(const std::vector<LogicalProcess*>& lps,
     check(lps);
     auto comm_manager = config_.makeCommunicationManager();
 
-    unsigned int num_partitions = comm_manager->initialize();
-    auto partitioned_lps =
-        config_.makePartitioner(std::move(partitioner))->partition(lps, num_partitions);
+    unsigned int num_nodes = comm_manager->initialize();
+    auto custom_partitioner = config_.makePartitioner(std::move(partitioner));
+    auto partitioned_lps = custom_partitioner->interNodePartition(lps, num_nodes);
     comm_manager->initializeLPMap(partitioned_lps);
 
     comm_manager->waitForAllProcesses();
 
-    unsigned int num_schedulers = num_partitions;
-    auto local_partitioner = config_.makeLocalPartitioner(comm_manager->getID(), num_schedulers);
     auto local_partitions =
-        local_partitioner->partition(partitioned_lps[comm_manager->getID()], num_schedulers);
+            custom_partitioner->intraNodePartition(partitioned_lps[comm_manager->getID()]);
 
     event_dispatcher_ = config_.makeDispatcher(comm_manager);
     event_dispatcher_->startSimulation(local_partitions);
