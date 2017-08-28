@@ -63,7 +63,7 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
         PyErr_Print();
     }
 
-    printf("Result is %d\n",PyInt_AsLong(p_result));
+    printf("Result is %ld\n",PyInt_AsLong(p_result));
 
     Py_DECREF(p_value);
     Py_DECREF(p_result);
