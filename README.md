@@ -21,7 +21,9 @@ python-networkx packages are needed to enable this.
 
 To build from the git repository, first clone a local copy.
 
-    * git clone https://github.com/wilseypa/warped2.git
+```
+git clone https://github.com/wilseypa/warped2.git
+```
 
 You can run the Autotools build without any options, although specifying a prefix (install
 location) is recommended.
@@ -30,12 +32,11 @@ You have to specify the path to the MPI headers and libraries manually in the co
 step. You can specify the path to the library file with the `--with-mpi-libdir` configure
 option, and the header location with the `--with-mpi-includedir` option.
 
-    * autoreconf -i
-
-    * ./configure --with-mpi-includedir=/usr/include/mpich --with-mpi-libdir=/usr/lib/mpich
-      --prefix=$HOME/lib/warped2
-
-    * make && make install
+```
+autoreconf -i
+./configure --with-mpi-includedir=/usr/include/mpich --with-mpi-libdir=/usr/lib/mpich --prefix=$HOME/lib/warped2
+make && make install
+```
 
 Replace the paths in the above example with the locations of the MPI libraries and headers
 on your machine.
@@ -46,8 +47,10 @@ To build from a source tarball, first download and extract [the latest release f
 GitHub](https://github.com/wilseypa/warped/releases). `cd` into the directory you
 extracted the tarball to, and run the following commands:
 
-    * export CXX=mpicxx
-	* ./configure --prefix=$HOME/lib/warped2 && make && make install
+```
+export CXX=mpicxx
+./configure --prefix=$HOME/lib/warped2 && make && make install
+```
 
 This will build and install the warped library to the path specified by the `--prefix`
 configuration option. If you omit the prefix, the library will be installed to `/usr`.
@@ -58,17 +61,22 @@ Because the normal output of `make` is very verbose, WARPED is configured to use
 build rules by default. To disable silent rules, pass the `--disable-silent-rules` flag to
 `configure` or the `V=1` flag to `make`.
 
-    * ./configure --prefix=$HOME/lib/warped2 --disable-silent-rules
-
+```
+./configure --prefix=$HOME/lib/warped2 --disable-silent-rules
+```
 or
 
-    * make V=1
+```
+make V=1
+```
 
 #### Debug Build Rules
 
 WARPED can be configured to build in debug mode using the `--enable-debug` flag.
 
-    * ./configure --prefix=$HOME/lib/warped2 --enable-debug
+```
+./configure --prefix=$HOME/lib/warped2 --enable-debug
+```
 
 ## License
 
