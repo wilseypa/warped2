@@ -14,8 +14,9 @@ WARPED requires than an MPI implementation such as [MPICH](http://www.mpich.org/
 If building from the git repository instead of a tarball, you  will need the GNU
 Autotools tool-chain (including Automake, Autoconf, and Libtool).
 
-WARPED uses Louvain algorithm for profile-guided partitioning. Python and
-python-networkx packages are needed to enable this.
+Additonally, Python and [NetworkX](https://networkx.github.io/) packages are needed
+since WARPED uses [Louvain Method](https://sites.google.com/site/findcommunities/)
+for `profile-guided partitioning`.
 
 #### Building from the Git repository
 
