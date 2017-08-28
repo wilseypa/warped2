@@ -10,6 +10,8 @@
 #include <vector>
 #include <cassert>
 
+#include <Python.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -40,7 +42,35 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
         lps_by_louvain.push_back(entry.second);
     }
 
-    // Partition using Louvain
+    /* Partition using Louvain */
+    Py_Initialize();
+
+    PyRun_SimpleString("import sys");
+    PyRun_SimpleString("sys.path.append(\".\")");
+    PyObject *p_name   = PyString_FromString((char*)"LouvainPartitioner");
+    PyObject *p_module = PyImport_Import(p_name);
+    PyObject *p_dict   = PyModule_GetDict(p_module);
+    PyObject *p_func   = PyDict_GetItemString(p_dict, (char*)"create_comm_graph");
+
+    PyObject *p_value = nullptr, *p_result = nullptr;
+    if (PyCallable_Check(p_func)) {
+        p_value  = Py_BuildValue("(z)", stats_file_.c_str());
+        PyErr_Print();
+        p_result = PyObject_CallObject(p_func, p_value);
+        PyErr_Print();
+
+    } else {
+        PyErr_Print();
+    }
+
+    printf("Result is %d\n",PyInt_AsLong(p_result));
+
+    Py_DECREF(p_value);
+    Py_DECREF(p_result);
+    Py_DECREF(p_module);
+    Py_DECREF(p_name);
+
+    Py_Finalize();
 
     // Build the partitions by parsing the Louvain output
     std::vector<std::vector<LogicalProcess*>> lps_by_partition;
