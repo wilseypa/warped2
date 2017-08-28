@@ -21,7 +21,7 @@ python-networkx packages are needed to enable this.
 
 To build from the git repository, first clone a local copy.
 
-	* git clone https://github.com/wilseypa/warped2.git
+    * git clone https://github.com/wilseypa/warped2.git
 
 You can run the Autotools build without any options, although specifying a prefix (install
 location) is recommended.
