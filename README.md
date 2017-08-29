@@ -6,7 +6,7 @@ A Parallel & Distributed Discrete Simulation Library
 
 WARPED is built with Autotools, Python and a C++11 compiler.
 
-#### Prerequisites
+### Prerequisites
 
 WARPED requires than an MPI implementation such as [MPICH](http://www.mpich.org/) or
 [OpenMPI](http://www.open-mpi.org/) is installed.
@@ -18,7 +18,7 @@ Additonally, Python and [NetworkX](https://networkx.github.io/) packages are nee
 since WARPED uses [Louvain Method](https://sites.google.com/site/findcommunities/)
 for `profile-guided partitioning`.
 
-#### Building from the Git repository
+### Building from the Git repository
 
 To build from the git repository, first clone a local copy.
 
@@ -29,20 +29,40 @@ git clone https://github.com/wilseypa/warped2.git
 You can run the Autotools build without any options, although specifying a prefix (install
 location) is recommended.
 
-You have to specify the path to the MPI headers and libraries manually in the configuration
-step. You can specify the path to the library file with the `--with-mpi-libdir` configure
-option, and the header location with the `--with-mpi-includedir` option.
-
 ```
 autoreconf -i
-./configure --with-mpi-includedir=/usr/include/mpich --with-mpi-libdir=/usr/lib/mpich --prefix=$HOME/lib/warped2
+./configure --prefix=$HOME/lib/warped2
 make && make install
+```
+
+##### MPI
+You may choose to specify the path to the MPI headers and libraries manually in the
+configuration step. You can specify the path to the library file with the
+`--with-mpi-libdir` configure option, and the header location with the `--with-mpi-includedir`
+option.
+
+```
+./configure --with-mpi-includedir=/usr/include/mpich --with-mpi-libdir=/usr/lib/mpich --prefix=$HOME/lib/warped2
 ```
 
 Replace the paths in the above example with the locations of the MPI libraries and headers
 on your machine.
 
-#### Building from a tarball
+##### Python
+You may choose to specify the path to the Python headers and libraries manually in the
+configuration step. You can specify the path to the library file with the
+`--with-python-libdir` configure option, and the header location with the `--with-python-includedir`
+option.
+
+```
+./configure --with-python-includedir=/usr/include/python2.7 --with-python-libdir=/usr/bin/python2.7 --prefix=$HOME/lib/warped2
+```
+
+Replace the paths in the above example with the locations of the Python libraries and headers
+on your machine.
+
+
+### Building from a tarball
 
 To build from a source tarball, first download and extract [the latest release from
 GitHub](https://github.com/wilseypa/warped/releases). `cd` into the directory you
@@ -56,7 +76,7 @@ export CXX=mpicxx
 This will build and install the warped library to the path specified by the `--prefix`
 configuration option. If you omit the prefix, the library will be installed to `/usr`.
 
-#### Silent Build Rules
+### Silent Build Rules
 
 Because the normal output of `make` is very verbose, WARPED is configured to use silent
 build rules by default. To disable silent rules, pass the `--disable-silent-rules` flag to
@@ -71,7 +91,7 @@ or
 make V=1
 ```
 
-#### Debug Build Rules
+### Debug Build Rules
 
 WARPED can be configured to build in debug mode using the `--enable-debug` flag.
 

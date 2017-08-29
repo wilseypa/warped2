@@ -95,14 +95,12 @@ libwarped_la_SOURCES = \
 
 include_HEADERS = $(WARPED_INSTALL_HPP_FILES)
 
-
 libwarped_la_LIBADD = \
     $(top_builddir)/deps/json/libjsoncpp.la \
     $(top_builddir)/deps/metis/libmetis/libmetis.la
 
-libwarped_la_LDFLAGS = `python-config --libs`
-
-libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror `python-config --includes`
+libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror
 
 # Use -isystem here instead of -I to disable warnings for third party code
 libwarped_la_CPPFLAGS=-isystem$(top_srcdir)/deps
+
