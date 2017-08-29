@@ -96,8 +96,7 @@ libwarped_la_SOURCES = \
 include_HEADERS = $(WARPED_INSTALL_HPP_FILES)
 
 libwarped_la_LIBADD = \
-    $(top_builddir)/deps/json/libjsoncpp.la \
-    $(top_builddir)/deps/metis/libmetis/libmetis.la
+    $(top_builddir)/deps/json/libjsoncpp.la
 
 libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror
 
