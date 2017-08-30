@@ -45,12 +45,13 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
     /* Partition using Louvain */
     Py_Initialize();
 
-    PyRun_SimpleString("import sys");
-    PyRun_SimpleString("sys.path.append(\".\")");
+    // Set PYTHONPATH to working directory
+    setenv("PYTHONPATH",".",1);
+
     PyObject *p_name   = PyString_FromString((char*)"LouvainPartitioner");
     PyObject *p_module = PyImport_Import(p_name);
     PyObject *p_dict   = PyModule_GetDict(p_module);
-    PyObject *p_func   = PyDict_GetItemString(p_dict, (char*)"create_comm_graph");
+    PyObject *p_func   = PyDict_GetItemString(p_dict, (char*)"partition");
 
     PyObject *p_value = nullptr, *p_result = nullptr;
     if (PyCallable_Check(p_func)) {
