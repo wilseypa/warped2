@@ -46,12 +46,14 @@ const static std::string DEFAULT_CONFIG = R"x({
 // Valid options are "sequential" and "time-warp"
 "simulation-type": "time-warp",
 
-"statistics": {
-    // Valid options are "none", "json", "csv", "graphviz", and "louvain".
-    // "json" and "csv" are individual statistics, others are aggregate.
-    "type": "none",
-    // If statistics-type is not "none", save the output in this file
-    "file": "statistics.out"
+"sequential" : {
+    "statistics": {
+        // Valid options are "none", "json", "csv", "graphviz", and "louvain".
+        // "json" and "csv" are individual statistics, others are aggregate.
+        "type": "none",
+        // If statistics-type is not "none", save the output in this file
+        "file": "statistics.out"
+    }
 },
 
 "time-warp" : {
@@ -83,22 +85,22 @@ const static std::string DEFAULT_CONFIG = R"x({
     "communication" : {
         "max-msg-size" : 512,
         "max-aggregate" : 5
+    },
+
+    "partitioning": {
+        // Valid options are "default", "round-robin" and "profile-guided".
+        // "default" will use user provided partitioning if given, else
+        // "round-robin".
+        "type": "default",
+
+        // Number of LPs to partition at a time.
+        // Only used if "partitioning-type" is "round-robin".
+        "blocksize": 0,
+
+        // The path to the statistics file that was created from a previous run.
+        // Only used if "partitioning-type" is "profile-guided".
+        "file": "statistics.out"
     }
-},
-
-"partitioning": {
-    // Valid options are "default", "round-robin" and "profile-guided".
-    // "default" will use user provided partitioning if given, else
-    // "round-robin".
-    "type": "default",
-
-    // Number of LPs to partition at a time.
-    // Only used if "partitioning-type" is "round-robin".
-    "blocksize": 0,
-
-    // The path to the statistics file that was created from a previous run.
-    // Only used if "partitioning-type" is "profile-guided".
-    "file": "statistics.out"
 }
 
 })x";
@@ -378,8 +380,8 @@ check the following configurations:\n") + invalid_string);
 
     // Return a SequentialEventDispatcher by default
     std::unique_ptr<EventStatistics> stats;
-    auto statistics_type = (*root_)["statistics"]["type"].asString();
-    auto statistics_file = (*root_)["statistics"]["file"].asString();
+    auto statistics_type = (*root_)["sequential"]["statistics"]["type"].asString();
+    auto statistics_file = (*root_)["sequential"]["statistics"]["file"].asString();
     std::cout << "Statistics type: " << statistics_type << std::endl;
     std::cout << "Statistics file: " << statistics_file << std::endl;
     if (statistics_type == "json") {
@@ -402,13 +404,13 @@ check the following configurations:\n") + invalid_string);
 
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
 
-    auto partitioner_type = (*root_)["partitioning"]["type"].asString();
+    auto partitioner_type = (*root_)["time-warp"]["partitioning"]["type"].asString();
     if (partitioner_type == "default" || partitioner_type == "round-robin") {
-        auto blocksize = (*root_)["partitioning"]["blocksize"].asUInt();
+        auto blocksize = (*root_)["time-warp"]["partitioning"]["blocksize"].asUInt();
         return make_unique<RoundRobinPartitioner>(blocksize);
 
     } else if (partitioner_type == "profile-guided") {
-        auto filename = (*root_)["partitioning"]["file"].asString();
+        auto filename = (*root_)["time-warp"]["partitioning"]["file"].asString();
         return make_unique<ProfileGuidedPartitioner>(filename);
     }
 
@@ -417,7 +419,7 @@ std::unique_ptr<Partitioner> Configuration::makePartitioner() {
 
 std::unique_ptr<Partitioner>
 Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
-    const auto& partitioner_type = (*root_)["partitioning"]["type"];
+    const auto& partitioner_type = (*root_)["time-warp"]["partitioning"]["type"];
     if (partitioner_type == "default") {
         return std::move(user_partitioner);
     }
