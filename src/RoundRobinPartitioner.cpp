@@ -13,9 +13,9 @@ std::vector<std::vector<LogicalProcess*>> RoundRobinPartitioner::interNodePartit
                                              const unsigned int num_nodes) const {
 
     std::vector<std::vector<LogicalProcess*>> partitions(num_nodes);
-    assert(num_nodes && num_nodes <= lps.size());
+    assert( num_nodes && (num_nodes <= lps.size()) );
     if (num_nodes == 1) {
-        partitions.push_back(lps);
+        partitions[0] = lps;
 
     } else {
         for (unsigned int i = 0; i < lps.size(); i++) {
