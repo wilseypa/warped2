@@ -43,34 +43,42 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
     }
 
     /* Partition using Louvain */
+
+    // Initialize the Python interpreter
     Py_Initialize();
 
     // Set PYTHONPATH to working directory
-    setenv("PYTHONPATH",".",1);
+    //setenv("PYTHONPATH",".",1);
 
-    PyObject *p_name   = PyString_FromString((char*)"LouvainPartitioner");
+    // Convert filename to a Python string
+    PyObject *p_name = PyString_FromString((char*)"LouvainPartitioner");
+
+    // Import the file as Python module
     PyObject *p_module = PyImport_Import(p_name);
-    PyObject *p_dict   = PyModule_GetDict(p_module);
-    PyObject *p_func   = PyDict_GetItemString(p_dict, (char*)"partition");
 
-    PyObject *p_value = nullptr, *p_result = nullptr;
-    if (PyCallable_Check(p_func)) {
-        p_value  = Py_BuildValue("(z)", stats_file_.c_str());
-        PyErr_Print();
-        p_result = PyObject_CallObject(p_func, p_value);
-        PyErr_Print();
+    // Create a dictionary for contents of the module
+    PyObject *p_dict = PyModule_GetDict(p_module);
 
-    } else {
-        PyErr_Print();
-    }
+    // Get the add method from dictionary
+    PyObject *p_func = PyDict_GetItemString(p_dict, (char*)"partition");
+    assert(PyCallable_Check(p_func));
 
-    printf("Result is %ld\n",PyInt_AsLong(p_result));
+    // Create the Python object to hold arguments to the method
+    PyObject *p_args = Py_BuildValue("(sI)", stats_file_.c_str(), num_nodes);
 
-    Py_DECREF(p_value);
-    Py_DECREF(p_result);
-    Py_DECREF(p_module);
-    Py_DECREF(p_name);
+    // Call the Python function with the arguments
+    PyObject *p_result = PyObject_CallObject(p_func, p_args);
+    assert(p_result);
+    printf("Result is %s\n", PyString_AsString(p_result));
 
+    // Clear the Python object references
+    Py_CLEAR(p_result);
+    Py_CLEAR(p_args);
+    Py_CLEAR(p_dict);
+    Py_CLEAR(p_module);
+    Py_CLEAR(p_name);
+
+    // Destroy the Python interpreter
     Py_Finalize();
 
     // Build the partitions by parsing the Louvain output
@@ -78,7 +86,7 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
 
     // Add the vertices missing from Louvain output
 
-
+    assert(0);
     return lps_by_partition;
 }
 
