@@ -48,7 +48,7 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
     //setenv("PYTHONPATH",".",1);
 
     // Convert filename to a Python string
-    PyObject *p_name = PyString_FromString((char*)"LouvainPartitioner");
+    PyObject *p_name = PyString_FromString("LouvainPartitioner");
 
     // Import the file as Python module
     PyObject *p_module = PyImport_Import(p_name);
@@ -57,7 +57,7 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
     PyObject *p_dict = PyModule_GetDict(p_module);
 
     // Get the add method from dictionary
-    PyObject *p_func = PyDict_GetItemString(p_dict, (char*)"partition");
+    PyObject *p_func = PyDict_GetItemString(p_dict, "partition");
     assert(PyCallable_Check(p_func));
 
     // Create the Python object to hold arguments to the method

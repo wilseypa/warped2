@@ -8,15 +8,21 @@ WARPED is built with Autotools, Python and a C++11 compiler.
 
 ### Prerequisites
 
-WARPED requires than an MPI implementation such as [MPICH](http://www.mpich.org/) or
-[OpenMPI](http://www.open-mpi.org/) is installed.
+WARPED requires an MPI implementation such as [MPICH](http://www.mpich.org/) or
+[OpenMPI](http://www.open-mpi.org/).
 
 If building from the git repository instead of a tarball, you  will need the GNU
 Autotools tool-chain (including Automake, Autoconf, and Libtool).
 
-Additonally, Python and [NetworkX](https://networkx.github.io/) packages are needed
-since WARPED uses [Louvain Method](https://sites.google.com/site/findcommunities/)
-for `profile-guided partitioning`.
+WARPED supports `profile-guided partitioning` for which Python implementation is
+needed along with the following packages:
+
+*   [NumPy](http://www.numpy.org/)
+*   [NetworkX](https://networkx.github.io/)
+*   [Louvain Method](https://sites.google.com/site/findcommunities/)
+*   [Collections](https://docs.python.org/2/library/collections.html)
+*   [Operator](https://docs.python.org/2/library/operator.html)
+
 
 ### Building from the Git repository
 
