@@ -26,9 +26,6 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
         const std::vector<LogicalProcess*>& lps, const unsigned int num_nodes ) const {
 
     assert (num_nodes && num_nodes <= lps.size());
-    if (num_nodes == 1) {
-        return {lps};
-    }
 
     // Create a map for Louvain vertex id to LP pointer (0 to LP_count-1)
     // Louvain vertices numbered in increasing order of LP names
@@ -81,21 +78,22 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
     // Destroy the Python interpreter
     Py_Finalize();
 
-    // Build the partitions by parsing the Louvain output
-    std::vector<std::vector<LogicalProcess*>> lps_by_partition;
+    // Store the partition data by parsing the Louvain output
 
-    // Add the vertices missing from Louvain output
+    // If there is only 1 node, there is no inter-node partition
+    if (num_nodes == 1) {
+        return {lps};
+    }
 
-    assert(0);
-    return lps_by_partition;
+    // Split the LPs between nodes
+    std::vector<std::vector<LogicalProcess*>> lps_by_node;
+    return lps_by_node;
 }
 
 std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::intraNodePartition(
                                     const std::vector<LogicalProcess*>& lps ) const {
 
-    unused(lps);
-    std::vector<std::vector<LogicalProcess*>> lps_by_partition;
-    return lps_by_partition;
+    return {lps};
 }
 
 } // namespace warped

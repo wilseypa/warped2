@@ -9,6 +9,7 @@ Split the group into at-most n partitions with approximately equals sum of value
 using best-fit algorithm
 """
 def balancedPartitioner(group, n):
+    # n should always be > 1
     result  = [[] for i in range(n)]
     sums    = {i:0 for i in range(n)}
     min_sum = 0
@@ -34,11 +35,11 @@ def subPartitioner(partition, partition_dict):
     return sub_partitions
 
 """
-Build a undirected weighted graph using data inside data_file and partition it at multiple levels 
-using the Louvain algorithm. Returns the node-level partitions.
+Build a undirected weighted graph using data inside data_file and partition it at multiple
+levels using the Louvain algorithm. Return a string with inter-node partition delimiter is
+'-', intra-node partition delimiter is ';' and each value is delimited by ','.
 """
 def partition(data_file, n):
-
     # Read the data and build the undirected weighted graph
     data    = np.loadtxt(data_file, dtype=np.intc, delimiter = ",", skiprows=1, usecols=(0,1,2))
     node_x  = [x[0] for x in data]
@@ -55,26 +56,36 @@ def partition(data_file, n):
     louvain_partitions = {}
     level = len(dendo)-1
     while level >= 0:
-        louvain_partitions = {}
         louvain_partitions = comm.partition_at_level(dendo, level)
         if len(set(louvain_partitions.values())) >= n:
             break
         level -= 1
 
-    louvain_subpartitions = {}
-    if level > 0:
-        louvain_subpartitions = comm.partition_at_level(dendo, level-1)
-
-    # Order partitions based on partition id, then order based on partition size
+    # Order partitions based on partition id
     group = {}
     for node_id, partition_id in louvain_partitions.iteritems() :
         group.setdefault(partition_id, []).append(node_id)
 
+    # When only intra-node partitioning is required
+    if n == 1:
+        pattern = []
+        for partition_id in group:
+            pattern.append(",".join(str(p) for p in group[partition_id]))
+        return ";".join(p for p in pattern)
+
+    # When there are multiple nodes involved
+    # Order based on partition size
     ordered_group = []
     for k in sorted(group, key=lambda k: len(group[k])) :
-        ordered_group.append( (len(group[k]), k) )
+        ordered_group.append((len(group[k]), k))
+
+    # Find a sub-partition
+    louvain_subpartitions = {}
+    if level > 0:
+        louvain_subpartitions = comm.partition_at_level(dendo, level-1)
 
     # Build the optimal partitions
+    # Pack everything into a string using delimiters
     partitions = []
     for entry in balancedPartitioner(ordered_group, n):
         nodes = []
@@ -82,9 +93,9 @@ def partition(data_file, n):
             nodes.extend(group[partition_id])
         if louvain_subpartitions:
             sub_partitions = subPartitioner(nodes, louvain_subpartitions)
-            partitions.append(sub_partitions)
+            partitions.append(";".join(",".join(map(str, sp)) for sp in sub_partitions))
         else:
-            partitions.append(nodes)
+            partitions.append(",".join(str(n) for n in nodes))
 
-    #return partitions
-    return "hello"
+    return "-".join(p for p in partitions)
+
