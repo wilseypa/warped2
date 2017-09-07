@@ -12,48 +12,27 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
                                    bool is_lp_migration_on,
                                    unsigned int num_of_worker_threads) {
 
-    num_of_lps_     = num_of_lps;
-    num_of_schedulers_  = lps.size();
+    num_of_lps_         = num_of_lps;
+    num_of_bags_        = lps.size();
     is_lp_migration_on_ = is_lp_migration_on;
 
     /* Create the input and processed queues and their locks.
-       Also create the input queue-scheduler map and scheduled event pointer. */
+       Also create the input queue-bag map and scheduled event pointer. */
     input_queue_lock_ = make_unique<std::mutex []>(num_of_lps);
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
-    schedule_queue_lock_ = make_unique<TicketLock []>(num_of_schedulers_);
+    schedule_queue_lock_ = make_unique<TicketLock []>();
 #else
-    schedule_queue_lock_ = make_unique<std::mutex []>(num_of_schedulers_);
+    schedule_queue_lock_ = make_unique<std::mutex []>();
 #endif
-    unsigned int scheduler_id = 0;
-    for (auto& scheduler_partition : lps) {
-        for (auto& lp : scheduler_partition) {
-            unused(lp);
+
+    for (unsigned int bag_id = 0; bag_id < lps.size(); bag_id++) {
+        for (unsigned int lp_id = 0; lp_id < lps[bag_id].size(); lp_id++) {
             input_queue_.push_back(
                     make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
             processed_queue_.push_back(make_unique<std::deque<std::shared_ptr<Event>>>());
             scheduled_event_pointer_.push_back(nullptr);
-            input_queue_scheduler_map_.push_back(scheduler_id);
+            input_queue_bag_map_.push_back(bag_id);
         }
-        scheduler_id++;
-    }
-
-    /* Create the schedule queues */
-    for (unsigned int scheduler_id = 0; scheduler_id < num_of_schedulers_; scheduler_id++) {
-#if defined(SORTED_LADDER_QUEUE) || defined(PARTIALLY_SORTED_LADDER_QUEUE)
-        schedule_queue_.push_back(make_unique<LadderQueue>());
-#elif defined(SPLAY_TREE)
-        schedule_queue_.push_back(make_unique<SplayTree>());
-#elif defined(CIRCULAR_QUEUE)
-        schedule_queue_.push_back(make_unique<CircularQueue>( lps[scheduler_id].size() ));
-#else
-        schedule_queue_.push_back(
-                make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
-#endif
-    }
-
-    /* Map worker threads to schedule queues. */
-    for (unsigned int thread_id = 0; thread_id < num_of_worker_threads; thread_id++) {
-        worker_thread_scheduler_map_.push_back(thread_id % num_of_schedulers_);
     }
 }
 

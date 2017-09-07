@@ -17,9 +17,7 @@
 #include "Event.hpp"
 #include "utility/memory.hpp"
 #include "TicketLock.hpp"
-#include "LadderQueue.hpp"
-#include "SplayTree.hpp"
-#include "CircularQueue.hpp"
+#include "CircularList.hpp"
 
 namespace warped {
 
@@ -40,9 +38,7 @@ public:
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
-#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     unsigned int lowestTimestamp (unsigned int thread_id);
-#endif
 
     std::shared_ptr<Event> lastProcessedEvent (unsigned int lp_id);
 
@@ -78,8 +74,8 @@ private:
     std::vector<std::unique_ptr<std::deque<std::shared_ptr<Event>>>> 
                                                             processed_queue_;
 
-    // Number of event schedulers
-    unsigned int num_of_schedulers_ = 0;
+    // Number of bags
+    unsigned int num_of_bags_ = 0;
 
     // Lock to protect the schedule queues
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
@@ -89,25 +85,13 @@ private:
 #endif
 
     // Queues to hold the scheduled events
-#if defined(SORTED_LADDER_QUEUE) || defined(PARTIALLY_SORTED_LADDER_QUEUE)
-    std::vector<std::unique_ptr<LadderQueue>> schedule_queue_;
-#elif defined(SPLAY_TREE)
-    std::vector<std::unique_ptr<SplayTree>> schedule_queue_;
-#elif defined(CIRCULAR_QUEUE)
-    std::vector<std::unique_ptr<CircularQueue>> schedule_queue_;
-#else
-    std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
-                                            compareEvents>>> schedule_queue_;
-#endif
+    CircularList<std::unique_ptr<std::shared_ptr<Event> []> > schedule_queue_;
 
-    // Map unprocessed queue to a schedule queue
-    std::vector<unsigned int> input_queue_scheduler_map_;
+    // Map unprocessed queue to a bag
+    std::vector<unsigned int> input_queue_bag_map_;
 
     // LP Migration flag
     bool is_lp_migration_on_;
-
-    // Map worker thread to a schedule queue
-    std::vector<unsigned int> worker_thread_scheduler_map_;
 
     // Event scheduled from all lps
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
