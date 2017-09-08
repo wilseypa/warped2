@@ -9,12 +9,10 @@ namespace warped {
 
 void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*>>& lps,
                                    unsigned int num_of_lps,
-                                   bool is_lp_migration_on,
                                    unsigned int num_of_worker_threads) {
 
-    num_of_lps_         = num_of_lps;
-    num_of_bags_        = lps.size();
-    is_lp_migration_on_ = is_lp_migration_on;
+    num_of_lps_  = num_of_lps;
+    num_of_bags_ = lps.size();
 
     /* Create the input and processed queues and their locks.
        Also create the input queue-bag map and scheduled event pointer. */
@@ -257,10 +255,6 @@ void TimeWarpEventSet::replenishScheduler (unsigned int lp_id) {
     // This is supposed to balance the load across all the schedule queues
     // Input queue lock is sufficient to ensure consistency
     unsigned int scheduler_id = input_queue_scheduler_map_[lp_id];
-    if (is_lp_migration_on_) {
-        scheduler_id = (scheduler_id + 1) % num_of_schedulers_;
-        input_queue_scheduler_map_[lp_id] = scheduler_id;
-    }
 
     // Update scheduler with new event for the lp the previous event was executed for
     // NOTE: A pointer to the scheduled event will remain in the input queue

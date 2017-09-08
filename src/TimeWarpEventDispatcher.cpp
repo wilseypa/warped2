@@ -43,7 +43,6 @@ thread_local unsigned int TimeWarpEventDispatcher::thread_id;
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_worker_threads,
-    bool is_lp_migration_on,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<TimeWarpEventSet> event_set,
     std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -53,7 +52,6 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpTerminationManager> termination_manager,
     std::unique_ptr<TimeWarpStatistics> tw_stats) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
-        is_lp_migration_on_(is_lp_migration_on), 
         comm_manager_(comm_manager), event_set_(std::move(event_set)), 
         gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
@@ -408,7 +406,7 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<LogicalProcess
         num_local_lps_ += p.size();
     }
 
-    event_set_->initialize(lps, num_local_lps_, is_lp_migration_on_, num_worker_threads_);
+    event_set_->initialize(lps, num_local_lps_, num_worker_threads_);
 
     unsigned int lp_id = 0;
     for (auto& partition : lps) {

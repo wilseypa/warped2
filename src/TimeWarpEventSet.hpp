@@ -27,7 +27,6 @@ public:
 
     void initialize (const std::vector<std::vector<LogicalProcess*>>& lps,
                      unsigned int num_of_lps,
-                     bool is_lp_migration_on,
                      unsigned int num_of_worker_threads);
 
     void acquireInputQueueLock (unsigned int lp_id);
@@ -89,9 +88,6 @@ private:
 
     // Map unprocessed queue to a bag
     std::vector<unsigned int> input_queue_bag_map_;
-
-    // LP Migration flag
-    bool is_lp_migration_on_;
 
     // Event scheduled from all lps
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
