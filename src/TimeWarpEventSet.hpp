@@ -35,7 +35,7 @@ public:
 
     void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
 
-    std::shared_ptr<Event> getEvent (unsigned int thread_id);
+    std::vector<std::shared_ptr<Event>> getEvent ();
 
     unsigned int lowestTimestamp (unsigned int thread_id);
 
@@ -84,7 +84,14 @@ private:
 #endif
 
     // Queues to hold the scheduled events
-    CircularList<std::unique_ptr<std::shared_ptr<Event> []> > schedule_queue_;
+    class bag {
+        std::unique_ptr<std::shared_ptr<Event> []> content_;
+        unsigned int content_size_ = 0;
+    };
+    std::unique_ptr<bag []> schedule_queue_;
+
+    // A circular index for the bag scheduled
+    std::atomic<unsigned int> scheduled_bag_ = ATOMIC_VAR_INIT(0);
 
     // Map unprocessed queue to a bag
     std::vector<unsigned int> input_queue_bag_map_;
