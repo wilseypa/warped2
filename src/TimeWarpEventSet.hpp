@@ -85,6 +85,7 @@ private:
 
     // Queues to hold the scheduled events
     class bag {
+    public:
         std::unique_ptr<std::shared_ptr<Event> []> content_;
         unsigned int content_size_ = 0;
     };

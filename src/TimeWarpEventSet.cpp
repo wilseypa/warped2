@@ -30,7 +30,7 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
     schedule_queue_ = make_unique<bag []>(num_of_bags_);
     for (unsigned int bag_id = 0; bag_id < lps.size(); bag_id++) {
         unsigned int num_lps = lps[bag_id].size();
-        schedule_queue_[bag_id] = make_unique<std::shared_ptr<Event> []>(num_lps);
+        schedule_queue_[bag_id].content_ = make_unique<std::shared_ptr<Event> []>(num_lps);
 
         for (unsigned int lp_id = 0; lp_id < num_lps; lp_id++) {
             input_queue_.push_back(
@@ -72,7 +72,7 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
         assert(input_queue_[lp_id]->size() == 1);
         unsigned int bag_id = input_queue_bag_map_[lp_id];
         schedule_queue_lock_[bag_id].lock();
-        schedule_queue_[bag_id]->content_[schedule_queue_[bag_id]->content_size_++] = event;
+        schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] = event;
         schedule_queue_lock_[bag_id].unlock();
         scheduled_event_pointer_[lp_id] = event;
 
@@ -84,9 +84,9 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
              */
             unsigned int bag_id = input_queue_bag_map_[lp_id];
             schedule_queue_lock_[bag_id].lock();
-            for (unsigned int i = 0; i < schedule_queue_[bag_id]->content_size_; i++) {
-                if (schedule_queue_[bag_id]->content_[i] == scheduled_event_pointer_[lp_id]) {
-                    schedule_queue_[bag_id]->content_[i] = smallest_event;
+            for (unsigned int i = 0; i < schedule_queue_[bag_id].content_size_; i++) {
+                if (schedule_queue_[bag_id].content_[i] == scheduled_event_pointer_[lp_id]) {
+                    schedule_queue_[bag_id].content_[i] = smallest_event;
                     scheduled_event_pointer_[lp_id] = smallest_event;
                     break;
                 }
@@ -102,9 +102,10 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
 std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
     /* Calculate the bag to be fetched */
+    unsigned int old_bag_id = 0;
     unsigned int new_bag_id = 0;
     do {
-        unsigned int old_bag_id = fetch_bag_id_;
+        old_bag_id = fetch_bag_id_;
         new_bag_id = (old_bag_id+1) % num_of_bags_;
 
     } while ( !fetch_bag_id_.compare_exchange_weak(old_bag_id, new_bag_id) );
@@ -112,20 +113,20 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvent (unsigned int thr
     schedule_queue_lock_[new_bag_id].lock();
 
     std::vector<std::shared_ptr<Event>> events;
-    for (unsigned int i = 0; i < schedule_queue_[bag_id]->content_size_; i++) {
-        auto event = schedule_queue_[bag_id]->content_[i];
+    for (unsigned int i = 0; i < schedule_queue_[new_bag_id].content_size_; i++) {
+        auto event = schedule_queue_[new_bag_id].content_[i];
         assert(event);
         events.push_back(event);
 
         /* Calculate the lowest timestamp for events processed */
         if (i == 0) {
-            lowest_timestamp_thread_map_[thread_id] = event.timestamp();
+            lowest_timestamp_thread_map_[thread_id] = event->timestamp();
         } else {
             lowest_timestamp_thread_map_[thread_id] =
-                std::min(lowest_timestamp_thread_map_[thread_id], event.timestamp());
+                std::min(lowest_timestamp_thread_map_[thread_id], event->timestamp());
         }
     }
-    schedule_queue_[bag_id]->content_size_ = 0;
+    schedule_queue_[new_bag_id].content_size_ = 0;
 
     /* NOTE: scheduled_event_pointer is not changed here so that other threads
        will not schedule new events and this thread can move events into processed
@@ -140,7 +141,7 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvent (unsigned int thr
     return events;
 }
 
-unsigned int lowestTimestamp (unsigned int thread_id) {
+unsigned int TimeWarpEventSet::lowestTimestamp (unsigned int thread_id) {
 
     return lowest_timestamp_thread_map_[thread_id];
 }
@@ -229,10 +230,9 @@ void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
         scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
         unsigned int bag_id = input_queue_bag_map_[lp_id];
         schedule_queue_lock_[bag_id].lock();
-        schedule_queue_[bag_id]->content_[schedule_queue_[bag_id]->content_size_++] =
+        schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] =
                                                             scheduled_event_pointer_[lp_id];
         schedule_queue_lock_[bag_id].unlock();
-        scheduled_event_pointer_[lp_id] = event;
 
     } else {
         scheduled_event_pointer_[lp_id] = nullptr;
@@ -248,7 +248,8 @@ void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
  */
 void TimeWarpEventSet::replenishScheduler (std::vector<unsigned int> lp_ids) {
 
-    return ( !lp_ids.size() );
+    if (!lp_ids.size()) return;
+
     unsigned int bag_id = input_queue_bag_map_[lp_ids[0]];
     schedule_queue_lock_[bag_id].lock();
     for (auto lp_id : lp_ids) {
@@ -269,7 +270,7 @@ void TimeWarpEventSet::replenishScheduler (std::vector<unsigned int> lp_ids) {
          */
         if (!input_queue_[lp_id]->empty()) {
             scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
-            schedule_queue_[bag_id]->content_[schedule_queue_[bag_id]->content_size_++] =
+            schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] =
                                                             scheduled_event_pointer_[lp_id];
         } else {
             scheduled_event_pointer_[lp_id] = nullptr;
