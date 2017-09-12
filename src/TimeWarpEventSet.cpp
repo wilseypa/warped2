@@ -16,23 +16,23 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
        Create the input queue-bag map and scheduled event pointer.
        Create the data structure for holding the lowest event timestamp.
      */
-    input_queue_lock_ = make_unique<std::mutex []>(num_of_lps);
-
-#ifdef SCHEDULE_QUEUE_SPINLOCKS
-    schedule_queue_lock_ = make_unique<TicketLock []>();
-#else
-    schedule_queue_lock_ = make_unique<std::mutex []>();
-#endif
-
     num_of_lps_  = num_of_lps;
     num_of_bags_ = lps.size();
 
+    input_queue_lock_ = make_unique<std::mutex []>(num_of_lps_);
+
+#ifdef SCHEDULE_QUEUE_SPINLOCKS
+    schedule_queue_lock_ = make_unique<TicketLock []>(num_of_bags_);
+#else
+    schedule_queue_lock_ = make_unique<std::mutex []>(num_of_bags_);
+#endif
+
     schedule_queue_ = make_unique<bag []>(num_of_bags_);
-
     for (unsigned int bag_id = 0; bag_id < lps.size(); bag_id++) {
-        schedule_queue_[bag_id] = make_unique<std::shared_ptr<Event> []>(lps[bag_id].size());
+        unsigned int num_lps = lps[bag_id].size();
+        schedule_queue_[bag_id] = make_unique<std::shared_ptr<Event> []>(num_lps);
 
-        for (unsigned int lp_id = 0; lp_id < lps[bag_id].size(); lp_id++) {
+        for (unsigned int lp_id = 0; lp_id < num_lps; lp_id++) {
             input_queue_.push_back(
                     make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
             processed_queue_.push_back(make_unique<std::deque<std::shared_ptr<Event>>>());
@@ -144,7 +144,6 @@ unsigned int lowestTimestamp (unsigned int thread_id) {
 
     return lowest_timestamp_thread_map_[thread_id];
 }
-#endif
 
 /*
  *  NOTE: caller must have the input queue lock for the lp with id lp_id
