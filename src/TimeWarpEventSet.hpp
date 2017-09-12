@@ -35,7 +35,7 @@ public:
 
     void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
 
-    std::vector<std::shared_ptr<Event>> getEvent ();
+    std::vector<std::shared_ptr<Event>> getEvent (unsigned int thread_id);
 
     unsigned int lowestTimestamp (unsigned int thread_id);
 
@@ -44,13 +44,13 @@ public:
     void rollback (unsigned int lp_id, std::shared_ptr<Event> straggler_event);
 
     std::unique_ptr<std::vector<std::shared_ptr<Event>>> getEventsForCoastForward (
-                        unsigned int lp_id, 
-                        std::shared_ptr<Event> straggler_event, 
+                        unsigned int lp_id,
+                        std::shared_ptr<Event> straggler_event,
                         std::shared_ptr<Event> restored_state_event);
 
     void startScheduling (unsigned int lp_id);
 
-    void replenishScheduler (unsigned int lp_id);
+    void replenishScheduler (std::vector<unsigned int> lp_ids);
 
     bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 
@@ -90,14 +90,18 @@ private:
     };
     std::unique_ptr<bag []> schedule_queue_;
 
-    // A circular index for the bag scheduled
-    std::atomic<unsigned int> scheduled_bag_ = ATOMIC_VAR_INIT(0);
+    // A circular index for the bag that needs to be fetched
+    std::atomic<unsigned int> fetch_bag_id_ = ATOMIC_VAR_INIT(0);
 
     // Map unprocessed queue to a bag
     std::vector<unsigned int> input_queue_bag_map_;
 
     // Event scheduled from all lps
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
+
+    // Map thread id to its lowest timestamp
+    std::vector<unsigned int> lowest_timestamp_thread_map_;
+
 };
 
 } // warped namespace

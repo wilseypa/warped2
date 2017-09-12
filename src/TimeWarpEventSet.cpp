@@ -11,9 +11,13 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
                                    unsigned int num_of_lps,
                                    unsigned int num_of_worker_threads) {
 
-    /* Create the input and processed queues and their locks.
-       Also create the input queue-bag map and scheduled event pointer. */
+    /* Create the input and schedule queues and their locks.
+       Create the processed queues.
+       Create the input queue-bag map and scheduled event pointer.
+       Create the data structure for holding the lowest event timestamp.
+     */
     input_queue_lock_ = make_unique<std::mutex []>(num_of_lps);
+
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
     schedule_queue_lock_ = make_unique<TicketLock []>();
 #else
@@ -22,9 +26,12 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
 
     num_of_lps_  = num_of_lps;
     num_of_bags_ = lps.size();
+
     schedule_queue_ = make_unique<bag []>(num_of_bags_);
+
     for (unsigned int bag_id = 0; bag_id < lps.size(); bag_id++) {
         schedule_queue_[bag_id] = make_unique<std::shared_ptr<Event> []>(lps[bag_id].size());
+
         for (unsigned int lp_id = 0; lp_id < lps[bag_id].size(); lp_id++) {
             input_queue_.push_back(
                     make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
@@ -33,6 +40,8 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
             input_queue_bag_map_.push_back(bag_id);
         }
     }
+
+    lowest_timestamp_thread_map_.reserve(num_of_worker_threads);
 }
 
 void TimeWarpEventSet::acquireInputQueueLock (unsigned int lp_id) {
@@ -56,61 +65,84 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
     input_queue_[lp_id]->insert(event);
 
     if (scheduled_event_pointer_[lp_id] == nullptr) {
-        // If no event is currently scheduled. This can only happen if the thread that handles events
-        // for lp with id lp_id has determined that there are no more events left in it's input
-        // queue
-
+        /* If no event is currently scheduled. This can only happen if the thread that
+           handles events for lp with id lp_id has determined that there are no more
+           events left in it's input queue.
+         */
         assert(input_queue_[lp_id]->size() == 1);
         unsigned int bag_id = input_queue_bag_map_[lp_id];
         schedule_queue_lock_[bag_id].lock();
         schedule_queue_[bag_id]->content_[schedule_queue_[bag_id]->content_size_++] = event;
         schedule_queue_lock_[bag_id].unlock();
         scheduled_event_pointer_[lp_id] = event;
+
+    } else {
+        auto smallest_event = *input_queue_[lp_id]->begin();
+        if (smallest_event != scheduled_event_pointer_[lp_id]) {
+            /* If the pointer comparison of the smallest event does not match
+               scheduled event, that means we should update the schedule queue.
+             */
+            unsigned int bag_id = input_queue_bag_map_[lp_id];
+            schedule_queue_lock_[bag_id].lock();
+            for (unsigned int i = 0; i < schedule_queue_[bag_id]->content_size_; i++) {
+                if (schedule_queue_[bag_id]->content_[i] == scheduled_event_pointer_[lp_id]) {
+                    schedule_queue_[bag_id]->content_[i] = smallest_event;
+                    scheduled_event_pointer_[lp_id] = smallest_event;
+                    break;
+                }
+            }
+            schedule_queue_lock_[bag_id].unlock();
+        }
     }
 }
 
 /*
  *  NOTE: caller must always have the input queue lock for the lp with id lp_id
  */
-std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvent () {
+std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
-    // Calculate the bag_index
-    unsigned int old_bag_id = 0;
+    /* Calculate the bag to be fetched */
     unsigned int new_bag_id = 0;
     do {
-        old_bag_id = scheduled_bag_;
+        unsigned int old_bag_id = fetch_bag_id_;
         new_bag_id = (old_bag_id+1) % num_of_bags_;
-    } while (!scheduled_bag_.compare_exchange_weak(old_bag_id, new_bag_id));
+
+    } while ( !fetch_bag_id_.compare_exchange_weak(old_bag_id, new_bag_id) );
 
     schedule_queue_lock_[new_bag_id].lock();
 
     std::vector<std::shared_ptr<Event>> events;
-    for (auto event : *schedule_queue_[bag_id]->content_) {
-        assert(event != nullptr);
+    for (unsigned int i = 0; i < schedule_queue_[bag_id]->content_size_; i++) {
+        auto event = schedule_queue_[bag_id]->content_[i];
+        assert(event);
         events.push_back(event);
+
+        /* Calculate the lowest timestamp for events processed */
+        if (i == 0) {
+            lowest_timestamp_thread_map_[thread_id] = event.timestamp();
+        } else {
+            lowest_timestamp_thread_map_[thread_id] =
+                std::min(lowest_timestamp_thread_map_[thread_id], event.timestamp());
+        }
     }
     schedule_queue_[bag_id]->content_size_ = 0;
 
-    // NOTE: scheduled_event_pointer is not changed here so that other threads will not schedule new
-    // events and this thread can move events into processed queue and update schedule queue correctly.
+    /* NOTE: scheduled_event_pointer is not changed here so that other threads
+       will not schedule new events and this thread can move events into processed
+       queue and update schedule queue correctly.
 
-    // NOTE: Event also remains in input queue until processing done. If this a a negative event
-    // then, a rollback will bring the processed positive event back to input queue and they will
-    // be cancelled.
-
+       NOTE: Event also remains in input queue until processing done. If this a
+       negative event then, a rollback will bring the processed positive event
+       back to input queue and they will be cancelled.
+     */
     schedule_queue_lock_[new_bag_id].unlock();
 
     return events;
 }
 
-#ifdef PARTIALLY_SORTED_LADDER_QUEUE
-/*
- *  NOTE: This is needed only for partially unsorted ladder queue
- */
 unsigned int lowestTimestamp (unsigned int thread_id) {
 
-    unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
-    return schedule_queue_[scheduler_id]->lowestTimestamp();
+    return lowest_timestamp_thread_map_[thread_id];
 }
 #endif
 
@@ -127,10 +159,10 @@ std::shared_ptr<Event> TimeWarpEventSet::lastProcessedEvent (unsigned int lp_id)
  */
 void TimeWarpEventSet::rollback (unsigned int lp_id, std::shared_ptr<Event> straggler_event) {
 
-    // Every event GREATER OR EQUAL to straggler event must remove from the processed queue and
-    // reinserted back into input queue.
-    // EQUAL will ensure that a negative message will properly be cancelled out.
-
+    /* Every event GREATER OR EQUAL to straggler event must remove from the
+       processed queue and reinserted back into input queue. EQUAL will ensure
+       that a negative message will properly be cancelled out.
+     */
     auto event_riterator = processed_queue_[lp_id]->rbegin();  // Starting with largest event
 
     while (event_riterator != processed_queue_[lp_id]->rend() && (**event_riterator >= *straggler_event)){
@@ -152,19 +184,19 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
                                 std::shared_ptr<Event> straggler_event, 
                                 std::shared_ptr<Event> restored_state_event) {
 
-    // To avoid error if asserts are disabled
+    /* To avoid error if asserts are disabled */
     unused(straggler_event);
 
-    // Restored state event is the last event to contribute to the current state of the lpt.
-    // All events GREATER THAN this event but LESS THAN the straggler event must be "coast forwarded"
-    // so that the state remains consistent.
-    //
-    // It is assumed that all processed events GREATER THAN OR EQUAL to the straggler event have
-    // been moved from the processed queue to the input queue with a call to rollback().
-    //
-    // All coast forwared events remain in the processed queue.
+    /* Restored state event is the last event to contribute to the current state of
+       the lpt. All events GREATER THAN this event but LESS THAN the straggler event
+       must be "coast forwarded" so that the state remains consistent.
 
-    // Create empty vector
+       It is assumed that all processed events GREATER THAN OR EQUAL to the straggler
+       event have been moved from the processed queue to the input queue with a call
+       to rollback().
+
+       All coast forwared events remain in the processed queue.
+     */
     auto events = make_unique<std::vector<std::shared_ptr<Event>>>();
 
     auto event_riterator = processed_queue_[lp_id]->rbegin();  // Starting with largest event
@@ -191,54 +223,60 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
  */
 void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
 
-    // Just simply add pointer to next event into the scheduler if input queue is not empty
-    // for the given lp, otherwise set to nullptr
+    /* Add pointer to next event into the scheduler if input queue is
+       not empty for the given lp, otherwise set to nullptr
+     */
     if (!input_queue_[lp_id]->empty()) {
         scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
-        unsigned int scheduler_id = input_queue_scheduler_map_[lp_id];
-        schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[lp_id]);
-        schedule_queue_lock_[scheduler_id].unlock();
+        unsigned int bag_id = input_queue_bag_map_[lp_id];
+        schedule_queue_lock_[bag_id].lock();
+        schedule_queue_[bag_id]->content_[schedule_queue_[bag_id]->content_size_++] =
+                                                            scheduled_event_pointer_[lp_id];
+        schedule_queue_lock_[bag_id].unlock();
+        scheduled_event_pointer_[lp_id] = event;
+
     } else {
         scheduled_event_pointer_[lp_id] = nullptr;
     }
 }
 
 /*
- *  NOTE: This can only be called by the thread that handles event for the lp with id lp_id
+ *  NOTE: This can only be called by the thread that handles events for the lps with id lp_ids
  *
- *  NOTE: caller must always have the input queue lock for the lp which corresponds to lp_id
+ *  NOTE: caller must always have the input queue locks for the lps which correspond to lp_ids
  *
- *  NOTE: the scheduled_event_pointer is also protected by input queue lock
+ *  NOTE: the scheduled_event_pointers are also protected by input queue locks
  */
-void TimeWarpEventSet::replenishScheduler (unsigned int lp_id) {
+void TimeWarpEventSet::replenishScheduler (std::vector<unsigned int> lp_ids) {
 
-    // Something is completely wrong if there is no scheduled event because we obviously just
-    // processed an event that was scheduled.
-    assert(scheduled_event_pointer_[lp_id]);
+    return ( !lp_ids.size() );
+    unsigned int bag_id = input_queue_bag_map_[lp_ids[0]];
+    schedule_queue_lock_[bag_id].lock();
+    for (auto lp_id : lp_ids) {
+        /* Something is completely wrong if there is no scheduled event
+           because an event from that lp was just processed.
+         */
+        assert(scheduled_event_pointer_[lp_id]);
 
-    // Move the just processed event to the processed queue
-    auto num_erased = input_queue_[lp_id]->erase(scheduled_event_pointer_[lp_id]);
-    assert(num_erased == 1);
-    unused(num_erased);
+        /* Move the just processed event to the processed queue */
+        auto num_erased = input_queue_[lp_id]->erase(scheduled_event_pointer_[lp_id]);
+        assert(num_erased == 1);
+        unused(num_erased);
 
-    processed_queue_[lp_id]->push_back(scheduled_event_pointer_[lp_id]);
+        processed_queue_[lp_id]->push_back(scheduled_event_pointer_[lp_id]);
 
-    // Map the lp to the next schedule queue (cyclic order)
-    // This is supposed to balance the load across all the schedule queues
-    // Input queue lock is sufficient to ensure consistency
-    unsigned int scheduler_id = input_queue_scheduler_map_[lp_id];
-
-    // Update scheduler with new event for the lp the previous event was executed for
-    // NOTE: A pointer to the scheduled event will remain in the input queue
-    if (!input_queue_[lp_id]->empty()) {
-        scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
-        schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[lp_id]);
-        schedule_queue_lock_[scheduler_id].unlock();
-    } else {
-        scheduled_event_pointer_[lp_id] = nullptr;
+        /* Update scheduler with new event for the lp the previous event was executed for
+           NOTE: A pointer to the scheduled event will remain in the input queue
+         */
+        if (!input_queue_[lp_id]->empty()) {
+            scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
+            schedule_queue_[bag_id]->content_[schedule_queue_[bag_id]->content_size_++] =
+                                                            scheduled_event_pointer_[lp_id];
+        } else {
+            scheduled_event_pointer_[lp_id] = nullptr;
+        }
     }
+    schedule_queue_lock_[bag_id].unlock();
 }
 
 bool TimeWarpEventSet::cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event) {
