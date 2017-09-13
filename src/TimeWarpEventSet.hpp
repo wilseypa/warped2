@@ -33,9 +33,9 @@ public:
 
     void releaseInputQueueLock (unsigned int lp_id);
 
-    void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
+    void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event, unsigned int thread_id);
 
-    std::vector<std::shared_ptr<Event>> getEvent (unsigned int thread_id);
+    std::vector<std::shared_ptr<Event>> getEvents (unsigned int thread_id);
 
     unsigned int lowestTimestamp (unsigned int thread_id);
 
@@ -48,9 +48,9 @@ public:
                         std::shared_ptr<Event> straggler_event,
                         std::shared_ptr<Event> restored_state_event);
 
-    void startScheduling (unsigned int lp_id);
+    void startScheduling (unsigned int lp_id, unsigned int thread_id);
 
-    void replenishScheduler (std::vector<unsigned int> lp_ids);
+    void replenishScheduler (std::vector<unsigned int> lp_ids, unsigned int thread_id);
 
     bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 
@@ -100,9 +100,16 @@ private:
     // Event scheduled from all lps
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
 
-    // Map thread id to its lowest timestamp
-    std::vector<unsigned int> lowest_timestamp_thread_map_;
+    /* Map thread id to the smallest event it has handled. Since events
+       across different bags are not necessarily processed in causal order,
+       the smallest event inserted or processed is the lowest threshold for
+       any thread. After lowest timestamp is read via lowestTimestamp(),
+       bool status is marked FALSE. It is changed to TRUE once that thread
+       inserts or processes any new event.
+     */
+    std::vector<std::pair<bool,unsigned int>> lowest_timestamp_thread_map_;
 
+    void updateLowestTimestamp (unsigned int thread_id, unsigned int timestamp);
 };
 
 } // warped namespace

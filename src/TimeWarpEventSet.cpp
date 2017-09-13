@@ -11,14 +11,10 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
                                    unsigned int num_of_lps,
                                    unsigned int num_of_worker_threads) {
 
-    /* Create the input and schedule queues and their locks.
-       Create the processed queues.
-       Create the input queue-bag map and scheduled event pointer.
-       Create the data structure for holding the lowest event timestamp.
-     */
     num_of_lps_  = num_of_lps;
     num_of_bags_ = lps.size();
 
+    /* Create the input and schedule queue locks */
     input_queue_lock_ = make_unique<std::mutex []>(num_of_lps_);
 
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
@@ -27,6 +23,9 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
     schedule_queue_lock_ = make_unique<std::mutex []>(num_of_bags_);
 #endif
 
+    /* Create the input, schedule and processed queues.
+       Create the input queue-bag map and scheduled event pointer.
+     */
     schedule_queue_ = make_unique<bag []>(num_of_bags_);
     for (unsigned int bag_id = 0; bag_id < lps.size(); bag_id++) {
         unsigned int num_lps = lps[bag_id].size();
@@ -41,7 +40,10 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
         }
     }
 
-    lowest_timestamp_thread_map_.reserve(num_of_worker_threads);
+    /* Create the data structure for holding the lowest event timestamp */
+    for (unsigned int i = 0; i < num_of_worker_threads; i++) {
+        lowest_timestamp_thread_map_.push_back(std::make_pair(false, 0));
+    }
 }
 
 void TimeWarpEventSet::acquireInputQueueLock (unsigned int lp_id) {
@@ -59,7 +61,9 @@ void TimeWarpEventSet::releaseInputQueueLock (unsigned int lp_id) {
  *
  *  NOTE: scheduled_event_pointer is also protected by the input queue lock
  */
-void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> event) {
+void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
+                                        std::shared_ptr<Event> event,
+                                        unsigned int thread_id      ) {
 
     // Always insert event into input queue
     input_queue_[lp_id]->insert(event);
@@ -76,9 +80,13 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
         schedule_queue_lock_[bag_id].unlock();
         scheduled_event_pointer_[lp_id] = event;
 
+        /* Update the lowest timestamp for the event inserted */
+        updateLowestTimestamp(thread_id, event->timestamp());
+
     } else {
         auto smallest_event = *input_queue_[lp_id]->begin();
         if (smallest_event != scheduled_event_pointer_[lp_id]) {
+
             /* If the pointer comparison of the smallest event does not match
                scheduled event, that means we should update the schedule queue.
              */
@@ -88,6 +96,10 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
                 if (schedule_queue_[bag_id].content_[i] == scheduled_event_pointer_[lp_id]) {
                     schedule_queue_[bag_id].content_[i] = smallest_event;
                     scheduled_event_pointer_[lp_id] = smallest_event;
+
+                    /* Update the lowest timestamp for smallest event */
+                    updateLowestTimestamp(thread_id, smallest_event->timestamp());
+
                     break;
                 }
             }
@@ -99,7 +111,7 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
 /*
  *  NOTE: caller must always have the input queue lock for the lp with id lp_id
  */
-std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvent (unsigned int thread_id) {
+std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int thread_id) {
 
     /* Calculate the bag to be fetched */
     unsigned int old_bag_id = 0;
@@ -118,13 +130,8 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvent (unsigned int thr
         assert(event);
         events.push_back(event);
 
-        /* Calculate the lowest timestamp for events processed */
-        if (i == 0) {
-            lowest_timestamp_thread_map_[thread_id] = event->timestamp();
-        } else {
-            lowest_timestamp_thread_map_[thread_id] =
-                std::min(lowest_timestamp_thread_map_[thread_id], event->timestamp());
-        }
+        /* Update the lowest timestamp for event processed */
+        updateLowestTimestamp(thread_id, event->timestamp());
     }
     schedule_queue_[new_bag_id].content_size_ = 0;
 
@@ -143,7 +150,23 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvent (unsigned int thr
 
 unsigned int TimeWarpEventSet::lowestTimestamp (unsigned int thread_id) {
 
-    return lowest_timestamp_thread_map_[thread_id];
+    lowest_timestamp_thread_map_[thread_id].first = false;
+    return lowest_timestamp_thread_map_[thread_id].second;
+}
+
+/* NOTE: Private member function */
+/* Update the timestamp value in lowest timestamp-thread map */
+void TimeWarpEventSet::updateLowestTimestamp (unsigned int thread_id, unsigned int timestamp) {
+
+    auto status = lowest_timestamp_thread_map_[thread_id].first;
+    if (!status) {
+        lowest_timestamp_thread_map_[thread_id].first  = true;
+        lowest_timestamp_thread_map_[thread_id].second = timestamp;
+
+    } else {
+        lowest_timestamp_thread_map_[thread_id].second =
+                std::min(lowest_timestamp_thread_map_[thread_id].second, timestamp);
+    }
 }
 
 /*
@@ -221,7 +244,7 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
  *  NOTE: This can only be called by the thread that handles events for the lp with id lp_id
  *
  */
-void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
+void TimeWarpEventSet::startScheduling (unsigned int lp_id, unsigned int thread_id) {
 
     /* Add pointer to next event into the scheduler if input queue is
        not empty for the given lp, otherwise set to nullptr
@@ -233,6 +256,9 @@ void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
         schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] =
                                                             scheduled_event_pointer_[lp_id];
         schedule_queue_lock_[bag_id].unlock();
+
+        /* Update the lowest timestamp for the event inserted */
+        updateLowestTimestamp(thread_id, scheduled_event_pointer_[lp_id]->timestamp());
 
     } else {
         scheduled_event_pointer_[lp_id] = nullptr;
@@ -246,7 +272,8 @@ void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
  *
  *  NOTE: the scheduled_event_pointers are also protected by input queue locks
  */
-void TimeWarpEventSet::replenishScheduler (std::vector<unsigned int> lp_ids) {
+void TimeWarpEventSet::replenishScheduler ( std::vector<unsigned int> lp_ids,
+                                            unsigned int thread_id  ) {
 
     if (!lp_ids.size()) return;
 
@@ -272,6 +299,10 @@ void TimeWarpEventSet::replenishScheduler (std::vector<unsigned int> lp_ids) {
             scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
             schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] =
                                                             scheduled_event_pointer_[lp_id];
+
+            /* Update the lowest timestamp for the event inserted */
+            updateLowestTimestamp(thread_id, scheduled_event_pointer_[lp_id]->timestamp());
+
         } else {
             scheduled_event_pointer_[lp_id] = nullptr;
         }
@@ -297,7 +328,7 @@ bool TimeWarpEventSet::cancelEvent (unsigned int lp_id, std::shared_ptr<Event> c
 }
 
 // For debugging
-void TimeWarpEventSet::printEvent(std::shared_ptr<Event> event) {
+void TimeWarpEventSet::printEvent (std::shared_ptr<Event> event) {
     std::cout << "\tSender:     " << event->sender_name_                  << "\n"
               << "\tReceiver:   " << event->receiverName()                << "\n"
               << "\tSend time:  " << event->send_time_                    << "\n"
