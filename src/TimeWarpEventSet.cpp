@@ -114,13 +114,13 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int th
     unsigned int new_bag_index = old_bag_index + 1;
     unsigned int bag_id = new_bag_index % num_of_bags_;
 
-    std::vector<std::shared_ptr<Event>> events;
     unsigned int min_ts = 0;
-
     schedule_queue_lock_[bag_id].lock();
-    for (unsigned int i = 0; i < schedule_queue_[bag_id].content_size_; i++) {
+    unsigned int event_count = schedule_queue_[bag_id].content_size_;
+    std::vector<std::shared_ptr<Event>> events(event_count);
+    for (unsigned int i = 0; i < event_count; i++) {
         auto event = schedule_queue_[bag_id].content_[i];
-        events.push_back(event);
+        events[i] = event;
         min_ts = (i) ? std::min(min_ts, event->timestamp()) : event->timestamp();
     }
     schedule_queue_[bag_id].content_size_ = 0;
@@ -279,24 +279,33 @@ void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
  *
  *  NOTE: the scheduled_event_pointers are also protected by input queue locks
  */
-void TimeWarpEventSet::replenishScheduler (std::vector<unsigned int> lp_ids) {
+void TimeWarpEventSet::replenishScheduler (
+            std::pair<unsigned int,bool> *lp_replenish_status,
+            unsigned int lp_count   ) {
 
-    if (!lp_ids.size()) return;
+    if (!lp_count) return;
 
-    unsigned int bag_id = input_queue_bag_map_[lp_ids[0]];
+    unsigned int lp_id = lp_replenish_status[0].first;
+    unsigned int bag_id = input_queue_bag_map_[lp_id];
     schedule_queue_lock_[bag_id].lock();
-    for (auto lp_id : lp_ids) {
-        /* Something is completely wrong if there is no scheduled event
-           because an event from that lp was just processed.
-         */
-        assert(scheduled_event_pointer_[lp_id]);
+    for (unsigned int i = 0; i < lp_count; i++) {
+        auto entry = lp_replenish_status[i];
+        unsigned int lp_id = entry.first;
 
-        /* Move the just processed event to the processed queue */
-        auto num_erased = input_queue_[lp_id]->erase(scheduled_event_pointer_[lp_id]);
-        assert(num_erased == 1);
-        unused(num_erased);
+        /* Check if scheduler needs to be replenished */
+        if (entry.second) {
+            /* Something is completely wrong if there is no scheduled event
+             * because an event from that lp was just processed.
+             */
+            assert(scheduled_event_pointer_[lp_id]);
 
-        processed_queue_[lp_id]->push_back(scheduled_event_pointer_[lp_id]);
+            /* Move the just processed event to the processed queue */
+            auto num_erased = input_queue_[lp_id]->erase(scheduled_event_pointer_[lp_id]);
+            assert(num_erased == 1);
+            unused(num_erased);
+
+            processed_queue_[lp_id]->push_back(scheduled_event_pointer_[lp_id]);
+        }
 
         /* Update scheduler with new event for the lp the previous event was executed for
            NOTE: A pointer to the scheduled event will remain in the input queue

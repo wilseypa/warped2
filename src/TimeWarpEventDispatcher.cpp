@@ -159,7 +159,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 termination_manager_->setThreadActive(thread_id);
             }
 
-            std::vector<unsigned int> lp_ids;
+            auto lp_replenish_status = new std::pair<unsigned int, bool>[events.size()];
+            unsigned int count = 0;
             for (auto event : events) {
                 assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
                 unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];
@@ -200,12 +201,19 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 if (event->event_type_ == EventType::NEGATIVE) {
                     event_set_->acquireInputQueueLock(current_lp_id);
                     bool found = event_set_->cancelEvent(current_lp_id, event);
-                    event_set_->startScheduling(current_lp_id);
                     event_set_->releaseInputQueueLock(current_lp_id);
+
+                     /* Keep record of LPs that need to be re-scheduled */
+                     lp_replenish_status[count++] =
+                            std::pair<unsigned int, bool> (current_lp_id, false);
 
                     if (found) tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
                     continue;
                 }
+
+                /* Keep record of LPs that need to replenish scheduler */
+                lp_replenish_status[count++] =
+                            std::pair<unsigned int, bool> (current_lp_id, true);
 
                 /* process event and get new events */
                 auto new_events = current_lp->receiveEvent(*event);
@@ -235,21 +243,23 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                     tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
                 }
-
-                /* Create the list of lps which need replenishment */
-                lp_ids.push_back(current_lp_id);
             }
 
             /* Move the next event from lp into the schedule queue
                Also transfer old event to processed queue
              */
-            for (auto lp_id : lp_ids) {
-                event_set_->acquireInputQueueLock(lp_id);
+            for (unsigned int i = 0; i < count; i++) {
+                event_set_->acquireInputQueueLock(lp_replenish_status[i].first);
             }
-            event_set_->replenishScheduler(lp_ids);
-            for (auto lp_id : lp_ids) {
-                event_set_->releaseInputQueueLock(lp_id);
+
+            event_set_->replenishScheduler(lp_replenish_status, count);
+
+            for (unsigned int i = 0; i < count; i++) {
+                event_set_->releaseInputQueueLock(lp_replenish_status[i].first);
             }
+
+            delete[] lp_replenish_status;
+
         } else {
             /* This thread no longer has anything to do
                because it's schedule queue is empty.

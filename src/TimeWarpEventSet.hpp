@@ -50,7 +50,9 @@ public:
 
     void startScheduling (unsigned int lp_id);
 
-    void replenishScheduler (std::vector<unsigned int> lp_ids);
+    void replenishScheduler (
+            std::pair<unsigned int,bool> *lp_replenish_status,
+            unsigned int lp_count   );
 
     bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 
