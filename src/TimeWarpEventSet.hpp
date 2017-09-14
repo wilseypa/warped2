@@ -33,7 +33,7 @@ public:
 
     void releaseInputQueueLock (unsigned int lp_id);
 
-    void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event, unsigned int thread_id);
+    void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
 
     std::vector<std::shared_ptr<Event>> getEvents (unsigned int thread_id);
 
@@ -48,9 +48,9 @@ public:
                         std::shared_ptr<Event> straggler_event,
                         std::shared_ptr<Event> restored_state_event);
 
-    void startScheduling (unsigned int lp_id, unsigned int thread_id);
+    void startScheduling (unsigned int lp_id);
 
-    void replenishScheduler (std::vector<unsigned int> lp_ids, unsigned int thread_id);
+    void replenishScheduler (std::vector<unsigned int> lp_ids);
 
     bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 
@@ -59,31 +59,31 @@ public:
     unsigned int fossilCollect (unsigned int fossil_collect_time, unsigned int lp_id);
 
 private:
-    // Number of lps
+    /* Number of lps */
     unsigned int num_of_lps_ = 0;
 
-    // Lock to protect the unprocessed queues
+    /* Lock to protect the unprocessed queues */
     std::unique_ptr<std::mutex []> input_queue_lock_;
 
-    // Queues to hold the unprocessed events for each lp
+    /* Queues to hold the unprocessed events for each lp */
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
                                             compareEvents>>> input_queue_;
 
-    // Queues to hold the processed events for each lp
+    /* Queues to hold the processed events for each lp */
     std::vector<std::unique_ptr<std::deque<std::shared_ptr<Event>>>> 
                                                             processed_queue_;
 
-    // Number of bags
+    /* Number of bags */
     unsigned int num_of_bags_ = 0;
 
-    // Lock to protect the schedule queues
+    /* Lock to protect the bags inside schedule queue */
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
     std::unique_ptr<TicketLock []> schedule_queue_lock_;
 #else
     std::unique_ptr<std::mutex []> schedule_queue_lock_;
 #endif
 
-    // Queues to hold the scheduled events
+    /* Bag to hold the events scheduled together in a group */
     class bag {
     public:
         std::unique_ptr<std::shared_ptr<Event> []> content_;
@@ -91,25 +91,31 @@ private:
     };
     std::unique_ptr<bag []> schedule_queue_;
 
-    // A circular index for the bag that needs to be fetched
-    std::atomic<unsigned int> fetch_bag_id_ = ATOMIC_VAR_INIT(0);
+    /* A circular index to determine the next bag to be processed
+     * NOTE: This will be used by multiple worker threads, so it
+     * has been declared as an atomic variable.
+     */
+    std::atomic<unsigned int> fetch_bag_index_ = ATOMIC_VAR_INIT(0);
 
-    // Map unprocessed queue to a bag
+    /* Map input/unprocessed queue to a bag */
     std::vector<unsigned int> input_queue_bag_map_;
 
-    // Event scheduled from all lps
+    /* Record event currently scheduled from all input queues */
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
 
-    /* Map thread id to the smallest event it has handled. Since events
-       across different bags are not necessarily processed in causal order,
-       the smallest event inserted or processed is the lowest threshold for
-       any thread. After lowest timestamp is read via lowestTimestamp(),
-       bool status is marked FALSE. It is changed to TRUE once that thread
-       inserts or processes any new event.
+    /* Store the lowest timestamp handled by a thread in a schedule cycle.
+     * NOTE: A schedule cycle refers to all bags in the schedule queue
+     * getting processed once in a sequence.
      */
-    std::vector<std::pair<bool,unsigned int>> lowest_timestamp_thread_map_;
+    std::vector<std::pair<unsigned int,unsigned int>> lowest_ts_in_schedule_cycle_;
 
-    void updateLowestTimestamp (unsigned int thread_id, unsigned int timestamp);
+    /* Update the lowest timestamp for that thread in a schedule cycle.
+     * NOTE: A schedule cycle refers to all bags in the schedule queue
+     * getting processed once in a sequence.
+     */
+    void updateLowestTimestamp (    unsigned int thread_id,
+                                    unsigned int bag_id,
+                                    unsigned int timestamp  );
 };
 
 } // warped namespace

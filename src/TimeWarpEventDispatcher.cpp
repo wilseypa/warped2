@@ -152,15 +152,15 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
             gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
 
+            /* Make sure that if this thread is currently seen as passive,
+               update its state so we don't terminate early.
+             */
+            if (termination_manager_->threadPassive(thread_id)) {
+                termination_manager_->setThreadActive(thread_id);
+            }
+
             std::vector<unsigned int> lp_ids;
             for (auto event : events) {
-                /* Make sure that if this thread is currently seen as passive,
-                   update its state so we don't terminate early.
-                 */
-                if (termination_manager_->threadPassive(thread_id)) {
-                    termination_manager_->setThreadActive(thread_id);
-                }
-
                 assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
                 unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];
                 LogicalProcess* current_lp = lps_by_name_[event->receiverName()];
@@ -200,7 +200,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 if (event->event_type_ == EventType::NEGATIVE) {
                     event_set_->acquireInputQueueLock(current_lp_id);
                     bool found = event_set_->cancelEvent(current_lp_id, event);
-                    event_set_->startScheduling(current_lp_id, thread_id);
+                    event_set_->startScheduling(current_lp_id);
                     event_set_->releaseInputQueueLock(current_lp_id);
 
                     if (found) tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
@@ -246,7 +246,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             for (auto lp_id : lp_ids) {
                 event_set_->acquireInputQueueLock(lp_id);
             }
-            event_set_->replenishScheduler(lp_ids, thread_id);
+            event_set_->replenishScheduler(lp_ids);
             for (auto lp_id : lp_ids) {
                 event_set_->releaseInputQueueLock(lp_id);
             }
@@ -313,7 +313,7 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 
     // NOTE: Event is assumed to be less than the maximum simulation time.
     event_set_->acquireInputQueueLock(receiver_lp_id);
-    event_set_->insertEvent(receiver_lp_id, event, thread_id);
+    event_set_->insertEvent(receiver_lp_id, event);
     event_set_->releaseInputQueueLock(receiver_lp_id);
 
    // Make sure to track sends if we are in the middle of a GVT calculation.
