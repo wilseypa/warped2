@@ -33,7 +33,9 @@ public:
 
     void releaseInputQueueLock (unsigned int lp_id);
 
-    void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
+    void insertEvent (  unsigned int lp_id,
+                        std::shared_ptr<Event> event,
+                        unsigned int thread_id  );
 
     std::vector<std::shared_ptr<Event>> getEvents (unsigned int thread_id);
 
@@ -52,7 +54,8 @@ public:
 
     void replenishScheduler (
             std::pair<unsigned int,bool> *lp_replenish_status,
-            unsigned int lp_count   );
+            unsigned int lp_count,
+            unsigned int thread_id  );
 
     bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 

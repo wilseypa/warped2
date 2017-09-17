@@ -148,10 +148,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
         auto events = event_set_->getEvents(thread_id);
         if (events.size()) {
-            /* If needed, report event for this thread so GVT can be calculated */
-            auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
-            gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
-
             /* Make sure that if this thread is currently seen as passive,
                update its state so we don't terminate early.
              */
@@ -252,13 +248,17 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 event_set_->acquireInputQueueLock(lp_replenish_status[i].first);
             }
 
-            event_set_->replenishScheduler(lp_replenish_status, count);
+            event_set_->replenishScheduler(lp_replenish_status, count, thread_id);
 
             for (unsigned int i = 0; i < count; i++) {
                 event_set_->releaseInputQueueLock(lp_replenish_status[i].first);
             }
 
             delete[] lp_replenish_status;
+
+            /* If needed, report event for this thread so GVT can be calculated */
+            auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
+            gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
 
         } else {
             /* This thread no longer has anything to do
@@ -323,7 +323,7 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 
     // NOTE: Event is assumed to be less than the maximum simulation time.
     event_set_->acquireInputQueueLock(receiver_lp_id);
-    event_set_->insertEvent(receiver_lp_id, event);
+    event_set_->insertEvent(receiver_lp_id, event, thread_id);
     event_set_->releaseInputQueueLock(receiver_lp_id);
 
    // Make sure to track sends if we are in the middle of a GVT calculation.
