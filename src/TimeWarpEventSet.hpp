@@ -115,8 +115,7 @@ private:
      * NOTE: A schedule cycle refers to all bags in the schedule queue
      * getting processed once in a sequence.
      */
-    std::vector<std::tuple<unsigned int, unsigned int, unsigned int>>
-                                            lowest_ts_in_schedule_cycle_;
+    std::vector<std::tuple<unsigned int, unsigned int, unsigned int>> schedule_cycle_;
 };
 
 } // warped namespace

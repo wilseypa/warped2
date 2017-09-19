@@ -44,7 +44,7 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
 
     /* Create the data structure for holding the lowest event timestamp */
     for (unsigned int i = 0; i < num_of_worker_threads; i++) {
-        lowest_ts_in_schedule_cycle_.push_back(std::make_tuple(0, (unsigned int)-1, 0));
+        schedule_cycle_.push_back(std::make_tuple(0, (unsigned int)-1, 0));
     }
 }
 
@@ -126,8 +126,8 @@ void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
 
     /* Update the lowest timestamp for that thread */
     if (bag_min_timestamp) {
-        std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) =
-            std::min(   std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]),
+        std::get<1>(schedule_cycle_[thread_id]) =
+            std::min(   std::get<1>(schedule_cycle_[thread_id]),
                         bag_min_timestamp   );
     }
 }
@@ -156,15 +156,15 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int th
      * schedule cycle, this function updates the lowest event timestamp
      * processed by a thread.
      */
-    auto prev_fetch_index = std::get<0>(lowest_ts_in_schedule_cycle_[thread_id]);
+    auto prev_fetch_index = std::get<0>(schedule_cycle_[thread_id]);
 
     /* If it is a different schedule cycle */
     if ( fetch_index / num_of_bags_ > prev_fetch_index / num_of_bags_ ) {
 
-        std::get<0>(lowest_ts_in_schedule_cycle_[thread_id]) = fetch_index;
-        std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) =
-                            std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]);
-        std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) = (unsigned int)-1;
+        std::get<0>(schedule_cycle_[thread_id]) = fetch_index;
+        std::get<2>(schedule_cycle_[thread_id]) =
+                            std::get<1>(schedule_cycle_[thread_id]);
+        std::get<1>(schedule_cycle_[thread_id]) = (unsigned int)-1;
 
     } else { /* It is the same schedule cycle */
 
@@ -190,7 +190,7 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int th
 
 unsigned int TimeWarpEventSet::lowestTimestamp (unsigned int thread_id) {
 
-    return std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]);
+    return std::get<2>(schedule_cycle_[thread_id]);
 }
 
 /*
@@ -317,8 +317,8 @@ void TimeWarpEventSet::replenishScheduler (
 
     /* Update the lowest timestamp for that thread */
     if (bag_min_timestamp) {
-        std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) =
-            std::min(   std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]),
+        std::get<1>(schedule_cycle_[thread_id]) =
+            std::min(   std::get<1>(schedule_cycle_[thread_id]),
                         bag_min_timestamp   );
     }
 }
