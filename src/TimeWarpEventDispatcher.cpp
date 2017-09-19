@@ -148,6 +148,11 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
         auto events = event_set_->getEvents(thread_id);
         if (events.size()) {
+
+            /* If needed, report event for this thread so GVT can be calculated */
+            auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
+            gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
+
             /* Make sure that if this thread is currently seen as passive,
                update its state so we don't terminate early.
              */
@@ -255,10 +260,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             delete[] lp_replenish_status;
-
-            /* If needed, report event for this thread so GVT can be calculated */
-            auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
-            gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
 
         } else {
             /* This thread no longer has anything to do

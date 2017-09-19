@@ -42,7 +42,7 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
 
     /* Create the data structure for holding the lowest event timestamp */
     for (unsigned int i = 0; i < num_of_worker_threads; i++) {
-        lowest_ts_in_schedule_cycle_.push_back(std::make_pair(0, 0));
+        lowest_ts_in_schedule_cycle_.push_back(std::make_tuple(0, true, 0));
     }
 }
 
@@ -68,6 +68,8 @@ void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
     // Always insert event into input queue
     input_queue_[lp_id]->insert(event);
 
+    unsigned int bag_min_timestamp = 0;
+
     if (scheduled_event_pointer_[lp_id] == nullptr) {
         /* If no event is currently scheduled. This can only happen if the thread that
            handles events for lp with id lp_id has determined that there are no more
@@ -77,11 +79,13 @@ void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
         unsigned int bag_id = input_queue_bag_map_[lp_id];
         schedule_queue_lock_[bag_id].lock();
         schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] = event;
+        schedule_queue_[bag_id].min_timestamp_ =
+            (schedule_queue_[bag_id].content_size_ == 1) ?
+                event->timestamp() :
+                std::min( schedule_queue_[bag_id].min_timestamp_, event->timestamp() );
+        bag_min_timestamp = schedule_queue_[bag_id].min_timestamp_;
         schedule_queue_lock_[bag_id].unlock();
         scheduled_event_pointer_[lp_id] = event;
-
-        lowest_ts_in_schedule_cycle_[thread_id].second =
-            std::min(lowest_ts_in_schedule_cycle_[thread_id].second, event->timestamp());
 
     } else {
         auto smallest_event = *input_queue_[lp_id]->begin();
@@ -103,19 +107,35 @@ void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
             while (i < bag_size) {
                 if (schedule_queue_[bag_id].content_[i] == scheduled_event_pointer_[lp_id]) {
                     schedule_queue_[bag_id].content_[i] = smallest_event;
-                    scheduled_event_pointer_[lp_id] = smallest_event;
+                    schedule_queue_[bag_id].min_timestamp_ =
+                        (schedule_queue_[bag_id].content_size_ == 1) ?
+                            smallest_event->timestamp() :
+                            std::min(   schedule_queue_[bag_id].min_timestamp_,
+                                        smallest_event->timestamp() );
                     break;
                 }
                 i++;
             }
+            bag_min_timestamp = schedule_queue_[bag_id].min_timestamp_;
             schedule_queue_lock_[bag_id].unlock();
 
             /* If event was swapped */
             if (i < bag_size) {
-                lowest_ts_in_schedule_cycle_[thread_id].second =
-                    std::min(lowest_ts_in_schedule_cycle_[thread_id].second,
-                                                    smallest_event->timestamp());
+                scheduled_event_pointer_[lp_id] = smallest_event;
             }
+        }
+    }
+
+    /* Update the lowest timestamp for that thread */
+    if (bag_min_timestamp) {
+        if ( std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) ) {
+            std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) = false;
+            std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) = bag_min_timestamp;
+
+        } else {
+            std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) =
+                std::min(   std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]),
+                            bag_min_timestamp   );
         }
     }
 }
@@ -126,24 +146,39 @@ void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
 std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int thread_id) {
 
     /* Calculate the bag to be fetched */
-    unsigned int bag_index = std::atomic_fetch_add(&fetch_bag_index_, (unsigned int)1);
-    unsigned int bag_id = bag_index % num_of_bags_;
+    unsigned int fetch_index = std::atomic_fetch_add(&fetch_bag_index_, (unsigned int)1);
+    unsigned int bag_id = fetch_index % num_of_bags_;
 
-    unsigned int min_ts = 0;
     schedule_queue_lock_[bag_id].lock();
     unsigned int event_count = schedule_queue_[bag_id].content_size_;
     std::vector<std::shared_ptr<Event>> events(event_count);
     for (unsigned int i = 0; i < event_count; i++) {
         auto event = schedule_queue_[bag_id].content_[i];
         events[i] = event;
-        min_ts = (i) ? std::min(min_ts, event->timestamp()) : event->timestamp();
     }
     schedule_queue_[bag_id].content_size_ = 0;
     schedule_queue_lock_[bag_id].unlock();
 
-    /* Update the lowest timestamp for this bag if it is non-empty */
-    if (events.size()) {
-        updateLowestTimestamp(thread_id, bag_index, min_ts);
+    /* A schedule cycle refers to all bags getting processed once. In a
+     * schedule cycle, this function updates the lowest event timestamp
+     * processed by a thread.
+     */
+    auto prev_fetch_index = std::get<0>(lowest_ts_in_schedule_cycle_[thread_id]);
+
+    /* If it is a different schedule cycle */
+    if (fetch_index - prev_fetch_index >= num_of_bags_) {
+
+        std::get<0>(lowest_ts_in_schedule_cycle_[thread_id]) = fetch_index;
+        std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) = true;
+
+    } else { /* It is the same schedule cycle */
+
+        /* NOTE: It is possible that unsigned int fetch_bag_index_
+         * cycles back to 0 after reaching the max value.
+         * Currently condition not handled. This situation may arise
+         * when simulation runs for a long time.
+         */
+        assert(fetch_index >= prev_fetch_index);
     }
 
     /* NOTE: scheduled_event_pointer is not changed here so that other threads
@@ -160,40 +195,7 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int th
 
 unsigned int TimeWarpEventSet::lowestTimestamp (unsigned int thread_id) {
 
-    return lowest_ts_in_schedule_cycle_[thread_id].second;
-}
-
-/* NOTE: Private member function.
- * A schedule cycle refers to all bags getting processed once. In a
- * schedule cycle, this function updates the lowest event timestamp
- * processed by a thread.
- */
-void TimeWarpEventSet::updateLowestTimestamp (  unsigned int thread_id,
-                                                unsigned int bag_index,
-                                                unsigned int timestamp  ) {
-
-    /* NOTE: Schedule cycle count starts from 1. Initial value is 0. */
-    auto old_cycle = lowest_ts_in_schedule_cycle_[thread_id].first;
-    auto new_cycle = bag_index/num_of_bags_ + 1;
-
-    /* If it is a different schedule cycle */
-    if (old_cycle < new_cycle) {
-        lowest_ts_in_schedule_cycle_[thread_id].first  = new_cycle;
-        lowest_ts_in_schedule_cycle_[thread_id].second = timestamp;
-
-    } else if (new_cycle == old_cycle) { /* If it is the same schedule cycle */
-        lowest_ts_in_schedule_cycle_[thread_id].second =
-                std::min(lowest_ts_in_schedule_cycle_[thread_id].second, timestamp);
-
-    } else { /* old_cycle > new_cycle */
-
-        /* NOTE: This is possible when unsigned int fetch_bag_index_
-         * cycles back to 0 after reaching the max value.
-         * Currently condition not handled. This situation may arise
-         * when simulation runs for a long time.
-         */
-        assert(0);
-    }
+    return std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]);
 }
 
 /*
@@ -215,7 +217,8 @@ void TimeWarpEventSet::rollback (unsigned int lp_id, std::shared_ptr<Event> stra
      */
     auto event_riterator = processed_queue_[lp_id]->rbegin();  // Starting with largest event
 
-    while (event_riterator != processed_queue_[lp_id]->rend() && (**event_riterator >= *straggler_event)){
+    while (event_riterator != processed_queue_[lp_id]->rend() &&
+                            (**event_riterator >= *straggler_event)){
 
         auto event = std::move(processed_queue_[lp_id]->back()); // Starting from largest event
         assert(event);
@@ -264,30 +267,6 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
 }
 
 /*
- *  NOTE: call must always have input queue lock for the lp which corresponds to lp_id
- *
- *  NOTE: This is called in the case of an negative message and no event is processed.
- *
- */
-void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
-
-    /* Add pointer to next event into the scheduler if input queue is
-       not empty for the given lp, otherwise set to nullptr
-     */
-    if (!input_queue_[lp_id]->empty()) {
-        scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
-        unsigned int bag_id = input_queue_bag_map_[lp_id];
-        schedule_queue_lock_[bag_id].lock();
-        schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] =
-                                                            scheduled_event_pointer_[lp_id];
-        schedule_queue_lock_[bag_id].unlock();
-
-    } else {
-        scheduled_event_pointer_[lp_id] = nullptr;
-    }
-}
-
-/*
  *  NOTE: This can only be called by the thread that handles events for the lps with id lp_ids
  *
  *  NOTE: caller must always have the input queue locks for the lps which correspond to lp_ids
@@ -303,7 +282,7 @@ void TimeWarpEventSet::replenishScheduler (
 
     unsigned int lp_id = lp_replenish_status[0].first;
     unsigned int bag_id = input_queue_bag_map_[lp_id];
-    unsigned int min_ts = 0;
+
     schedule_queue_lock_[bag_id].lock();
     for (unsigned int i = 0; i < lp_count; i++) {
         auto entry = lp_replenish_status[i];
@@ -331,18 +310,29 @@ void TimeWarpEventSet::replenishScheduler (
             scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
             schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] =
                                                             scheduled_event_pointer_[lp_id];
-            min_ts = (i) ? std::min(min_ts, scheduled_event_pointer_[lp_id]->timestamp()) :
-                                                scheduled_event_pointer_[lp_id]->timestamp();
+            schedule_queue_[bag_id].min_timestamp_ =
+                (schedule_queue_[bag_id].content_size_ == 1) ?
+                    scheduled_event_pointer_[lp_id]->timestamp() :
+                    std::min(   schedule_queue_[bag_id].min_timestamp_,
+                                scheduled_event_pointer_[lp_id]->timestamp() );
         } else {
             scheduled_event_pointer_[lp_id] = nullptr;
         }
     }
+    unsigned int bag_min_timestamp = schedule_queue_[bag_id].min_timestamp_;
     schedule_queue_lock_[bag_id].unlock();
 
-    /* Update the lowest timestamp for this bag if it is non-empty */
-    if (min_ts) {
-        lowest_ts_in_schedule_cycle_[thread_id].second =
-                std::min(lowest_ts_in_schedule_cycle_[thread_id].second, min_ts);
+    /* Update the lowest timestamp for that thread */
+    if (bag_min_timestamp) {
+        if ( std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) ) {
+            std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) = false;
+            std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) = bag_min_timestamp;
+
+        } else {
+            std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) =
+                std::min(   std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]),
+                            bag_min_timestamp   );
+        }
     }
 }
 

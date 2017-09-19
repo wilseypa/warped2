@@ -50,8 +50,6 @@ public:
                         std::shared_ptr<Event> straggler_event,
                         std::shared_ptr<Event> restored_state_event);
 
-    void startScheduling (unsigned int lp_id);
-
     void replenishScheduler (
             std::pair<unsigned int,bool> *lp_replenish_status,
             unsigned int lp_count,
@@ -92,7 +90,8 @@ private:
     class bag {
     public:
         std::unique_ptr<std::shared_ptr<Event> []> content_;
-        unsigned int content_size_ = 0;
+        unsigned int content_size_  = 0;
+        unsigned int min_timestamp_ = 0;
     };
     std::unique_ptr<bag []> schedule_queue_;
 
@@ -112,15 +111,7 @@ private:
      * NOTE: A schedule cycle refers to all bags in the schedule queue
      * getting processed once in a sequence.
      */
-    std::vector<std::pair<unsigned int,unsigned int>> lowest_ts_in_schedule_cycle_;
-
-    /* Update the lowest timestamp for that thread in a schedule cycle.
-     * NOTE: A schedule cycle refers to all bags in the schedule queue
-     * getting processed once in a sequence.
-     */
-    void updateLowestTimestamp (    unsigned int thread_id,
-                                    unsigned int bag_id,
-                                    unsigned int timestamp  );
+    std::vector<std::tuple<unsigned int,bool,unsigned int>> lowest_ts_in_schedule_cycle_;
 };
 
 } // warped namespace
