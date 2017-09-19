@@ -107,11 +107,16 @@ private:
     /* Record event currently scheduled from all input queues */
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
 
-    /* Store the lowest timestamp handled by a thread in a schedule cycle.
+    /* Each tuple stores the following data for a worker thread:
+     *   a. initial fetch index for the current schedule cycle
+     *   b. lowest timestamp for the thread during the current schedule cycle
+     *      (this value may keep on getting updated the more bags this thread processes)
+     *   c. lowest timestamp for the thread during the previous schedule cycle
      * NOTE: A schedule cycle refers to all bags in the schedule queue
      * getting processed once in a sequence.
      */
-    std::vector<std::tuple<unsigned int,bool,unsigned int>> lowest_ts_in_schedule_cycle_;
+    std::vector<std::tuple<unsigned int, unsigned int, unsigned int>>
+                                            lowest_ts_in_schedule_cycle_;
 };
 
 } // warped namespace

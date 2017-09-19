@@ -29,7 +29,9 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
     schedule_queue_ = make_unique<bag []>(num_of_bags_);
     for (unsigned int bag_id = 0; bag_id < lps.size(); bag_id++) {
         unsigned int num_lps = lps[bag_id].size();
-        schedule_queue_[bag_id].content_ = make_unique<std::shared_ptr<Event> []>(num_lps);
+        schedule_queue_[bag_id].content_       = make_unique<std::shared_ptr<Event> []>(num_lps);
+        schedule_queue_[bag_id].content_size_  = 0;
+        schedule_queue_[bag_id].min_timestamp_ = (unsigned int)-1;
 
         for (unsigned int lp_id = 0; lp_id < num_lps; lp_id++) {
             input_queue_.push_back(
@@ -42,7 +44,7 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
 
     /* Create the data structure for holding the lowest event timestamp */
     for (unsigned int i = 0; i < num_of_worker_threads; i++) {
-        lowest_ts_in_schedule_cycle_.push_back(std::make_tuple(0, true, 0));
+        lowest_ts_in_schedule_cycle_.push_back(std::make_tuple(0, (unsigned int)-1, 0));
     }
 }
 
@@ -80,9 +82,7 @@ void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
         schedule_queue_lock_[bag_id].lock();
         schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] = event;
         schedule_queue_[bag_id].min_timestamp_ =
-            (schedule_queue_[bag_id].content_size_ == 1) ?
-                event->timestamp() :
-                std::min( schedule_queue_[bag_id].min_timestamp_, event->timestamp() );
+            std::min( schedule_queue_[bag_id].min_timestamp_, event->timestamp() );
         bag_min_timestamp = schedule_queue_[bag_id].min_timestamp_;
         schedule_queue_lock_[bag_id].unlock();
         scheduled_event_pointer_[lp_id] = event;
@@ -108,10 +108,8 @@ void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
                 if (schedule_queue_[bag_id].content_[i] == scheduled_event_pointer_[lp_id]) {
                     schedule_queue_[bag_id].content_[i] = smallest_event;
                     schedule_queue_[bag_id].min_timestamp_ =
-                        (schedule_queue_[bag_id].content_size_ == 1) ?
-                            smallest_event->timestamp() :
-                            std::min(   schedule_queue_[bag_id].min_timestamp_,
-                                        smallest_event->timestamp() );
+                        std::min(   schedule_queue_[bag_id].min_timestamp_,
+                                    smallest_event->timestamp()     );
                     break;
                 }
                 i++;
@@ -128,15 +126,9 @@ void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
 
     /* Update the lowest timestamp for that thread */
     if (bag_min_timestamp) {
-        if ( std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) ) {
-            std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) = false;
-            std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) = bag_min_timestamp;
-
-        } else {
-            std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) =
-                std::min(   std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]),
-                            bag_min_timestamp   );
-        }
+        std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) =
+            std::min(   std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]),
+                        bag_min_timestamp   );
     }
 }
 
@@ -157,6 +149,7 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int th
         events[i] = event;
     }
     schedule_queue_[bag_id].content_size_ = 0;
+    schedule_queue_[bag_id].min_timestamp_ = (unsigned int)-1;
     schedule_queue_lock_[bag_id].unlock();
 
     /* A schedule cycle refers to all bags getting processed once. In a
@@ -166,10 +159,12 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int th
     auto prev_fetch_index = std::get<0>(lowest_ts_in_schedule_cycle_[thread_id]);
 
     /* If it is a different schedule cycle */
-    if (fetch_index - prev_fetch_index >= num_of_bags_) {
+    if ( fetch_index / num_of_bags_ > prev_fetch_index / num_of_bags_ ) {
 
         std::get<0>(lowest_ts_in_schedule_cycle_[thread_id]) = fetch_index;
-        std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) = true;
+        std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) =
+                            std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]);
+        std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) = (unsigned int)-1;
 
     } else { /* It is the same schedule cycle */
 
@@ -311,10 +306,8 @@ void TimeWarpEventSet::replenishScheduler (
             schedule_queue_[bag_id].content_[schedule_queue_[bag_id].content_size_++] =
                                                             scheduled_event_pointer_[lp_id];
             schedule_queue_[bag_id].min_timestamp_ =
-                (schedule_queue_[bag_id].content_size_ == 1) ?
-                    scheduled_event_pointer_[lp_id]->timestamp() :
-                    std::min(   schedule_queue_[bag_id].min_timestamp_,
-                                scheduled_event_pointer_[lp_id]->timestamp() );
+                std::min(   schedule_queue_[bag_id].min_timestamp_,
+                            scheduled_event_pointer_[lp_id]->timestamp() );
         } else {
             scheduled_event_pointer_[lp_id] = nullptr;
         }
@@ -324,15 +317,9 @@ void TimeWarpEventSet::replenishScheduler (
 
     /* Update the lowest timestamp for that thread */
     if (bag_min_timestamp) {
-        if ( std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) ) {
-            std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) = false;
-            std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) = bag_min_timestamp;
-
-        } else {
-            std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]) =
-                std::min(   std::get<2>(lowest_ts_in_schedule_cycle_[thread_id]),
-                            bag_min_timestamp   );
-        }
+        std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]) =
+            std::min(   std::get<1>(lowest_ts_in_schedule_cycle_[thread_id]),
+                        bag_min_timestamp   );
     }
 }
 
