@@ -138,7 +138,14 @@ void TimeWarpEventSet::insertEvent (    unsigned int lp_id,
 std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int thread_id) {
 
     /* Calculate the bag to be fetched */
-    unsigned int fetch_index = std::atomic_fetch_add(&fetch_bag_index_, (unsigned int)1);
+    unsigned int limit = (unsigned int)-1;
+    limit -= limit % num_of_bags_;
+    unsigned int fetch_index = 0, next_fetch_index = 0;
+    do {
+        fetch_index = fetch_bag_index_.load();
+        next_fetch_index = (fetch_index+1) % limit;
+    } while (!fetch_bag_index_.compare_exchange_weak(fetch_index, next_fetch_index));
+
     unsigned int bag_id = fetch_index % num_of_bags_;
 
     schedule_queue_lock_[bag_id].lock();
@@ -158,22 +165,22 @@ std::vector<std::shared_ptr<Event>> TimeWarpEventSet::getEvents (unsigned int th
      */
     auto prev_fetch_index = std::get<0>(schedule_cycle_[thread_id]);
 
-    /* If it is a different schedule cycle */
-    if ( fetch_index / num_of_bags_ > prev_fetch_index / num_of_bags_ ) {
+    /* If it is a different schedule cycle.
+       NOTE: Atomic variable fetch_bag_index_ can have any value >= 0 and less
+             than largest multiple of bag count within capacity of unsigned int.
+             Once it reaches the upper limit, fetch_bag_index_ value cycles back
+             to 0. This situation may arise when simulation runs for a long time.
+             Ideally, fetch_bag_index_ should be designed to have value >= 0 and
+             less than bag count. But that would not allow us to determine the
+             schedule cycle. So, as a design compromise, fetch_bag_index_ values
+             have been designed in the a way mentioned above.
+     */
+    if ( fetch_index / num_of_bags_ != prev_fetch_index / num_of_bags_ ) {
 
         std::get<0>(schedule_cycle_[thread_id]) = fetch_index;
         std::get<2>(schedule_cycle_[thread_id]) =
                             std::get<1>(schedule_cycle_[thread_id]);
         std::get<1>(schedule_cycle_[thread_id]) = (unsigned int)-1;
-
-    } else { /* It is the same schedule cycle */
-
-        /* NOTE: It is possible that unsigned int fetch_bag_index_
-         * cycles back to 0 after reaching the max value.
-         * Currently condition not handled. This situation may arise
-         * when simulation runs for a long time.
-         */
-        assert(fetch_index >= prev_fetch_index);
     }
 
     /* NOTE: scheduled_event_pointer is not changed here so that other threads
