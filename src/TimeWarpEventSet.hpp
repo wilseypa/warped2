@@ -84,7 +84,7 @@ private:
     class bag {
     public:
         std::vector<unsigned int> lp_ids_;
-        std::atomic<unsigned int> is_locked_ = ATOMIC_VAR_INIT(0);
+        std::atomic_flag is_locked_ = ATOMIC_FLAG_INIT;
     };
     std::unique_ptr<bag []> schedule_queue_;
 

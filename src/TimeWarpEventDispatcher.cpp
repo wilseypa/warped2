@@ -249,7 +249,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                 /* Move event to processed queue */
                 event_set_->acquireInputQueueLock(current_lp_id);
-                auto event = event_set_->moveToProcessedQueue(current_lp_id);
+                event_set_->moveToProcessedQueue(current_lp_id);
                 event_set_->releaseInputQueueLock(current_lp_id);
             }
         } else {

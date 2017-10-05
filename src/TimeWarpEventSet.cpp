@@ -65,11 +65,12 @@ unsigned int TimeWarpEventSet::getBag (unsigned int thread_id) {
     do {
         fetch_index = fetch_bag_index_.load();
         next_fetch_index = (fetch_index+1) % limit;
-    } while (!atomic_compare_exchange_weak(&fetch_bag_index_, fetch_index, next_fetch_index));
+    } while (!std::atomic_compare_exchange_weak(
+                        &fetch_bag_index_, &fetch_index, next_fetch_index   ));
 
     /* Reserve the bag */
     auto bag_id = fetch_index % num_of_bags_;
-    while (!atomic_compare_exchange_weak(&(schedule_queue_[bag_id].is_locked_), 0, 1));
+    while (schedule_queue_[bag_id].is_locked_.test_and_set());
 
     /* A schedule cycle refers to all bags getting processed once. In a
      * schedule cycle, this function updates the lowest event timestamp
@@ -219,7 +220,7 @@ void TimeWarpEventSet::moveToProcessedQueue (unsigned int lp_id) {
 void TimeWarpEventSet::makeBagAvailable (unsigned int bag_id) {
 
     /* Release the bag */
-    while (!atomic_compare_exchange_weak(&(schedule_queue_[bag_id].is_locked_), 1, 0));
+    schedule_queue_[bag_id].is_locked_.clear();
 }
 
 bool TimeWarpEventSet::cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event) {
