@@ -33,11 +33,13 @@ public:
 
     void releaseInputQueueLock (unsigned int lp_id);
 
-    void insertEvent (  unsigned int lp_id,
-                        std::shared_ptr<Event> event,
-                        unsigned int thread_id  );
+    void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
 
-    std::vector<std::shared_ptr<Event>> getEvents (unsigned int thread_id);
+    unsigned int getBag (unsigned int thread_id);
+
+    std::vector<unsigned int> fetchLPList (unsigned int bag_id);
+
+    std::shared_ptr<Event> getEvent (unsigned int lp_id, unsigned int thread_id);
 
     unsigned int lowestTimestamp (unsigned int thread_id);
 
@@ -50,10 +52,9 @@ public:
                         std::shared_ptr<Event> straggler_event,
                         std::shared_ptr<Event> restored_state_event);
 
-    void replenishScheduler (
-            std::pair<unsigned int,bool> *lp_replenish_status,
-            unsigned int lp_count,
-            unsigned int thread_id  );
+    void moveToProcessedQueue (unsigned int lp_id);
+
+    void makeBagAvailable (unsigned int bag_id);
 
     bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 
@@ -79,19 +80,11 @@ private:
     /* Number of bags */
     unsigned int num_of_bags_ = 0;
 
-    /* Lock to protect the bags inside schedule queue */
-#ifdef SCHEDULE_QUEUE_SPINLOCKS
-    std::unique_ptr<TicketLock []> schedule_queue_lock_;
-#else
-    std::unique_ptr<std::mutex []> schedule_queue_lock_;
-#endif
-
     /* Bag to hold the events scheduled together in a group */
     class bag {
     public:
-        std::unique_ptr<std::shared_ptr<Event> []> content_;
-        unsigned int content_size_  = 0;
-        unsigned int min_timestamp_ = 0;
+        std::vector<unsigned int> lp_ids_;
+        std::atomic<unsigned int> is_locked_ = ATOMIC_VAR_INIT(0);
     };
     std::unique_ptr<bag []> schedule_queue_;
 
@@ -100,9 +93,6 @@ private:
      * has been declared as an atomic variable.
      */
     std::atomic<unsigned int> fetch_bag_index_ = ATOMIC_VAR_INIT(0);
-
-    /* Map input/unprocessed queue to a bag */
-    std::vector<unsigned int> input_queue_bag_map_;
 
     /* Record event currently scheduled from all input queues */
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;

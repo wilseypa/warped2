@@ -142,27 +142,35 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
     while (!termination_manager_->terminationStatus()) {
         /* NOTE: local_gvt_flag must be obtained before getting the next
-           event to avoid the "simultaneous reporting problem"
+         * event to avoid the "simultaneous reporting problem"
          */
         local_gvt_flag = gvt_manager_->getLocalGVTFlag();
 
-        auto events = event_set_->getEvents(thread_id);
+        unsigned int bag_id = event_set_->getBag(thread_id);
+        auto lp_ids = event_set_->fetchLPList(bag_id);
+        std::vector<std::shared_ptr<Event>> events;
+        for (unsigned int i = 0; i < lp_ids.size(); i++) {
+            event_set_->acquireInputQueueLock(lp_ids[i]);
+            auto event = event_set_->getEvent(lp_ids[i], thread_id);
+            event_set_->releaseInputQueueLock(lp_ids[i]);
+            if (event) events.push_back(event);
+        }
+
+        /* If needed, report event for this thread so GVT can be calculated */
+        auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
+        gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
+
         if (events.size()) {
 
-            /* If needed, report event for this thread so GVT can be calculated */
-            auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
-            gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
-
             /* Make sure that if this thread is currently seen as passive,
-               update its state so we don't terminate early.
+             * update its state so we don't terminate early.
              */
             if (termination_manager_->threadPassive(thread_id)) {
                 termination_manager_->setThreadActive(thread_id);
             }
 
-            auto lp_replenish_status = new std::pair<unsigned int, bool>[events.size()];
-            unsigned int count = 0;
-            for (auto event : events) {
+            /* Process each event in the bag */
+            for (auto& event : events) {
                 assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
                 unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];
                 LogicalProcess* current_lp = lps_by_name_[event->receiverName()];
@@ -171,25 +179,25 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 auto last_processed_event = event_set_->lastProcessedEvent(current_lp_id);
 
                 /* The rules with event processing
-                    1. Negative events are given priority over positive events if they
-                         both exist in the lps input queue
-                    2. We assume that if we have a negative message, then we also have
-                         the positive message either in the input queue or in the
-                         processed queue. If the positive event is in the processed
-                         queue, then a rollback will occur and both events will end
-                         up in the input queue.
-                    3. When a negative event is taken from the schedule queue, it will
-                         be cancelled with it's corresponding negative message in the
-                         input queue. A rollback may occur first.
-                    4. When a positive event is taken from the schedule queue, it will
-                         always be processed. A rollback may occur first if it is a
-                         straggler.
-
-                   A rollback can occur in two situations:
-                    1. We get an event that is strictly less than the last processed
-                         event.
-                    2. We get an event that is equal to the last processed event and
-                         is negative.
+                 *   1. Negative events are given priority over positive events if they
+                 *        both exist in the lps input queue
+                 *   2. We assume that if we have a negative message, then we also have
+                 *        the positive message either in the input queue or in the
+                 *        processed queue. If the positive event is in the processed
+                 *        queue, then a rollback will occur and both events will end
+                 *        up in the input queue.
+                 *   3. When a negative event is taken from the schedule queue, it will
+                 *        be cancelled with it's corresponding negative message in the
+                 *        input queue. A rollback may occur first.
+                 *   4. When a positive event is taken from the schedule queue, it will
+                 *        always be processed. A rollback may occur first if it is a
+                 *        straggler.
+                 *
+                 * A rollback can occur in two situations:
+                 *   1. We get an event that is strictly less than the last processed
+                 *        event.
+                 *   2. We get an event that is equal to the last processed event and
+                 *        is negative.
                  */
                 if (last_processed_event &&
                         ((*event < *last_processed_event) ||
@@ -200,23 +208,17 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                 /* Check to see if event is NEGATIVE and cancel */
                 if (event->event_type_ == EventType::NEGATIVE) {
+
                     event_set_->acquireInputQueueLock(current_lp_id);
                     bool found = event_set_->cancelEvent(current_lp_id, event);
                     event_set_->releaseInputQueueLock(current_lp_id);
 
-                     /* Keep record of LPs that need to be re-scheduled */
-                     lp_replenish_status[count++] =
-                            std::pair<unsigned int, bool> (current_lp_id, false);
-
                     if (found) tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
+
                     continue;
                 }
 
-                /* Keep record of LPs that need to replenish scheduler */
-                lp_replenish_status[count++] =
-                            std::pair<unsigned int, bool> (current_lp_id, true);
-
-                /* process event and get new events */
+                /* Process event and get new events */
                 auto new_events = current_lp->receiveEvent(*event);
 
                 tw_stats_->upCount(EVENTS_PROCESSED, thread_id);
@@ -244,36 +246,23 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                     tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
                 }
+
+                /* Move event to processed queue */
+                event_set_->acquireInputQueueLock(current_lp_id);
+                auto event = event_set_->moveToProcessedQueue(current_lp_id);
+                event_set_->releaseInputQueueLock(current_lp_id);
             }
-
-            /* Move the next event from lp into the schedule queue
-               Also transfer old event to processed queue
-             */
-            for (unsigned int i = 0; i < count; i++) {
-                event_set_->acquireInputQueueLock(lp_replenish_status[i].first);
-            }
-
-            event_set_->replenishScheduler(lp_replenish_status, count, thread_id);
-
-            for (unsigned int i = 0; i < count; i++) {
-                event_set_->releaseInputQueueLock(lp_replenish_status[i].first);
-            }
-
-            delete[] lp_replenish_status;
-
         } else {
             /* This thread no longer has anything to do
-               because it's schedule queue is empty.
+             * because it's schedule queue is empty.
              */
             if (!termination_manager_->threadPassive(thread_id)) {
                 termination_manager_->setThreadPassive(thread_id);
             }
-
-            /* We must have this so that the GVT calculations can continue
-               with passive threads. Just report infinite for a time.
-             */
-            gvt_manager_->reportThreadMin((unsigned int)-1, thread_id, local_gvt_flag);
         }
+
+        /* Release the lock set by getBag() */
+        event_set_->makeBagAvailable(bag_id);
     }
 }
 
@@ -324,7 +313,7 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 
     // NOTE: Event is assumed to be less than the maximum simulation time.
     event_set_->acquireInputQueueLock(receiver_lp_id);
-    event_set_->insertEvent(receiver_lp_id, event, thread_id);
+    event_set_->insertEvent(receiver_lp_id, event);
     event_set_->releaseInputQueueLock(receiver_lp_id);
 
    // Make sure to track sends if we are in the middle of a GVT calculation.
