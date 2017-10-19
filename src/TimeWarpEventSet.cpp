@@ -127,7 +127,8 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int lp_id, unsigned 
 
 unsigned int TimeWarpEventSet::lowestTimestamp (unsigned int thread_id) {
 
-    return std::get<2>(schedule_cycle_[thread_id]);
+    return std::min(    std::get<2>(schedule_cycle_[thread_id]),
+                        std::get<1>(schedule_cycle_[thread_id])     );
 }
 
 /*
