@@ -19,6 +19,7 @@
 #include "Event.hpp"
 #include "TimeWarpCommunicationManager.hpp"
 #include "TimeWarpStatistics.hpp"
+#include "CircularList.hpp"
 
 namespace warped {
 
@@ -71,6 +72,10 @@ private:
 
     void processEvents(unsigned int id);
 
+    std::string eventLogFileName(unsigned int thread_id) {
+        return "eventlog_" + std::to_string(thread_id);
+    }
+
 /* ====================== Used by only manager thread ========================= */
 
     void initialize(const std::vector<std::vector<LogicalProcess*>>& lps);
@@ -87,6 +92,9 @@ private:
 
     std::unordered_map<std::string, LogicalProcess*> lps_by_name_;
     std::unordered_map<std::string, unsigned int> local_lp_id_by_name_;
+
+    // Event log for each worker thread
+    std::vector<CircularList<std::string>> event_log_;
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<TimeWarpEventSet> event_set_;
