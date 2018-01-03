@@ -56,20 +56,26 @@ const static std::string DEFAULT_CONFIG = R"x({
 
 "time-warp" : {
     "gvt-calculation": {
+        // GVT calculation period
         "period": 1000,
         // "synchronous" or "asynchronous"
         "method": "asynchronous"
     },
 
     "state-saving": {
+        // State saving type, default "periodic"
         "type": "periodic",
+        // State saving period
         "period": 10
     },
 
+    // Cancellation type, default "aggressive"
     "cancellation": "aggressive",
 
+    // Number of Worker Threads
     "worker-threads": 3,
 
+    // Number of Schedule Queues
     "scheduler-count": 1,
 
     // LP Migration valid options are "on" and "off"
@@ -78,10 +84,13 @@ const static std::string DEFAULT_CONFIG = R"x({
     // Name of file to dump stats, "none" to disable
     "statistics-file" : "none",
 
+    // Name of the config output file
     "config-output-file" : "none",
 
     "communication" : {
+        // Max message size
         "max-msg-size" : 512,
+        // Max message aggregation count
         "max-aggregate" : 5
     }
 },
