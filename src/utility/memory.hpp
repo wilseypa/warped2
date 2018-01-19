@@ -10,11 +10,15 @@ namespace warped {
 // http://herbsutter.com/gotw/_102/. Once C++14 becomes standard, remove this
 // function and replace any usage of it with the std version.
 
+#ifdef __cpp_lib_make_unique
+using std::make_unique;
+#else
 template<typename T, typename ...Args>
 typename std::enable_if <!std::is_array<T>::value, std::unique_ptr<T>>::type
 make_unique(Args&& ...args) {
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
+#endif
 
 template <typename T>
 typename std::enable_if <std::is_array<T>::value, std::unique_ptr<T>>::type
