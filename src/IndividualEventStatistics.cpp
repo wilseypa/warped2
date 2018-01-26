@@ -68,7 +68,7 @@ std::ostream& IndividualEventStatistics::printJson(std::ostream& stream) const {
 }
 
 std::ostream& IndividualEventStatistics::printCsv(std::ostream& stream) const {
-    stream << "Source,Destination,Send Time,Receive Time,Event Size\n";
+    stream << "# Source,Destination,Send Time,Receive Time,Event Size\n";
     for (const auto& entry : entries_) {
         stream << csvEscape(entry.source) << ','
                << csvEscape(entry.dest) << ','
