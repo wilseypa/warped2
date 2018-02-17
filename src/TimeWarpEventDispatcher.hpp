@@ -72,9 +72,11 @@ private:
 
     void processEvents(unsigned int id);
 
+#ifdef TIMEWARP_EVENT_LOG
     std::string eventLogFileName(unsigned int thread_id) {
-        return "eventlog_" + std::to_string(thread_id);
+        return "eventlog_worker_" + std::to_string(thread_id) + ".csv";
     }
+#endif
 
 /* ====================== Used by only manager thread ========================= */
 
@@ -93,8 +95,10 @@ private:
     std::unordered_map<std::string, LogicalProcess*> lps_by_name_;
     std::unordered_map<std::string, unsigned int> local_lp_id_by_name_;
 
+#ifdef TIMEWARP_EVENT_LOG
     // Event log for each worker thread
-    std::vector<CircularList<std::string>> event_log_;
+    std::vector<std::unique_ptr<CircularList<std::string>>> event_log_;
+#endif
 
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
     const std::unique_ptr<TimeWarpEventSet> event_set_;

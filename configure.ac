@@ -26,6 +26,9 @@ CHECK_LIB_MPI
 m4_include([m4/check_enable_debug.m4])
 CHECK_ENABLE_DEBUG
 
+m4_include([m4/check_timewarp_event_log.m4])
+CHECK_TIMEWARP_EVENT_LOG
+
 m4_include([m4/check_schedule_queue_lock.m4])
 CHECK_SCHEDULE_QUEUE_LOCK
 
