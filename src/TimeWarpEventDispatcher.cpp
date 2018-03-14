@@ -170,11 +170,10 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
         if (event != nullptr) {
 
             // Event stat - start processing time, sender name, receiver name, timestamp
-            auto start_time = double((std::chrono::steady_clock::now() - epoch).count());
-            std::string event_stats = std::to_string(start_time);
-            event_stats += "," + event->sender_name_;
-            event_stats += "," + event->receiverName();
-            event_stats += "," + std::to_string(event->timestamp());
+            auto event_stats = std::to_string((std::chrono::steady_clock::now() - epoch).count());
+            event_stats     += "," + event->sender_name_;
+            event_stats     += "," + event->receiverName();
+            event_stats     += "," + std::to_string(event->timestamp());
 
             // If needed, report event for this thread so GVT can be calculated
             auto lowest_timestamp = event->timestamp();
