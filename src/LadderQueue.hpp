@@ -10,6 +10,7 @@
 #include <set>
 #include <vector>
 
+#include "config.h"
 #include "Event.hpp"
 
 /* Configurable Ladder Queue parameters */

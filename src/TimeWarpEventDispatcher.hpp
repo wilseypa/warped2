@@ -15,6 +15,7 @@
 #include <deque>
 #include <thread>
 
+#include "config.h"
 #include "EventDispatcher.hpp"
 #include "Event.hpp"
 #include "TimeWarpCommunicationManager.hpp"

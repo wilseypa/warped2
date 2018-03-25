@@ -13,6 +13,7 @@
 #include <memory>
 #include <atomic>
 
+#include "config.h"
 #include "LogicalProcess.hpp"
 #include "Event.hpp"
 #include "utility/memory.hpp"
