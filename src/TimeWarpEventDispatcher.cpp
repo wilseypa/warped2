@@ -17,7 +17,6 @@
 #include <errno.h>
 #include <malloc.h>
 
-#include "config.h"
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
 #include "LTSFQueue.hpp"
@@ -67,6 +66,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     std::vector<std::thread> threads;
     for (unsigned int i = 0; i < num_worker_threads_; ++i) {
 
+#ifdef TIMEWARP_EVENT_LOG
         // Create the event log per thread
         event_log_.push_back(make_unique<CircularList<std::string>>());
 
@@ -82,6 +82,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
                 << "EndTime,"
                 << "\n";
         logfile.close();
+#endif
 
         auto thread(std::thread {&TimeWarpEventDispatcher::processEvents, this, i});
         threads.push_back(std::move(thread));
@@ -160,7 +161,9 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     unsigned int local_gvt_flag;
     unsigned int gvt = 0;
 
+#ifdef TIMEWARP_EVENT_LOG
     auto epoch = std::chrono::steady_clock::now();
+#endif
 
     while (!termination_manager_->terminationStatus()) {
         // NOTE: local_gvt_flag must be obtained before getting the next event to avoid the
@@ -170,11 +173,13 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
 
+#ifdef TIMEWARP_EVENT_LOG
             // Event stat - start processing time, sender name, receiver name, timestamp
             auto event_stats = std::to_string((std::chrono::steady_clock::now() - epoch).count());
             event_stats     += "," + event->sender_name_;
             event_stats     += "," + event->receiverName();
             event_stats     += "," + std::to_string(event->timestamp());
+#endif
 
             // If needed, report event for this thread so GVT can be calculated
             auto lowest_timestamp = event->timestamp();
@@ -220,10 +225,12 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                         ((*event == *last_processed_event) &&
                          (event->event_type_ == EventType::NEGATIVE)))) {
                 rollback(event);
+#ifdef TIMEWARP_EVENT_LOG
                 event_stats += ",1"; // Event stats - rollback
 
             } else {
                 event_stats += ",0"; // Event stats - no rollback
+#endif
             }
 
             // Check to see if event is NEGATIVE and cancel
@@ -235,11 +242,14 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                 if (found) {
                     tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
+#ifdef TIMEWARP_EVENT_LOG
                     event_stats += ",2"; // Event stats - negative event, cancelled
                 } else {
                     event_stats += ",1"; // Event stats - negative event, not cancelled
+#endif
                 }
 
+#ifdef TIMEWARP_EVENT_LOG
                 // Event stats - event processing time
                 auto end_event = std::chrono::steady_clock::now();
                 event_stats +=  "," + std::to_string((end_event-epoch).count());
@@ -247,10 +257,13 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 // Event stats - store it
                 event_stats += "\n";
                 event_log_[thread_id]->insert(event_stats);
+#endif
                 continue;
 
+#ifdef TIMEWARP_EVENT_LOG
             } else {
                 event_stats += ",0"; // Event stats - positive event
+#endif
             }
 
             // process event and get new events
@@ -264,6 +277,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Send new events
             sendEvents(event, new_events, current_lp_id, current_lp);
 
+#ifdef TIMEWARP_EVENT_LOG
             // Event stats - event processing time
             auto end_event = std::chrono::steady_clock::now();
             event_stats +=  "," + std::to_string((end_event-epoch).count());
@@ -271,6 +285,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             // Event stats - store it
             event_stats += "\n";
             event_log_[thread_id]->insert(event_stats);
+#endif
 
             // Check for recent gvt update
             gvt = gvt_manager_->getGVT();
@@ -289,6 +304,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                 tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
 
+#ifdef TIMEWARP_EVENT_LOG
                 // Write event statistics to the log file
                 std::ofstream logfile;
                 logfile.open( eventLogFileName(thread_id).c_str(),
@@ -297,6 +313,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                     logfile << event_log_[thread_id]->pop_front();
                 }
                 logfile.close();
+#endif
             }
 
             // Move the next event from lp into the schedule queue
@@ -311,6 +328,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 termination_manager_->setThreadPassive(thread_id);
             }
 
+#ifdef TIMEWARP_EVENT_LOG
             // Write event statistics to the log file
             std::ofstream logfile;
             logfile.open( eventLogFileName(thread_id).c_str(),
@@ -319,6 +337,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 logfile << event_log_[thread_id]->pop_front();
             }
             logfile.close();
+#endif
 
             // We must have this so that the GVT calculations can continue with passive threads.
             // Just report infinite for a time.
