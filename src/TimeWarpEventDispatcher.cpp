@@ -17,6 +17,7 @@
 #include <errno.h>
 #include <malloc.h>
 
+#include "config.h"
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
 #include "LTSFQueue.hpp"

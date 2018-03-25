@@ -157,7 +157,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 /*
  *  NOTE: This is needed only for partially unsorted ladder queue
  */
-unsigned int lowestTimestamp (unsigned int thread_id) {
+unsigned int TimeWarpEventSet::lowestTimestamp (unsigned int thread_id) {
 
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
     return schedule_queue_[scheduler_id]->lowestTimestamp();
