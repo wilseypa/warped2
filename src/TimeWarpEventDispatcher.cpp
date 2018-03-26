@@ -43,6 +43,7 @@ thread_local unsigned int TimeWarpEventDispatcher::thread_id;
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_worker_threads,
+    unsigned int max_events_scheduled_per_bag,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<TimeWarpEventSet> event_set,
     std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -52,6 +53,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpTerminationManager> termination_manager,
     std::unique_ptr<TimeWarpStatistics> tw_stats) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
+        max_events_scheduled_per_bag_(max_events_scheduled_per_bag),
         comm_manager_(comm_manager), event_set_(std::move(event_set)), 
         gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
@@ -146,14 +148,25 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
          */
         local_gvt_flag = gvt_manager_->getLocalGVTFlag();
 
+        /* Fetch a bag and its LP list */
         unsigned int bag_id = event_set_->getBag(thread_id);
         auto lp_ids = event_set_->fetchLPList(bag_id);
+
+        /* Collect events for all LPs in the bag */
         std::vector<std::shared_ptr<Event>> events;
+        unsigned int min_ts = (unsigned int)-1, max_ts = 0;
+
         for (unsigned int i = 0; i < lp_ids.size(); i++) {
+
             event_set_->acquireInputQueueLock(lp_ids[i]);
             auto event = event_set_->getEvent(lp_ids[i], thread_id);
             event_set_->releaseInputQueueLock(lp_ids[i]);
-            if (event) events.push_back(event);
+
+            if (event) {
+                events.push_back(event);
+                min_ts = std::min(event->timestamp(), min_ts);
+                max_ts = std::max(event->timestamp(), max_ts);
+            }
         }
 
         /* If needed, report event for this thread so GVT can be calculated */
@@ -169,8 +182,22 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 termination_manager_->setThreadActive(thread_id);
             }
 
+            /* Statistical selection of events from the bag */
+            /* NOTE :
+             *   1. max_events_scheduled_per_bag_ == 0 means schedule full bag
+             *   2. schedule full bag if event count <= max_events_scheduled_per_bag_
+             */
+            unsigned int max_schedule_threshold = max_ts;
+            if (max_events_scheduled_per_bag_ && events.size() > max_events_scheduled_per_bag_) {
+                max_schedule_threshold = min_ts + (max_ts-min_ts)/2;
+            }
+
             /* Process each event in the bag */
             for (auto& event : events) {
+
+                /* NOTE : Ignore events outside than the selected time window */
+                if (event->timestamp() > max_schedule_threshold) continue;
+
                 assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
                 unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];
                 LogicalProcess* current_lp = lps_by_name_[event->receiverName()];

@@ -72,7 +72,8 @@ const static std::string DEFAULT_CONFIG = R"x({
 
     "worker-threads": 3,
 
-    "scheduler-count": 1,
+    // Max events scheduled per bag, "0" means full bag
+    "max-events-scheduled-per-bag": 0,
 
     // Name of file to dump stats, "none" to disable
     "statistics-file" : "none",
@@ -229,10 +230,11 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
             invalid_string += std::string("\tNumber of worker threads\n");
         }
 
-        // SCHEDULE QUEUES
-        int num_schedulers = (*root_)["time-warp"]["scheduler-count"].asInt();
-        if (!checkTimeWarpConfigs(num_schedulers, all_config_ids, comm_manager)) {
-            invalid_string += std::string("\tNumber of schedule queues\n");
+        // MAX EVENTS SCHEDULED FROM EACH BAG
+        int max_events_scheduled_per_bag =
+                            (*root_)["time-warp"]["max-events-scheduled-per-bag"].asInt();
+        if (!checkTimeWarpConfigs(max_events_scheduled_per_bag, all_config_ids, comm_manager)) {
+            invalid_string += std::string("\tMax events scheduled per bag\n");
         }
 
         // STATE MANAGER
@@ -313,20 +315,7 @@ check the following configurations:\n") + invalid_string);
             std::cout << "Simulation type:           " << simulation_type << "\n"
                       << "Number of processes:       " << comm_manager->getNumProcesses() << "\n"
                       << "Number of worker threads:  " << num_worker_threads << "\n"
-                      << "Number of Schedule queues: " << num_schedulers << "\n";
-
-            std::cout << "Type of Schedule queue:    ";
-#ifdef SORTED_LADDER_QUEUE
-            std::cout << "Sorted Ladder Queue\n";
-#elif defined(PARTIALLY_SORTED_LADDER_QUEUE)
-            std::cout << "Partially Sorted Ladder Queue\n";
-#elif defined(SPLAY_TREE)
-            std::cout << "Splay Tree\n";
-#elif defined(CIRCULAR_QUEUE)
-            std::cout << "Circular Queue\n";
-#else
-            std::cout << "MultiSet\n";
-#endif
+                      << "Max events schld. per bag: " << max_events_scheduled_per_bag << "\n";
 
             std::cout << "Type of Scheduler lock:    ";
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
@@ -354,7 +343,8 @@ check the following configurations:\n") + invalid_string);
         }
 
         return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
-            num_worker_threads, comm_manager, std::move(event_set),
+            num_worker_threads, max_events_scheduled_per_bag,
+            comm_manager, std::move(event_set),
             std::move(gvt_manager), std::move(state_manager),
             std::move(output_manager), std::move(twfs_manager),
             std::move(termination_manager), std::move(tw_stats));
