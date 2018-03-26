@@ -19,6 +19,8 @@
 #define __ICC__
 #endif
 
+#define __USE_XOPEN
+#define _GNU_SOURCE
 
 #include "gk_arch.h" /*!< This should be here, prior to the includes */
 
