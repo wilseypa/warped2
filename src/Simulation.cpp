@@ -39,12 +39,15 @@ void Simulation::simulate(const std::vector<LogicalProcess*>& lps) {
     unsigned int num_nodes = comm_manager->initialize();
     auto partitioner = config_.makePartitioner();
     auto partitioned_lps = partitioner->interNodePartition(lps, num_nodes);
+    std::cout << "Inter-Node Partition Size: " << partitioned_lps.size() << std::endl;
+
     comm_manager->initializeLPMap(partitioned_lps);
 
     comm_manager->waitForAllProcesses();
 
     auto local_partitions = 
                 partitioner->intraNodePartition(partitioned_lps[comm_manager->getID()]);
+    std::cout << "Intra-Node Partition Size: " << local_partitions.size() << std::endl;
 
     event_dispatcher_ = config_.makeDispatcher(comm_manager);
     event_dispatcher_->startSimulation(local_partitions);
