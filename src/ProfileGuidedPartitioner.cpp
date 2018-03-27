@@ -46,27 +46,45 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::interNodePar
 
     // Convert filename to a Python string
     PyObject *p_name = PyString_FromString("LouvainPartitioner");
-    assert(p_name);
+    if (!p_name) {
+        PyErr_Print();
+        std::exit(1);
+    }
 
     // Import the file as Python module
     PyObject *p_module = PyImport_Import(p_name);
-    assert(p_module);
+    if (!p_module) {
+        PyErr_Print();
+        std::exit(1);
+    }
 
     // Create a dictionary for contents of the module
     PyObject *p_dict = PyModule_GetDict(p_module);
-    assert(p_dict);
+    if (!p_dict) {
+        PyErr_Print();
+        std::exit(1);
+    }
 
     // Get the add method from dictionary
     PyObject *p_func = PyDict_GetItemString(p_dict, "partition");
-    assert(PyCallable_Check(p_func));
+    if (!PyCallable_Check(p_func)) {
+        PyErr_Print();
+        std::exit(1);
+    }
 
     // Create the Python object to hold arguments to the method
     PyObject *p_args = Py_BuildValue("(sI)", stats_file_.c_str(), num_nodes);
-    assert(p_args);
+    if (!p_args) {
+        PyErr_Print();
+        std::exit(1);
+    }
 
     // Call the Python function with the arguments
     PyObject *p_result = PyObject_CallObject(p_func, p_args);
-    assert(p_result);
+    if (!p_result) {
+        PyErr_Print();
+        std::exit(1);
+    }
     std::string lps_stream( PyString_AsString(p_result) );
 
     // Clear the Python object references
@@ -155,6 +173,10 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::intraNodePar
     }
     lps_by_partition.resize(num_partitions);
     lps_by_partition.shrink_to_fit();
+
+    std::cout << "Number of bags:            " << num_partitions
+              << "\nAverage size of each bag:  "
+              << (float)lps_[node_index].size()/num_partitions << std::endl;
 
     return lps_by_partition;
 }
