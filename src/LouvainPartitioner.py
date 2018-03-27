@@ -2,9 +2,7 @@
 
 import numpy as np
 import networkx as nx
-import community as comm # install from python-louvain
-from collections import OrderedDict
-from operator import itemgetter
+import community as comm
 
 """
 Split the group into at-most n partitions with approximately equals sum of values

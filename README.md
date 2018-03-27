@@ -20,8 +20,6 @@ needed along with the following packages:
 *   [NumPy](http://www.numpy.org/)
 *   [NetworkX](https://networkx.github.io/)
 *   [Louvain Method](https://sites.google.com/site/findcommunities/)
-*   [Collections](https://docs.python.org/2/library/collections.html)
-*   [Operator](https://docs.python.org/2/library/operator.html)
 
 
 ### Building from the Git repository
