@@ -41,6 +41,7 @@ public:
     TimeWarpEventDispatcher(unsigned int max_sim_time,
         unsigned int num_worker_threads,
         unsigned int max_events_scheduled_per_bag,
+        unsigned int ts_window_for_events_scheduled,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
         std::unique_ptr<TimeWarpEventSet> event_set,
         std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -84,6 +85,7 @@ private:
 
     unsigned int num_worker_threads_;
     unsigned int max_events_scheduled_per_bag_;
+    unsigned int ts_window_for_events_scheduled_;
     unsigned int num_local_lps_;
 
     std::unordered_map<std::string, LogicalProcess*> lps_by_name_;

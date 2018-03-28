@@ -75,6 +75,11 @@ const static std::string DEFAULT_CONFIG = R"x({
     // Max events scheduled per bag, "0" means full bag
     "max-events-scheduled-per-bag": 0,
 
+    // Timestamp window for events scheduled from a bag, "0" means no limit on window size
+    // NOTE : Currently 'max-events-scheduled-per-bag' and 'ts-window-for-events-scheduled'
+    //        both can't have non-zero values in the same configuration
+    "ts-window-for-events-scheduled": 0,
+
     // Name of file to dump stats, "none" to disable
     "statistics-file" : "none",
 
@@ -237,6 +242,17 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
             invalid_string += std::string("\tMax events scheduled per bag\n");
         }
 
+        // TIMESTAMP WINDOW FOR EVENTS SCHEDULED
+        int ts_window_for_events_scheduled =
+                            (*root_)["time-warp"]["ts-window-for-events-scheduled"].asInt();
+        if (!checkTimeWarpConfigs(ts_window_for_events_scheduled, all_config_ids, comm_manager)) {
+            invalid_string += std::string("\tTimestamp window for events scheduled\n");
+        }
+        if (max_events_scheduled_per_bag && ts_window_for_events_scheduled) {
+            invalid_string += std::string("\tMax_events_scheduled_per_bag and "
+                    "ts_window_for_events_scheduled can't have non-zero values simultaneously\n");
+        }
+
         // STATE MANAGER
         std::unique_ptr<TimeWarpStateManager> state_manager;
         int state_period = 0;
@@ -315,7 +331,8 @@ check the following configurations:\n") + invalid_string);
             std::cout << "Simulation type:           " << simulation_type << "\n"
                       << "Number of processes:       " << comm_manager->getNumProcesses() << "\n"
                       << "Number of worker threads:  " << num_worker_threads << "\n"
-                      << "Max events schld. per bag: " << max_events_scheduled_per_bag << "\n";
+                      << "Max events schld. per bag: " << max_events_scheduled_per_bag << "\n"
+                      << "Schld. events time window: " << ts_window_for_events_scheduled << "\n";
 
             std::cout << "Type of Scheduler lock:    ";
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
@@ -344,6 +361,7 @@ check the following configurations:\n") + invalid_string);
 
         return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
             num_worker_threads, max_events_scheduled_per_bag,
+            ts_window_for_events_scheduled,
             comm_manager, std::move(event_set),
             std::move(gvt_manager), std::move(state_manager),
             std::move(output_manager), std::move(twfs_manager),
