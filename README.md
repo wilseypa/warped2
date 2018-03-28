@@ -1,4 +1,4 @@
-# WAPRED [![Build Status](http://img.shields.io/travis/wilseypa/warped2/master.svg)](https://travis-ci.org/wilseypa/warped2)
+# WARPED [![Build Status](http://img.shields.io/travis/wilseypa/warped2/master.svg)](https://travis-ci.org/wilseypa/warped2)
 
 A Parallel & Distributed Discrete Simulation Library
 
