@@ -12,6 +12,8 @@
 
 #include "config.h"
 #include "Event.hpp"
+#include "TicketLock.hpp"
+#include "LockFreeList.hpp"
 
 /* Configurable Ladder Queue parameters */
 #define MAX_RUNG_CNT       8          //ref. sec 2.4 of ladderq paper
@@ -25,14 +27,14 @@ namespace warped {
 
 class LadderQueue {
 public:
+
     LadderQueue();
-    std::shared_ptr<Event> begin();
-    bool erase(std::shared_ptr<Event> event);
+
+    std::shared_ptr<Event> pop();
+
     void insert(std::shared_ptr<Event> event);
 
-#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     unsigned int lowestTimestamp();
-#endif
 
 private:
     bool createNewRung(unsigned int num_events, 
@@ -41,6 +43,12 @@ private:
     void createRungForBottomTransfer(unsigned int start_val);
     bool recurseRung(unsigned int *index);
 
+    /* Lock to protect Top and Rungs */
+#ifdef SCHEDULE_QUEUE_SPINLOCKS
+    TicketLock lock_;
+#else
+    std::mutex lock_;
+#endif
 
     /* Top variables */
     std::list<std::shared_ptr<Event>> top_;
@@ -61,12 +69,8 @@ private:
     unsigned int r_current_[MAX_RUNG_CNT];
 
     /* Bottom */
-#ifdef PARTIALLY_SORTED_LADDER_QUEUE
-    std::list<std::shared_ptr<Event>> bottom_;
+    LockFreeList<std::shared_ptr<Event>> bottom_;
     unsigned int bottom_start_ = 0;
-#else
-    std::multiset<std::shared_ptr<Event>, compareEvents> bottom_;
-#endif
 };
 
 } // namespace warped
