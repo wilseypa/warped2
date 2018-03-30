@@ -336,17 +336,7 @@ check the following configurations:\n") + invalid_string);
                       << "Number of Schedule queues: " << num_schedulers << "\n";
 
             std::cout << "Type of Schedule queue:    ";
-#ifdef SORTED_LADDER_QUEUE
-            std::cout << "Sorted Ladder Queue\n";
-#elif defined(PARTIALLY_SORTED_LADDER_QUEUE)
-            std::cout << "Partially Sorted Ladder Queue\n";
-#elif defined(SPLAY_TREE)
-            std::cout << "Splay Tree\n";
-#elif defined(CIRCULAR_QUEUE)
-            std::cout << "Circular Queue\n";
-#else
-            std::cout << "MultiSet\n";
-#endif
+            std::cout << "Lock-free Unsorted Bottom Ladder Queue\n";
 
             std::cout << "Type of Scheduler lock:    ";
 #ifdef SCHEDULE_QUEUE_SPINLOCKS

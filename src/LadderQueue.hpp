@@ -6,14 +6,13 @@
 /* Include section */
 #include <iostream>
 #include <algorithm>
-#include <list>
-#include <set>
 #include <vector>
 #include <mutex>
 
 #include "config.h"
 #include "Event.hpp"
 #include "TicketLock.hpp"
+#include "LockFreeStack.hpp"
 
 /* Configurable Ladder Queue parameters */
 #define MAX_RUNG_CNT       8          //ref. sec 2.4 of ladderq paper
@@ -32,14 +31,14 @@ public:
 
     void insert(std::shared_ptr<Event> event);
 
-    unsigned int lowestTimestamp();
+    void setLowestTimestamp(unsigned int ts);
+
+    unsigned int getLowestTimestamp();
 
 private:
     bool createNewRung(unsigned int num_events, 
                         unsigned int init_start_and_cur_val, 
                         bool *is_bucket_width_static);
-
-    void createRungForBottomTransfer(unsigned int start_val);
 
     bool recurseRung(unsigned int *index);
 
@@ -69,7 +68,8 @@ private:
     unsigned int r_current_[MAX_RUNG_CNT];
 
     /* Bottom */
-    std::vector<std::shared_ptr<Event>> bottom_;
+    LockFreeStack bottom_;
+
     unsigned int bottom_start_ = 0;
 };
 

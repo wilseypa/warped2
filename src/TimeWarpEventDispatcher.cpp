@@ -181,13 +181,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             event_stats     += "," + std::to_string(event->timestamp());
 #endif
 
-            // If needed, report event for this thread so GVT can be calculated
-            auto lowest_timestamp = event->timestamp();
-
-#ifdef PARTIALLY_SORTED_LADDER_QUEUE
-            lowest_timestamp = event_set_->lowestTimestamp(thread_id);
-#endif
-
+            // Report lowest timestamp for this thread so GVT can be calculated
+            auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
             gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
 
             // Make sure that if this thread is currently seen as passive, we update it's state
@@ -397,7 +392,7 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     event_set_->releaseInputQueueLock(receiver_lp_id);
 
    // Make sure to track sends if we are in the middle of a GVT calculation.
-   gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
+   gvt_manager_->reportThreadSendMin(event_set_->lowestTimestamp(thread_id), thread_id);
 }
 
 void TimeWarpEventDispatcher::cancelEvents(
