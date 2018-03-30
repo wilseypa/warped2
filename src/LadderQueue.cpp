@@ -43,7 +43,7 @@ std::shared_ptr<Event> LadderQueue::begin() {
     if (n_rung_) {
 
         /* NOTE: Bottom should be empty */
-        
+
 #ifdef PARTIALLY_SORTED_LADDER_QUEUE
         rung_[n_rung_-1][bucket_index]->swap(bottom_);
         bottom_start_ = r_current_[n_rung_-1];
@@ -93,7 +93,7 @@ std::shared_ptr<Event> LadderQueue::begin() {
     for (auto event : top_) {
         //assert((*iter)->timestamp() >= r_start_[0]);
         bucket_index = std::min(
-                (unsigned int)(event->timestamp()-r_start_[0]) / bucket_width_[0], 
+                (unsigned int)(event->timestamp()-r_start_[0]) / bucket_width_[0],
                                                                         RUNG_BUCKET_CNT(0)-1);
         rung_[0][bucket_index]->push_back(event);
 
@@ -251,7 +251,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
     }
 
     if (rung_index < n_rung_) {  /* found a rung */
-        assert(timestamp >= r_start_[rung_index]);
+        //assert(timestamp >= r_start_[rung_index]);
         unsigned int bucket_index = std::min(
             (unsigned int)(timestamp - r_start_[rung_index]) / bucket_width_[rung_index],
                                                             RUNG_BUCKET_CNT(rung_index)-1);
@@ -301,7 +301,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
 
         /* Transfer bottom to new rung */
         for (auto iter = bottom_.begin(); iter != bottom_.end(); iter++) {
-            assert( (*iter)->timestamp() >= r_start_[n_rung_-1] );
+            //assert( (*iter)->timestamp() >= r_start_[n_rung_-1] );
             unsigned int bucket_index = std::min( 
                 (unsigned int)(((*iter)->timestamp()-r_start_[n_rung_-1]) / 
                                                     bucket_width_[n_rung_-1]),
@@ -316,7 +316,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
         bottom_.clear();
 
         /* Insert new element in the new and populated rung */
-        assert(timestamp >= r_start_[n_rung_-1]);
+        //assert(timestamp >= r_start_[n_rung_-1]);
         unsigned int bucket_index = std::min( 
                 (unsigned int)((timestamp-r_start_[n_rung_-1]) / bucket_width_[n_rung_-1]),
                                                             RUNG_BUCKET_CNT(n_rung_-1)-1 );
@@ -349,14 +349,14 @@ bool LadderQueue::createNewRung(unsigned int num_events,
                                 unsigned int init_start_and_cur_val, 
                                 bool *is_bucket_width_static) {
 
-    assert(is_bucket_width_static);
-    assert(num_events);
+    //assert(is_bucket_width_static);
+    //assert(num_events);
 
     *is_bucket_width_static = false;
 
     /* Check if this is the first rung creation */
     if (!n_rung_) {
-        assert(max_ts_ >= min_ts_);
+        //assert(max_ts_ >= min_ts_);
         bucket_width_[0] = (min_ts_ == max_ts_) ? MIN_BUCKET_WIDTH : 
                                     (max_ts_ - min_ts_ + num_events -1) / num_events;
         top_start_          = max_ts_;
@@ -381,7 +381,7 @@ bool LadderQueue::createNewRung(unsigned int num_events,
             return false;
         }
         /* Check whether new rungs can be created */
-        assert(n_rung_ < MAX_RUNG_CNT);
+        //assert(n_rung_ < MAX_RUNG_CNT);
         n_rung_++;
         bucket_width_[n_rung_-1] = (bucket_width_[n_rung_-2] + num_events - 1) / num_events;
         r_start_[n_rung_-1] = r_current_[n_rung_-1] = init_start_and_cur_val;
@@ -396,7 +396,7 @@ void LadderQueue::createRungForBottomTransfer(unsigned int start_val) {
     r_start_[n_rung_-1] = r_current_[n_rung_-1] = start_val;
     last_nonempty_bucket_[n_rung_-1] = 0;
     if(n_rung_ == 1) {
-        assert(top_start_ >= start_val);
+        //assert(top_start_ >= start_val);
         bucket_width_[0] = std::max(
                 (unsigned int) ((top_start_ - start_val)/bottom_.size()), 
                 (unsigned int) MIN_BUCKET_WIDTH);
@@ -410,7 +410,7 @@ void LadderQueue::createRungForBottomTransfer(unsigned int start_val) {
         rung_0_length_ = bucket_index;
 
     } else { /* When not the top rung */
-        assert(r_current_[n_rung_-2] >= start_val);
+        //assert(r_current_[n_rung_-2] >= start_val);
         bucket_width_[n_rung_-1] = std::max(
                 (unsigned int) ((r_current_[n_rung_-2] - start_val)/THRESHOLD), 
                 (unsigned int) MIN_BUCKET_WIDTH);
@@ -469,7 +469,7 @@ bool LadderQueue::recurseRung(unsigned int *index) {
             // Move events from the bucket in penultimate rung to the new rung
             for (auto iter = rung_[n_rung_-2][bucket_index]->begin(); 
                         iter != rung_[n_rung_-2][bucket_index]->end(); iter++) {
-                assert((*iter)->timestamp() >= r_start_[n_rung_-1] );
+                //assert((*iter)->timestamp() >= r_start_[n_rung_-1] );
                 unsigned int new_bucket_index = std::min( 
                     (unsigned int) ((*iter)->timestamp() - r_start_[n_rung_-1]) / 
                                     bucket_width_[n_rung_-1], RUNG_BUCKET_CNT(n_rung_-1)-1);
