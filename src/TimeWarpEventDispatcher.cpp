@@ -392,7 +392,7 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     event_set_->releaseInputQueueLock(receiver_lp_id);
 
    // Make sure to track sends if we are in the middle of a GVT calculation.
-   gvt_manager_->reportThreadSendMin(event_set_->lowestTimestamp(thread_id), thread_id);
+   gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
 }
 
 void TimeWarpEventDispatcher::cancelEvents(

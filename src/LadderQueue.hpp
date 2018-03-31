@@ -31,14 +31,13 @@ public:
 
     void insert(std::shared_ptr<Event> event);
 
-    void setLowestTimestamp(unsigned int ts);
-
-    unsigned int getLowestTimestamp();
+    unsigned int lowestTimestamp();
 
 private:
-    bool createNewRung(unsigned int num_events, 
-                        unsigned int init_start_and_cur_val, 
-                        bool *is_bucket_width_static);
+    bool createNewRung  (   unsigned int num_events,
+                            unsigned int init_start_and_cur_val,
+                            bool *is_bucket_width_static
+                        );
 
     bool recurseRung(unsigned int *index);
 

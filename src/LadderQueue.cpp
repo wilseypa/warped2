@@ -183,14 +183,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
     bottom_.push(event);
 }
 
-void LadderQueue::setLowestTimestamp(unsigned int ts) {
-
-    lock_.lock();
-    bottom_start_ = std::min(bottom_start_, ts);
-    lock_.unlock();
-}
-
-unsigned int LadderQueue::getLowestTimestamp() {
+unsigned int LadderQueue::lowestTimestamp() {
 
     return bottom_start_;
 }
