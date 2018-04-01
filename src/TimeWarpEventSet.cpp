@@ -12,7 +12,7 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
                                    bool is_lp_migration_on,
                                    unsigned int num_of_worker_threads) {
 
-    num_of_lps_     = num_of_lps;
+    num_of_lps_         = num_of_lps;
     num_of_schedulers_  = lps.size();
     is_lp_migration_on_ = is_lp_migration_on;
 
@@ -24,17 +24,15 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
 #else
     schedule_queue_lock_ = make_unique<std::mutex []>(num_of_schedulers_);
 #endif
-    unsigned int scheduler_id = 0;
-    for (auto& scheduler_partition : lps) {
-        for (auto& lp : scheduler_partition) {
-            unused(lp);
+
+    for (unsigned int scheduler_id = 0; scheduler_id < lps.size(); scheduler_id++) {
+        for (unsigned int lp_id = 0; lp_id < lps[scheduler_id].size(); lp_id++) {
             input_queue_.push_back(
                     make_unique<std::multiset<std::shared_ptr<Event>, compareEvents>>());
             processed_queue_.push_back(make_unique<std::deque<std::shared_ptr<Event>>>());
             scheduled_event_pointer_.push_back(nullptr);
             input_queue_scheduler_map_.push_back(scheduler_id);
         }
-        scheduler_id++;
     }
 
     /* Create the schedule queues */
@@ -80,9 +78,9 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
     unsigned int scheduler_id = input_queue_scheduler_map_[lp_id];
 
     if (scheduled_event_pointer_[lp_id] == nullptr) {
-        // If no event is currently scheduled. This can only happen if the thread that handles events
-        // for lp with id lp_id has determined that there are no more events left in it's input
-        // queue
+        // If no event is currently scheduled. This can only happen if the thread that handles
+        // events for lp with id == lp_id has determined that there are no more events left in
+        // its input queue
 
         assert(input_queue_[lp_id]->size() == 1);
 
