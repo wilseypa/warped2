@@ -183,6 +183,84 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
     bottom_.push(event);
 }
 
+bool LadderQueue::erase(std::shared_ptr<Event> event) {
+
+    bool status = false;
+    assert(event != nullptr);
+    auto timestamp = event->timestamp();
+
+    lock_.lock();
+
+    /* Check and erase from top, if found */
+    if (timestamp > top_start_) {
+        if (top_.empty()) assert(0);
+        for (auto iter = top_.begin(); iter != top_.end(); iter++) {
+            if (iter == top_.end()) assert(0);
+            if ( (*iter == event) && ((*iter)->receiverName() == event->receiverName()) ) {
+                (void) top_.erase(iter);
+                status = true;
+                break;
+            }
+        }
+        lock_.unlock();
+        return status;
+    }
+
+    /* Step through rungs */
+    unsigned int rung_index = 0;
+    for (rung_index = 0; rung_index < n_rung_; rung_index++) {
+        if (timestamp >= r_current_[rung_index]) break;
+    }
+
+    /* If no valid rung found */
+    if (rung_index >= n_rung_) {
+        lock_.unlock();
+        return status;
+    }
+
+    unsigned int bucket_index = std::min(
+            (unsigned int)(timestamp - r_start_[rung_index]) / bucket_width_[rung_index],
+                                                            RUNG_BUCKET_CNT(rung_index)-1);
+    auto rung_bucket = rung_[rung_index][bucket_index];
+    if (rung_bucket->empty()) assert(0);
+
+    for (auto iter = rung_bucket->begin(); ; iter++) {
+        if (iter == rung_bucket->end()) assert(0);
+        if ( (*iter == event) && ((*iter)->receiverName() == event->receiverName()) ) {
+            (void) rung_bucket->erase(iter);
+            status = true;
+            break;
+        }
+    }
+
+    /* If bucket is empty after deletion */
+    if (rung_bucket->empty()) {
+        /* Check whether rung bucket count needs adjustment */
+        if (last_nonempty_bucket_[rung_index] == bucket_index+1) {
+            bool is_rung_empty = false;
+            do {
+                if (!bucket_index) {
+                    is_rung_empty = true;
+                    last_nonempty_bucket_[rung_index] = 0;
+                    r_current_[rung_index] = r_start_[rung_index];
+                    break;
+                }
+                bucket_index--;
+                rung_bucket = rung_[rung_index][bucket_index];
+            } while (rung_bucket->empty());
+
+            if (!is_rung_empty) {
+                last_nonempty_bucket_[rung_index] = bucket_index+1;
+            }
+        }
+    }
+    lock_.unlock();
+
+    /* NOTE : Bottom won't be checked for the event and will return false */
+
+    return status;
+}
+
 unsigned int LadderQueue::lowestTimestamp() {
 
     return bottom_start_;
