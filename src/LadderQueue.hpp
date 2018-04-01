@@ -31,6 +31,8 @@ public:
 
     void insert(std::shared_ptr<Event> event);
 
+    bool erase(std::shared_ptr<Event> event);
+
     unsigned int lowestTimestamp();
 
 private:
@@ -59,7 +61,6 @@ private:
 
     //first rung. ref. sec 2.4 of ladderq paper
     unsigned int rung_0_length_ = 0;
-
     unsigned int n_rung_ = 0;
     unsigned int bucket_width_[MAX_RUNG_CNT];
     unsigned int last_nonempty_bucket_[MAX_RUNG_CNT];
@@ -68,7 +69,6 @@ private:
 
     /* Bottom */
     LockFreeStack bottom_;
-
     unsigned int bottom_start_ = 0;
 };
 

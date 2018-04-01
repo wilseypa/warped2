@@ -72,8 +72,19 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
         scheduled_event_pointer_[lp_id] = event;
 
     } else {
-        // If the pointer comparison of the smallest event does not match scheduled event,
-        // ignore that scenario in order to avoid erasing event from lock-free schedule queue
+        auto smallest_event = *input_queue_[lp_id]->begin();
+
+        if (smallest_event != scheduled_event_pointer_[lp_id]) {
+            // If the pointer comparison of the smallest event does not match scheduled event, well
+            // that means we should update the schedule queue...
+
+            if (schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[lp_id])) {
+                // ...but only if the event was successfully erased from the schedule queue. If it is
+                // not then the event is already being processed and a rollback will have to occur.
+                schedule_queue_[scheduler_id]->insert(smallest_event);
+                scheduled_event_pointer_[lp_id] = smallest_event;
+            }
+        }
     }
 }
 
