@@ -91,7 +91,7 @@ std::shared_ptr<Event> LadderQueue::begin() {
     /* Transfer events from Top to 1st rung of Ladder */
     /* Note: No need to update rCur[0] since it will be equal to rStart[0] initially. */
     for (auto event : top_) {
-        //assert((*iter)->timestamp() >= r_start_[0]);
+        //assert(event->timestamp() >= r_start_[0]);
         bucket_index = std::min(
                 (unsigned int)(event->timestamp()-r_start_[0]) / bucket_width_[0],
                                                                         RUNG_BUCKET_CNT(0)-1);
@@ -300,10 +300,10 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
 #endif
 
         /* Transfer bottom to new rung */
-        for (auto iter = bottom_.begin(); iter != bottom_.end(); iter++) {
-            //assert( (*iter)->timestamp() >= r_start_[n_rung_-1] );
+        for (auto event : bottom_) {
+            //assert( event->timestamp() >= r_start_[n_rung_-1] );
             unsigned int bucket_index = std::min( 
-                (unsigned int)(((*iter)->timestamp()-r_start_[n_rung_-1]) / 
+                (unsigned int)((event->timestamp()-r_start_[n_rung_-1]) / 
                                                     bucket_width_[n_rung_-1]),
                                                             RUNG_BUCKET_CNT(n_rung_-1)-1 );
 
@@ -311,7 +311,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
             if (last_nonempty_bucket_[n_rung_-1] < bucket_index+1) {
                 last_nonempty_bucket_[n_rung_-1] = bucket_index+1;
             }
-            rung_[n_rung_-1][bucket_index]->push_back(*iter);
+            rung_[n_rung_-1][bucket_index]->push_back(event);
         }
         bottom_.clear();
 
@@ -467,13 +467,12 @@ bool LadderQueue::recurseRung(unsigned int *index) {
             }
 
             // Move events from the bucket in penultimate rung to the new rung
-            for (auto iter = rung_[n_rung_-2][bucket_index]->begin(); 
-                        iter != rung_[n_rung_-2][bucket_index]->end(); iter++) {
-                //assert((*iter)->timestamp() >= r_start_[n_rung_-1] );
+            for (auto event : *rung_[n_rung_-2][bucket_index]) {
+                //assert(event->timestamp() >= r_start_[n_rung_-1] );
                 unsigned int new_bucket_index = std::min( 
-                    (unsigned int) ((*iter)->timestamp() - r_start_[n_rung_-1]) / 
+                    (unsigned int) (event->timestamp() - r_start_[n_rung_-1]) / 
                                     bucket_width_[n_rung_-1], RUNG_BUCKET_CNT(n_rung_-1)-1);
-                rung_[n_rung_-1][new_bucket_index]->push_back(*iter);
+                rung_[n_rung_-1][new_bucket_index]->push_back(event);
 
                 /* Calculate bucket count for new rung */
                 if (last_nonempty_bucket_[n_rung_-1] < new_bucket_index+1) {
