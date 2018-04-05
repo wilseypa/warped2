@@ -43,8 +43,8 @@ thread_local unsigned int TimeWarpEventDispatcher::thread_id;
 
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_worker_threads,
-    unsigned int max_events_scheduled_per_bag,
-    unsigned int ts_window_for_events_scheduled,
+    double frac_bag_window,
+    unsigned int static_bag_window_size,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<TimeWarpEventSet> event_set,
     std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -54,8 +54,8 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpTerminationManager> termination_manager,
     std::unique_ptr<TimeWarpStatistics> tw_stats) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
-        max_events_scheduled_per_bag_(max_events_scheduled_per_bag),
-        ts_window_for_events_scheduled_(ts_window_for_events_scheduled),
+        frac_bag_window_(frac_bag_window),
+        static_bag_window_size_(static_bag_window_size),
         comm_manager_(comm_manager), event_set_(std::move(event_set)), 
         gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
@@ -186,23 +186,18 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
             /* Statistical selection of events from the bag */
             /* NOTE :
-             *   1. max_events_scheduled_per_bag_  and ts_window_for_events_scheduled_
-             *        can't have non-zero values simultaneously
-             *   2. ts_window_for_events_scheduled_ == 0 means no limit on window size
-             *   3. max_events_scheduled_per_bag_ == 0 means schedule full bag
-             *   4. schedule full bag if event count <= max_events_scheduled_per_bag_
+             *   1. static_bag_window_size_ == 0 means window size equals full bag
+             *   2. frac_bag_window_ == 1 means schedule all events within the window
              */
-            unsigned int max_schedule_threshold = ts_window_for_events_scheduled_ ?
-                                            min_ts + ts_window_for_events_scheduled_ : max_ts;
-            if (max_events_scheduled_per_bag_ && events.size() > max_events_scheduled_per_bag_) {
-                max_schedule_threshold = min_ts + (max_ts-min_ts)/2;
-            }
+            unsigned int window_size =
+                    static_bag_window_size_ ? static_bag_window_size_ : (max_ts - min_ts);
+            max_ts = min_ts + frac_bag_window_ * window_size;
 
             /* Process each event in the bag */
             for (auto& event : events) {
 
                 /* NOTE : Ignore events outside than the selected time window */
-                if (event->timestamp() > max_schedule_threshold) continue;
+                if (event->timestamp() > max_ts) continue;
 
                 assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
                 unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];

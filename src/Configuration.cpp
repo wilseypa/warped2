@@ -72,13 +72,11 @@ const static std::string DEFAULT_CONFIG = R"x({
 
     "worker-threads": 3,
 
-    // Max events scheduled per bag, "0" means full bag
-    "max-events-scheduled-per-bag": 0,
+    // Fraction of the bag window scheduled, "1" means full window
+    "fraction-bag-window": 1,
 
-    // Timestamp window for events scheduled from a bag, "0" means no limit on window size
-    // NOTE : Currently 'max-events-scheduled-per-bag' and 'ts-window-for-events-scheduled'
-    //        both can't have non-zero values in the same configuration
-    "ts-window-for-events-scheduled": 0,
+    // Static window size for event scheduled from the bag, "0" means window size equals full bag
+    "static-bag-window-size": 0,
 
     // Name of file to dump stats, "none" to disable
     "statistics-file" : "none",
@@ -235,22 +233,17 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
             invalid_string += std::string("\tNumber of worker threads\n");
         }
 
-        // MAX EVENTS SCHEDULED FROM EACH BAG
-        int max_events_scheduled_per_bag =
-                            (*root_)["time-warp"]["max-events-scheduled-per-bag"].asInt();
-        if (!checkTimeWarpConfigs(max_events_scheduled_per_bag, all_config_ids, comm_manager)) {
-            invalid_string += std::string("\tMax events scheduled per bag\n");
+        // FRACTION OF WINDOW SIZE FROM BAG SCHEDULED
+        double frac_bag_window = (*root_)["time-warp"]["fraction-bag-window"].asDouble();
+        if (frac_bag_window < 0.0 || frac_bag_window > 1.0) {
+            invalid_string += std::string("\tInvalid fraction of bag window\n");
         }
 
-        // TIMESTAMP WINDOW FOR EVENTS SCHEDULED
-        int ts_window_for_events_scheduled =
-                            (*root_)["time-warp"]["ts-window-for-events-scheduled"].asInt();
-        if (!checkTimeWarpConfigs(ts_window_for_events_scheduled, all_config_ids, comm_manager)) {
-            invalid_string += std::string("\tTimestamp window for events scheduled\n");
-        }
-        if (max_events_scheduled_per_bag && ts_window_for_events_scheduled) {
-            invalid_string += std::string("\tMax_events_scheduled_per_bag and "
-                    "ts_window_for_events_scheduled can't have non-zero values simultaneously\n");
+        // STATIC WINDOW SIZE FOR EVENTS SCHEDULED FROM BAG
+        int static_bag_window_size =
+                            (*root_)["time-warp"]["static-bag-window-size"].asInt();
+        if (!checkTimeWarpConfigs(static_bag_window_size, all_config_ids, comm_manager)) {
+            invalid_string += std::string("\tStatic bag window size\n");
         }
 
         // STATE MANAGER
@@ -331,8 +324,8 @@ check the following configurations:\n") + invalid_string);
             std::cout << "Simulation type:           " << simulation_type << "\n"
                       << "Number of processes:       " << comm_manager->getNumProcesses() << "\n"
                       << "Number of worker threads:  " << num_worker_threads << "\n"
-                      << "Max events schld. per bag: " << max_events_scheduled_per_bag << "\n"
-                      << "Schld. events time window: " << ts_window_for_events_scheduled << "\n";
+                      << "Fraction of bag window:    " << frac_bag_window << "\n"
+                      << "Static bag window size:    " << static_bag_window_size << "\n";
 
             std::cout << "Type of Scheduler lock:    ";
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
@@ -359,13 +352,20 @@ check the following configurations:\n") + invalid_string);
             }
         }
 
-        return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
-            num_worker_threads, max_events_scheduled_per_bag,
-            ts_window_for_events_scheduled,
-            comm_manager, std::move(event_set),
-            std::move(gvt_manager), std::move(state_manager),
-            std::move(output_manager), std::move(twfs_manager),
-            std::move(termination_manager), std::move(tw_stats));
+        return make_unique<TimeWarpEventDispatcher>(
+                    max_sim_time_,
+                    num_worker_threads,
+                    frac_bag_window,
+                    static_bag_window_size,
+                    comm_manager,
+                    std::move(event_set),
+                    std::move(gvt_manager),
+                    std::move(state_manager),
+                    std::move(output_manager),
+                    std::move(twfs_manager),
+                    std::move(termination_manager),
+                    std::move(tw_stats)
+                );
     }
 
     if (comm_manager->getNumProcesses() > 1) {
