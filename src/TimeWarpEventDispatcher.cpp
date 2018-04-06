@@ -472,7 +472,7 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<LogicalProcess
     WARPED_REGISTER_MSG_HANDLER(TimeWarpEventDispatcher, receiveEventMessage, EventMessage);
 
     // Initialize statistics data structures
-    tw_stats_->initialize(num_worker_threads_, num_local_lps_);
+    tw_stats_->initialize(num_worker_threads_, num_local_lps_, lps.size());
 
     comm_manager_->waitForAllProcesses();
 

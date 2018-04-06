@@ -174,10 +174,6 @@ std::vector<std::vector<LogicalProcess*>> ProfileGuidedPartitioner::intraNodePar
     lps_by_partition.resize(num_partitions);
     lps_by_partition.shrink_to_fit();
 
-    std::cout << "Number of bags:            " << num_partitions
-              << "\nAverage size of each bag:  "
-              << (float)lps_[node_index].size()/num_partitions << std::endl;
-
     return lps_by_partition;
 }
 

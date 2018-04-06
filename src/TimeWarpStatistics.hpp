@@ -70,7 +70,8 @@ const stats_index<17> NUM_OBJECTS;
 const stats_index<18> EVENTS_ROLLEDBACK;
 const stats_index<19> AVERAGE_RBLENGTH;
 const stats_index<20> EFFICIENCY;
-const stats_index<21> NUM_STATISTICS;
+const stats_index<21> NUM_PARTITIONS;
+const stats_index<22> NUM_STATISTICS;
 
 class TimeWarpStatistics {
 public:
@@ -78,7 +79,9 @@ public:
         std::string stats_file) :
         comm_manager_(comm_manager), stats_file_(stats_file) {}
 
-    void initialize(unsigned int num_worker_threads, unsigned int num_objects);
+    void initialize(unsigned int num_worker_threads,
+                    unsigned int num_objects,
+                    unsigned int num_partitions);
 
     template <unsigned I>
     void updateAverage(stats_index<I> i, uint64_t new_val, unsigned int count) {
@@ -130,6 +133,7 @@ private:
     uint64_t *committed_events_by_node_;
     uint64_t *total_events_received_by_node_;
     uint64_t *num_objects_by_node_;
+    uint64_t *num_partitions_by_node_;
 
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
 

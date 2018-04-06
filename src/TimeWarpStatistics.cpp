@@ -6,11 +6,14 @@
 
 namespace warped {
 
-void TimeWarpStatistics::initialize(unsigned int num_worker_threads, unsigned int num_objects) {
+void TimeWarpStatistics::initialize(unsigned int num_worker_threads,
+                                    unsigned int num_objects,
+                                    unsigned int num_partitions) {
     num_worker_threads_ = num_worker_threads;
 
     local_stats_ = make_unique<Stats []>(num_worker_threads+1);
     local_stats_[num_worker_threads][NUM_OBJECTS] = num_objects;
+    local_stats_[num_worker_threads][NUM_PARTITIONS] = num_partitions;
 }
 
 void TimeWarpStatistics::calculateStats() {
@@ -80,6 +83,7 @@ void TimeWarpStatistics::calculateStats() {
                 break;
             case NUM_OBJECTS.value:
                 sumReduceLocal(NUM_OBJECTS, num_objects_by_node_);
+                break;
             case EVENTS_ROLLEDBACK.value:
                 global_stats_[EVENTS_ROLLEDBACK] =
                     global_stats_[EVENTS_PROCESSED] -
@@ -94,6 +98,9 @@ void TimeWarpStatistics::calculateStats() {
                 global_stats_[EFFICIENCY] = 
                     static_cast<double>(global_stats_[EVENTS_COMMITTED]) /
                     static_cast<double>(global_stats_[EVENTS_PROCESSED]);
+                break;
+            case NUM_PARTITIONS.value:
+                sumReduceLocal(NUM_PARTITIONS, num_partitions_by_node_);
                 break;
             default:
                 break;
@@ -112,6 +119,7 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
         ofs << i                                << ",\t"
                                                 << ",\t"
             << num_objects_by_node_[i]          << ",\t"
+            << num_partitions_by_node_[i]       << ",\t"
             << local_pos_sent_by_node_[i]       << ",\t"
             << remote_pos_sent_by_node_[i]      << ",\t"
             << local_neg_sent_by_node_[i]       << ",\t"
@@ -127,6 +135,7 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
     ofs << "Total"                                    << ",\t"
         << num_seconds                                << ",\t"
         << global_stats_[NUM_OBJECTS]                 << ",\t"
+        << global_stats_[NUM_PARTITIONS]              << ",\t"
         << global_stats_[LOCAL_POSITIVE_EVENTS_SENT]  << ",\t"
         << global_stats_[REMOTE_POSITIVE_EVENTS_SENT] << ",\t"
         << global_stats_[LOCAL_NEGATIVE_EVENTS_SENT]  << ",\t"
@@ -145,8 +154,8 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
 void TimeWarpStatistics::printStats() {
 
     std::cout << "Totals"                      << "\n"
-              << "\tNumber of objects:         " << global_stats_[NUM_OBJECTS] << "\n\n"
-
+              << "\tNumber of objects:         " << global_stats_[NUM_OBJECTS] << "\n"
+              << "\tNumber of partitions:      " << global_stats_[NUM_PARTITIONS] << "\n\n"
               << "\tLocal events sent:         " << global_stats_[LOCAL_POSITIVE_EVENTS_SENT] << "\n"
               << "\tRemote events sent:        " << global_stats_[REMOTE_POSITIVE_EVENTS_SENT] << "\n"
               << "\tLocal anti-messages sent:  " << global_stats_[LOCAL_NEGATIVE_EVENTS_SENT] << "\n"
@@ -185,6 +194,7 @@ void TimeWarpStatistics::printStats() {
     delete [] num_objects_by_node_;
     delete [] processed_events_by_node_;
     delete [] committed_events_by_node_;
+    delete [] num_partitions_by_node_;
 }
 
 } // namespace warped
