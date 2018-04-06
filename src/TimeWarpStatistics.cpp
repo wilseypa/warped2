@@ -80,6 +80,7 @@ void TimeWarpStatistics::calculateStats() {
                 break;
             case NUM_OBJECTS.value:
                 sumReduceLocal(NUM_OBJECTS, num_objects_by_node_);
+                break;
             case EVENTS_ROLLEDBACK.value:
                 global_stats_[EVENTS_ROLLEDBACK] =
                     global_stats_[EVENTS_PROCESSED] -
