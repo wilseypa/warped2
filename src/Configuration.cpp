@@ -88,8 +88,20 @@ const static std::string DEFAULT_CONFIG = R"x({
         "max-aggregate" : 5
     },
 
-    // File where profile-guided statistics is stored from a previous run
-    "partitioning-file": "statistics.out"
+    "partitioning": {
+        // Valid options are "default", "round-robin" and "profile-guided".
+        // "default" will use user provided partitioning if given, else
+        // "round-robin".
+        "type": "default",
+
+        // Number of LPs to partition at a time.
+        // Only used if "partitioning-type" is "round-robin".
+        "blocksize": 0,
+
+        // The path to the statistics file that was created from a previous run.
+        // Only used if "partitioning-type" is "profile-guided".
+        "file": "statistics.out"
+    }
 }
 
 })x";
@@ -388,13 +400,22 @@ check the following configurations:\n") + invalid_string);
 
 std::unique_ptr<Partitioner> Configuration::makePartitioner() {
 
-    auto filename = (*root_)["time-warp"]["partitioning-file"].asString();
-    return make_unique<ProfileGuidedPartitioner>(filename);
+    auto partitioner_type = (*root_)["time-warp"]["partitioning"]["type"].asString();
+    if (partitioner_type == "default" || partitioner_type == "round-robin") {
+        auto blocksize = (*root_)["time-warp"]["partitioning"]["blocksize"].asUInt();
+        return make_unique<RoundRobinPartitioner>(blocksize);
+
+    } else if (partitioner_type == "profile-guided") {
+        auto filename = (*root_)["time-warp"]["partitioning"]["file"].asString();
+        return make_unique<ProfileGuidedPartitioner>(filename);
+    }
+
+    throw std::runtime_error(std::string("Invalid partitioning type: ") + partitioner_type);
 }
 
 std::unique_ptr<Partitioner>
 Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
-    const auto& partitioner_type = (*root_)["time-warp"]["partitioning-type"];
+    const auto& partitioner_type = (*root_)["time-warp"]["partitioning"]["type"];
     if (partitioner_type == "default") {
         return std::move(user_partitioner);
     }
