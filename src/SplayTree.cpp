@@ -3,104 +3,92 @@
 
 namespace warped {
 
-SplayTree::SplayTree():
-    root_(nullptr), current_(nullptr) {}
+SplayTree::SplayTree() = default;
 
 /* Search lowest event */
 std::shared_ptr<Event> SplayTree::begin() {
 
     // If splay tree is invalid
     if (!root_ || !num_nodes_) {
-        root_    = nullptr;
-        current_ = nullptr;
-        num_nodes_ = 0;
+        root_       = nullptr;
+        current_    = nullptr;
+        num_nodes_  = 0;
+
         return nullptr;
     }
 
     if (!current_) {
-        std::shared_ptr<Node> node = root_;
-        while (node->getLeftNode()) {
-            node = node->getLeftNode();
-        }
-        current_ = node;
+        for( current_ = root_ ; current_->left_ ; current_ = current_->left_ );
     }
-    return current_->getData();
+    return current_->data_;
 }
 
 /* Erase event */
-bool SplayTree::erase(std::shared_ptr<Event> event) {
+bool SplayTree::erase( std::shared_ptr<Event> event ) {
 
-    assert(event);
-    assert(root_);
+    assert(event && root_);
+
     if (!current_) {
-        std::shared_ptr<Node> node = root_;
-        while (node->getLeftNode()) {
-            node = node->getLeftNode();
-        }
-        current_ = node;
+        for( current_ = root_ ; current_->left_ ; current_ = current_->left_ );
         return false;
     }
 
     // Search for the event to be deleted
     // Also handles the condition when current = root
-    std::shared_ptr<Node> node = (event <= current_->getData()) ? current_ : root_;
+    auto node = (*event <= *current_->data_) ? current_ : root_;
     while (node) {
-        if (event < node->getData()) {
-            node = node->getLeftNode();
-        } else if (event == node->getData()) {
+        if (*event < *node->data_) {
+            node = node->left_;
+        } else if (event == node->data_) { // Comparing address is sufficient
             break;
         } else {
-            node = node->getRightNode();
+            node = node->right_;
         }
     }
-    if (!node) {
-        return false;
-    }
+
+    if (!node) { return false; }
 
     // Remove the node if found
     if (node != root_) {
         splay(node);
         if (node != root_) assert(0);
     }
-    std::shared_ptr<Node> left  = root_->getLeftNode();
-    std::shared_ptr<Node> right = root_->getRightNode();
+    auto left  = root_->left_;
+    auto right = root_->right_;
     num_nodes_--;
+    delete root_; // node == root_
+    root_      = nullptr;
 
     // Re-construct the tree
     if (left) {
         root_ = left;
-        root_->setParentNode(nullptr);
+        root_->parent_ = nullptr;
         if (right) {
-            while (left->getRightNode()) {
-                left = left->getRightNode();
+            while (left->right_) {
+                left = left->right_;
             }
-            left->setRightNode(right);
-            right->setParentNode(left);
+            left->right_    = right;
+            right->parent_  = left;
         }
     } else {
         root_ = right;
-        if (root_) {
-            root_->setParentNode(nullptr);
-        }
+        if (root_) { root_->parent_  = nullptr; }
     }
 
     // Re-calculate the current
     if (root_) {
-        std::shared_ptr<Node> node = root_;
-        while (node->getLeftNode()) {
-            node = node->getLeftNode();
-        }
-        current_ = node;
+        for( current_ = root_ ; current_->left_ ; current_ = current_->left_ );
     }
     return true;
 }
 
 /* Insert event */
-void SplayTree::insert(std::shared_ptr<Event> event) {
+void SplayTree::insert( std::shared_ptr<Event> event ) {
 
     assert(event);
-    std::shared_ptr<Node> new_node = std::make_shared<Node>(event);
+    auto new_node = new SplayTree::Node();
     assert(new_node);
+    new_node->data_ = event;
     num_nodes_++;
 
     if (!root_) {
@@ -110,69 +98,61 @@ void SplayTree::insert(std::shared_ptr<Event> event) {
     }
 
     assert(current_);
-    if (!current_->getData()) {
-        std::shared_ptr<Node> node = root_;
-        while (node->getLeftNode()) {
-            node = node->getLeftNode();
-        }
-        current_ = node;
+    if (!current_->data_) {
+        for( current_ = root_ ; current_->left_ ; current_ = current_->left_ );
     }
 
-    if (event <= current_->getData()) {
-        current_->setLeftNode(new_node);
-        new_node->setParentNode(current_);
+    if (*event <= *current_->data_) {
+        current_->left_   = new_node;
+        new_node->parent_ = current_;
         current_ = new_node;
         splay(new_node);
         return;
     }
 
-    std::shared_ptr<Node> node = root_;
+    auto node = root_;
     while (1) {
-        if (event <= node->getData()) {
-            std::shared_ptr<Node> left = node->getLeftNode();
-            if (left) {
-                node = left;
+        if (*event <= *node->data_) {
+            if (node->left_) {
+                node = node->left_;
             } else {
-                node->setLeftNode(new_node);
+                node->left_ = new_node;
                 break;
             }
         } else {
-            std::shared_ptr<Node> right = node->getRightNode();
-            if (right) {
-                node = right;
+            if (node->right_) {
+                node = node->right_;
             } else {
-                node->setRightNode(new_node);
+                node->right_ = new_node;
                 break;
             }
         }
     }
-    new_node->setParentNode(node);
+    new_node->parent_ = node;
     splay(new_node);
 }
 
 /* Splay */
-void SplayTree::splay(std::shared_ptr<Node> node) {
+void SplayTree::splay( SplayTree::Node *node ) {
 
-    std::shared_ptr<Node> parent       = nullptr;
-    std::shared_ptr<Node> grand_parent = nullptr;
-    unsigned int splay_cnt = 0;
-    unsigned int max_splay = num_nodes_ / 2;
-    bool parent_flag  = false;
+    unsigned int splay_cnt  = 0;
+    unsigned int max_splay  = num_nodes_ / 2;
+    bool parent_flag        = false;
     bool grandpa_flag = false;
 
     while (node != root_) {
-        parent = node->getParentNode();
+        auto parent = node->parent_;
         if (parent == root_) {
-            if (parent->getLeftNode() == node) {
+            if (parent->left_ == node) {
                 rotateRight(parent);
             } else {
                 rotateLeft(parent);
             }
             break;
         } else {
-            parent_flag = (parent->getLeftNode() == node) ? false : true;
-            grand_parent = parent->getParentNode();
-            grandpa_flag = (grand_parent->getLeftNode() == parent) ? false : true;
+            parent_flag = (parent->left_ == node) ? false : true;
+            auto grand_parent = parent->parent_;
+            grandpa_flag = (grand_parent->left_ == parent) ? false : true;
             if (parent_flag != grandpa_flag) { //Zig Zag
                 if (!parent_flag) {
                     rotateRight(parent);
@@ -198,68 +178,60 @@ void SplayTree::splay(std::shared_ptr<Node> node) {
 }
 
 /* Rotate Left */
-std::shared_ptr<Node> SplayTree::rotateLeft(std::shared_ptr<Node> node) {
-
-    std::shared_ptr<Node> right  = nullptr;
-    std::shared_ptr<Node> left   = nullptr;
-    std::shared_ptr<Node> parent = nullptr;
+SplayTree::Node *SplayTree::rotateLeft( SplayTree::Node *node ) {
 
     if (!node) return nullptr;
-    right = node->getRightNode();
-    if (!right) {
-        return node;
-    }
-    left = right->getLeftNode();
-    parent = node->getParentNode();
-    node->setParentNode(right);
-    right->setLeftNode(node);
-    node->setRightNode(left);
-    if (left) {
-        left->setParentNode(node);
-    }
+
+    auto right = node->right_;
+    if (!right) { return node; }
+
+    auto left       = right->left_;
+    auto parent     = node->parent_;
+    node->parent_   = right;
+    right->left_    = node;
+    node->right_    = left;
+
+    if (left) { left->parent_ = node; }
     if (node == root_) {
         root_ = right;
-        root_->setParentNode(nullptr);
+        root_->parent_ = nullptr;
+
     } else {
-        right->setParentNode(parent);
-        if (parent->getLeftNode() == node) {
-            parent->setLeftNode(right);
+        right->parent_ = parent;
+        if (parent->left_ == node) {
+            parent->left_ = right;
         } else {
-            parent->setRightNode(right);
+            parent->right_ = right;
         }
     }
     return right;
 }
 
 /* Rotate Right */
-std::shared_ptr<Node> SplayTree::rotateRight(std::shared_ptr<Node> node) {
-
-    std::shared_ptr<Node> right  = nullptr;
-    std::shared_ptr<Node> left   = nullptr;
-    std::shared_ptr<Node> parent = nullptr;
+SplayTree::Node *SplayTree::rotateRight( SplayTree::Node *node ) {
 
     if (!node) return nullptr;
-    left = node->getLeftNode();
-    if (!left) {
-        return node;
-    }
-    right = left->getRightNode();
-    parent = node->getParentNode();
-    node->setParentNode(left);
-    left->setRightNode(node);
-    node->setLeftNode(right);
-    if (right) {
-        right->setParentNode(node);
-    }
+
+    auto left = node->left_;
+    if (!left) { return node; }
+
+    auto right      = left->right_;
+    auto parent     = node->parent_;
+    node->parent_   = left;
+    left->right_    = node;
+    node->left_     = right;
+
+    if (right) { right->parent_ = node; }
     if (node == root_) {
         root_ = left;
-        root_->setParentNode(nullptr);
+        root_->parent_ = nullptr;
+
     } else {
-        left->setParentNode(parent);
-        if (parent->getLeftNode() == node) {
-            parent->setLeftNode(left);
+        left->parent_ = parent;
+        if (parent->left_ == node) {
+            parent->left_ = left;
         } else {
-            parent->setRightNode(left);
+            parent->right_ = left;
         }
     }
     return left;
