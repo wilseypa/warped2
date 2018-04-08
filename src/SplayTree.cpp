@@ -26,7 +26,8 @@ std::shared_ptr<Event> SplayTree::begin() {
 /* Erase event */
 bool SplayTree::erase( std::shared_ptr<Event> event ) {
 
-    assert(event && root_);
+    assert(event);
+    assert(root_);
 
     if (!current_) {
         for( current_ = root_ ; current_->left_ ; current_ = current_->left_ );
