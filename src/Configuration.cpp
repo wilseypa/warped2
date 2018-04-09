@@ -291,6 +291,8 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
         } else if (gvt_method == "asynchronous") {
             gvt_manager =
                 make_unique<TimeWarpAsynchronousGVTManager>(comm_manager, gvt_period, num_worker_threads);
+        } else {
+            invalid_string += std::string("\tInvalid GVT Method\n");
         }
 
         // TERMINATION
