@@ -238,7 +238,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 if (event->event_type_ == EventType::NEGATIVE) {
 
                     event_set_->acquireInputQueueLock(current_lp_id);
-                    bool found = event_set_->cancelEvent(current_lp_id, event);
+                    bool found = event_set_->cancelEvent(current_lp_id, event, thread_id);
                     event_set_->releaseInputQueueLock(current_lp_id);
 
                     if (found) tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
@@ -277,7 +277,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                 /* Move event to processed queue */
                 event_set_->acquireInputQueueLock(current_lp_id);
-                event_set_->moveToProcessedQueue(current_lp_id);
+                event_set_->moveToProcessedQueue(current_lp_id, thread_id);
                 event_set_->releaseInputQueueLock(current_lp_id);
             }
         } else {
@@ -307,9 +307,10 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
     sendLocalEvent(msg->event);
 }
 
-void TimeWarpEventDispatcher::sendEvents(std::shared_ptr<Event> source_event,
-    std::vector<std::shared_ptr<Event>> new_events, unsigned int sender_lp_id,
-    LogicalProcess *sender_lp) {
+void TimeWarpEventDispatcher::sendEvents(   std::shared_ptr<Event> source_event,
+                                            std::vector<std::shared_ptr<Event>> new_events,
+                                            unsigned int sender_lp_id,
+                                            LogicalProcess *sender_lp   ) {
 
     for (auto& e: new_events) {
 

@@ -53,11 +53,13 @@ public:
                         std::shared_ptr<Event> straggler_event,
                         std::shared_ptr<Event> restored_state_event);
 
-    void moveToProcessedQueue (unsigned int lp_id);
+    void moveToProcessedQueue (unsigned int lp_id, unsigned int thread_id);
 
     void makeBagAvailable (unsigned int bag_id);
 
-    bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
+    bool cancelEvent (  unsigned int lp_id,
+                        std::shared_ptr<Event> cancel_event,
+                        unsigned int thread_id  );
 
     void printEvent (std::shared_ptr<Event> event);
 

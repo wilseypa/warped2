@@ -206,7 +206,7 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
  *
  *  NOTE: the scheduled_event_pointers are also protected by input queue locks
  */
-void TimeWarpEventSet::moveToProcessedQueue (unsigned int lp_id) {
+void TimeWarpEventSet::moveToProcessedQueue (unsigned int lp_id, unsigned int thread_id) {
 
     assert(scheduled_event_pointer_[lp_id]);
 
@@ -216,6 +216,13 @@ void TimeWarpEventSet::moveToProcessedQueue (unsigned int lp_id) {
     unused(num_erased);
 
     processed_queue_[lp_id]->push_back(scheduled_event_pointer_[lp_id]);
+
+    /* Track the min timestamp for stragglers */
+    if (!input_queue_[lp_id]->empty()) {
+        auto e = *input_queue_[lp_id]->begin();
+        std::get<1>(schedule_cycle_[thread_id]) =
+                std::min( std::get<1>(schedule_cycle_[thread_id]), e->timestamp() );
+    }
 }
 
 void TimeWarpEventSet::makeBagAvailable (unsigned int bag_id) {
@@ -224,7 +231,12 @@ void TimeWarpEventSet::makeBagAvailable (unsigned int bag_id) {
     schedule_queue_[bag_id].is_locked_.clear();
 }
 
-bool TimeWarpEventSet::cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event) {
+/*
+ *  NOTE: caller must have the input queue lock for the lp with id lp_id
+ */
+bool TimeWarpEventSet::cancelEvent (    unsigned int lp_id,
+                                        std::shared_ptr<Event> cancel_event,
+                                        unsigned int thread_id  ) {
 
     bool found = false;
     auto neg_iterator = input_queue_[lp_id]->find(cancel_event);
@@ -236,6 +248,13 @@ bool TimeWarpEventSet::cancelEvent (unsigned int lp_id, std::shared_ptr<Event> c
         input_queue_[lp_id]->erase(neg_iterator);
         input_queue_[lp_id]->erase(pos_iterator);
         found = true;
+    }
+
+    /* Track the min timestamp for stragglers */
+    if (!input_queue_[lp_id]->empty()) {
+        auto e = *input_queue_[lp_id]->begin();
+        std::get<1>(schedule_cycle_[thread_id]) =
+                std::min( std::get<1>(schedule_cycle_[thread_id]), e->timestamp() );
     }
 
     return found;

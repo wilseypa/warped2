@@ -54,8 +54,10 @@ public:
     void startSimulation(const std::vector<std::vector<LogicalProcess*>>& lps);
 
 private:
-    void sendEvents(std::shared_ptr<Event> source_event, std::vector<std::shared_ptr<Event>> new_events,
-                    unsigned int sender_lp_id, LogicalProcess *sender_lp);
+    void sendEvents(    std::shared_ptr<Event> source_event,
+                        std::vector<std::shared_ptr<Event>> new_events,
+                        unsigned int sender_lp_id,
+                        LogicalProcess *sender_lp   );
 
     void sendLocalEvent(std::shared_ptr<Event> event);
 
