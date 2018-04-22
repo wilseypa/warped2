@@ -171,10 +171,6 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
         }
 
-        /* If needed, report event for this thread so GVT can be calculated */
-        auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
-        gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
-
         if (events.size()) {
 
             /* Make sure that if this thread is currently seen as passive,
@@ -288,6 +284,10 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 termination_manager_->setThreadPassive(thread_id);
             }
         }
+
+        /* If needed, report event for this thread so GVT can be calculated */
+        auto lowest_timestamp = event_set_->lowestTimestamp(thread_id);
+        gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
 
         /* Release the lock set by getBag() */
         event_set_->makeBagAvailable(bag_id);
