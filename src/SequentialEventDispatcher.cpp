@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <chrono>       // for std::chrono::steady_clock
 
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
@@ -46,6 +47,8 @@ void SequentialEventDispatcher::startSimulation(
         lps_by_name[lp->name_] = lp;
     }
 
+    auto sim_start = std::chrono::steady_clock::now();
+
     int count = 0;
     while (!events.empty()) {
         auto event = events.pop();
@@ -65,7 +68,13 @@ void SequentialEventDispatcher::startSimulation(
         stats_->record(event->receiverName(), current_sim_time_, valid_events);
     }
 
+    auto sim_stop = std::chrono::steady_clock::now();
+    double num_seconds = double((sim_stop - sim_start).count()) *
+                std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
+
     std::cout << "Events processed: " << count << std::endl;
+    std::cout << "Simulation completed in " << num_seconds << " second(s)" << "\n\n";
+
     stats_->writeToFile();
 }
 
