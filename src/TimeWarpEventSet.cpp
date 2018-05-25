@@ -122,15 +122,19 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
     schedule_queue_lock_[scheduler_id].lock();
 
-#if defined(SORTED_LADDER_QUEUE) || \
-        defined(PARTIALLY_SORTED_LADDER_QUEUE) || defined(SPLAY_TREE)
+#if defined(SORTED_LADDER_QUEUE) || defined(PARTIALLY_SORTED_LADDER_QUEUE)
+    auto event = schedule_queue_[scheduler_id]->dequeue();
+
+#elif defined(SPLAY_TREE)
     auto event = schedule_queue_[scheduler_id]->begin();
     if (event != nullptr) {
         schedule_queue_[scheduler_id]->erase(event);
     }
+
 #elif defined(CIRCULAR_QUEUE)
     auto event = schedule_queue_[scheduler_id]->pop_front();
-#else
+
+#else  /* STL MultiSet */
     auto event_iterator = schedule_queue_[scheduler_id]->begin();
     auto event = (event_iterator != schedule_queue_[scheduler_id]->end()) ?
                     *event_iterator : nullptr;
