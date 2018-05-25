@@ -21,6 +21,11 @@ LadderQueue::LadderQueue() {
             rung_[i].buffer_.push_back(temp);
         }
     }
+
+#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+    /* Initialize Bottom capacity */
+    bottom_.reserve(THRESHOLD);
+#endif
 }
 
 std::shared_ptr<Event> LadderQueue::dequeue() {
@@ -61,9 +66,17 @@ std::shared_ptr<Event> LadderQueue::dequeue() {
     unsigned int bucket_index =
         (rung_[rung_cnt_-1].first_nonempty_bucket_ts_ - rung_[rung_cnt_-1].start_ts_) /
                                                 rung_[rung_cnt_-1].bucket_width_;
+
+#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+    bottom_start_ = rung_[rung_cnt_-1].first_nonempty_bucket_ts_;
+    bottom_.swap(rung_[rung_cnt_-1].buffer_[bucket_index]);
+
+#else
     for (auto event : rung_[rung_cnt_-1].buffer_[bucket_index]) {
         bottom_.insert(event);
     }
+#endif
+
     rung_[rung_cnt_-1].buffer_[bucket_index].clear();
 
     // If last rung is empty now
@@ -123,7 +136,12 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
     }
 
     // Insert into Bottom
+#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+    bottom_.push_back(event);
+    bottom_start_ = std::min(bottom_start_, ts);
+#else
     bottom_.insert(event);
+#endif
 }
 
 bool LadderQueue::erase(std::shared_ptr<Event> event) {
@@ -220,7 +238,21 @@ bool LadderQueue::erase(std::shared_ptr<Event> event) {
     // Check and erase from bottom, if present
     if (bottom_.empty()) return false;
 
-    return (bottom_.erase(event) >= 1);
+    bool status = false;
+
+#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+    for (auto it = bottom_.begin(); it != bottom_.end(); it++) {
+        if (*it == event) {
+            (void) bottom_.erase(it);
+            status = true;
+            break;
+        }
+    }
+#else
+    status = (bottom_.erase(event) >= 1) ? true : false;
+#endif
+
+    return status;
 }
 
 void LadderQueue::createNewRung() {

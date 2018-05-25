@@ -32,6 +32,10 @@ public:
 
     void insert(std::shared_ptr<Event> event);
 
+#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+    unsigned int lowestTimestamp() { return bottom_start_; }
+#endif
+
 private:
     void createNewRung();
 
@@ -57,7 +61,12 @@ private:
     } rung_[MAX_RUNG_CNT];
 
     /* Bottom */
+#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+    bucket bottom_;
+    unsigned int bottom_start_ = 0;
+#else
     std::multiset<std::shared_ptr<Event>, compareEvents> bottom_;
+#endif
 };
 
 } // namespace warped
