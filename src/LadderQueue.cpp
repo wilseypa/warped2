@@ -22,7 +22,7 @@ LadderQueue::LadderQueue() {
         }
     }
 
-#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     /* Initialize Bottom capacity */
     bottom_.reserve(THRESHOLD);
 #endif
@@ -32,9 +32,16 @@ std::shared_ptr<Event> LadderQueue::dequeue() {
 
     // Remove from bottom if not empty
     if ( !bottom_.empty() ) {
+
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
+        auto e = bottom_.back();
+        bottom_.pop_back();
+        return e;
+#else
         auto e = *bottom_.begin();
         bottom_.erase( bottom_.begin() );
         return e;
+#endif
     }
 
     // If there are no rungs, pull from Top
@@ -67,17 +74,18 @@ std::shared_ptr<Event> LadderQueue::dequeue() {
         (rung_[rung_cnt_-1].first_nonempty_bucket_ts_ - rung_[rung_cnt_-1].start_ts_) /
                                                 rung_[rung_cnt_-1].bucket_width_;
 
-#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     bottom_start_ = rung_[rung_cnt_-1].first_nonempty_bucket_ts_;
-    bottom_.swap(rung_[rung_cnt_-1].buffer_[bucket_index]);
-
+    for (auto event : rung_[rung_cnt_-1].buffer_[bucket_index]) {
+        bottom_.push_back(event);
+    }
+    rung_[rung_cnt_-1].buffer_[bucket_index].clear();
 #else
     for (auto event : rung_[rung_cnt_-1].buffer_[bucket_index]) {
         bottom_.insert(event);
     }
-#endif
-
     rung_[rung_cnt_-1].buffer_[bucket_index].clear();
+#endif
 
     // If last rung is empty now
     if (rung_[rung_cnt_-1].first_nonempty_bucket_ts_ ==
@@ -94,9 +102,15 @@ std::shared_ptr<Event> LadderQueue::dequeue() {
     // Check and erase from bottom, if present
     if (bottom_.empty()) return nullptr;
 
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
+    auto e = bottom_.back();
+    bottom_.pop_back();
+    return e;
+#else
     auto e = *bottom_.begin();
     bottom_.erase( bottom_.begin() );
     return e;
+#endif
 }
 
 void LadderQueue::insert(std::shared_ptr<Event> event) {
@@ -136,7 +150,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
     }
 
     // Insert into Bottom
-#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     bottom_.push_back(event);
     bottom_start_ = std::min(bottom_start_, ts);
 #else
@@ -240,7 +254,7 @@ bool LadderQueue::erase(std::shared_ptr<Event> event) {
 
     bool status = false;
 
-#if defined(PARTIALLY_SORTED_LADDER_QUEUE)
+#ifdef PARTIALLY_SORTED_LADDER_QUEUE
     for (auto it = bottom_.begin(); it != bottom_.end(); it++) {
         if (*it == event) {
             (void) bottom_.erase(it);
