@@ -95,7 +95,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
 
-    auto event = schedule_queue_[scheduler_id]->pop();
+    auto event = schedule_queue_[scheduler_id]->dequeue();
 
     // NOTE: scheduled_event_pointer is not changed here so that other threads will not schedule new
     // events and this thread can move events into processed queue and update schedule queue correctly.

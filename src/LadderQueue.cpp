@@ -5,397 +5,311 @@ namespace warped {
 
 LadderQueue::LadderQueue() {
 
-    /* Initialize the variables */
-    std::fill_n(bucket_width_, MAX_RUNG_CNT, 0);
-    std::fill_n(last_nonempty_bucket_, MAX_RUNG_CNT, 0);
-    std::fill_n(r_start_, MAX_RUNG_CNT, 0);
-    std::fill_n(r_current_, MAX_RUNG_CNT, 0);
+    /* Reserve the size of Top */
+    top_.buffer_.reserve(2*THRESHOLD);
 
-    /* Create buckets for 2nd rung onwards */
-    for (unsigned int rung_index = 1; rung_index < MAX_RUNG_CNT; rung_index++) {
-        for (unsigned int bucket_index = 0; bucket_index < THRESHOLD; bucket_index++) {
-            rung_[rung_index].push_back(std::make_shared<std::vector<std::shared_ptr<Event>>>());
-            rung_[rung_index][bucket_index]->reserve(THRESHOLD);
+    /* Create and Initialize Rungs */
+    for (unsigned int i = 0; i < MAX_RUNG_CNT; i++) {
+
+        /* NOTE: First rung's bucket count equals 2*THRESHOLD,
+                 Other rungs' bucket count equals THRESHOLD
+         */
+        unsigned int bucket_cnt = i ? THRESHOLD : 2*THRESHOLD;
+        for (unsigned int j = 0; j < bucket_cnt; j++) {
+            bucket temp;
+            temp.reserve(THRESHOLD);
+            rung_[i].buffer_.push_back(temp);
         }
     }
 }
 
-std::shared_ptr<Event> LadderQueue::pop() {
+std::shared_ptr<Event> LadderQueue::dequeue() {
 
-    /* Remove from bottom if not empty */
-    if (auto event = bottom_.pop()) { return event; }
+    // Remove from bottom if not empty
+    if (auto e = bottom_.pop()) {
+        return e;
+    }
 
     lock_.lock();
 
-    /* If rungs exist, remove from rungs */
-    unsigned int bucket_index = 0;
-    if (!recurseRung(&bucket_index)) {
-        /* Check whether rungs still exist */
-        if (n_rung_) assert(0);
-    }
+    // If there are no rungs, pull from Top
+    if (!rung_cnt_) {
+        createNewRung();
 
-    /* Check required because rung recursion can affect n_rung_ value */
-    if (n_rung_) {
+        // Transfer events from Top to 1st rung of Ladder
+        rung_[0].first_nonempty_bucket_ts_ = (unsigned int)-1;
+        rung_[0].last_nonempty_bucket_ts_ = 0;
+        for (auto event : top_.buffer_) {
+            unsigned int index = (event->timestamp()-rung_[0].start_ts_) / rung_[0].bucket_width_;
+            rung_[0].buffer_[index].push_back(event);
 
-        /* NOTE: Bottom should be empty */
-        for (auto e : *rung_[n_rung_-1][bucket_index]) { bottom_.push(e); }
-        bottom_start_ = r_current_[n_rung_-1];
-        rung_[n_rung_-1][bucket_index]->clear();
-
-        /* If bucket returned is the last valid bucket of the rung */
-        if (last_nonempty_bucket_[n_rung_-1] == bucket_index+1) {
-            do {
-                last_nonempty_bucket_[n_rung_-1] = 0;
-                r_start_[n_rung_-1]         = 0;
-                r_current_[n_rung_-1]       = 0;
-                bucket_width_[n_rung_-1]    = 0;
-                n_rung_--;
-            } while(n_rung_ && !last_nonempty_bucket_[n_rung_-1]);
-
-        } else {
-            while((++bucket_index < last_nonempty_bucket_[n_rung_-1]) && 
-                                    rung_[n_rung_-1][bucket_index]->empty());
-            if (bucket_index < last_nonempty_bucket_[n_rung_-1]) {
-                r_current_[n_rung_-1] = 
-                    r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1];
-            } else {
-                assert(0);
-            }
+            rung_[0].first_nonempty_bucket_ts_ =  std::min( rung_[0].first_nonempty_bucket_ts_ ,
+                                                            rung_[0].start_ts_ +
+                                                                index*rung_[0].bucket_width_    );
+            rung_[0].last_nonempty_bucket_ts_ =
+                                    std::max(   rung_[0].last_nonempty_bucket_ts_ ,
+                                                rung_[0].start_ts_ +
+                                                    index*rung_[0].bucket_width_    );
         }
+        top_.buffer_.clear();
+        top_.start_ts_ = top_.max_ts_ + 1;
 
-        lock_.unlock();
-        return bottom_.pop();
+        recurseRung();
     }
 
-    /* Check if top has any events before proceeding further*/
-    if (top_.empty()) {
-        lock_.unlock();
-        return nullptr;
+    // Move the first non-empty bucket of last rung to bottom
+    unsigned int bucket_index =
+        (rung_[rung_cnt_-1].first_nonempty_bucket_ts_ - rung_[rung_cnt_-1].start_ts_) /
+                                                rung_[rung_cnt_-1].bucket_width_;
+
+    bottom_start_ = rung_[rung_cnt_-1].first_nonempty_bucket_ts_;
+    for (auto event : rung_[rung_cnt_-1].buffer_[bucket_index]) {
+        bottom_.push(event);
     }
+    rung_[rung_cnt_-1].buffer_[bucket_index].clear();
 
-    /* Move from top to top of empty ladder */
-    /* Check if failed to create the first rung */
-    bool is_bucket_width_static = false;
-    if (!createNewRung(top_.size(), min_ts_, &is_bucket_width_static)) assert(0);
+    // If last rung is empty now
+    if (rung_[rung_cnt_-1].first_nonempty_bucket_ts_ ==
+                                rung_[rung_cnt_-1].last_nonempty_bucket_ts_) {
+        rung_cnt_--;
 
-    /* Transfer events from Top to 1st rung of Ladder */
-    /* Note: No need to update rCur[0] since it will be equal to rStart[0] initially. */
-    for (auto event : top_) {
-        assert(event->timestamp() >= r_start_[0]);
-        bucket_index = std::min(
-                (unsigned int)(event->timestamp()-r_start_[0]) / bucket_width_[0],
-                                                                        RUNG_BUCKET_CNT(0)-1);
-        rung_[0][bucket_index]->push_back(event);
-
-        /* Update the numBucket parameter */
-        if (last_nonempty_bucket_[0] < bucket_index+1) {
-            last_nonempty_bucket_[0] = bucket_index+1;
-        }
+    } else { // Another non-empty bucket is present on the last rung
+        do {
+            rung_[rung_cnt_-1].first_nonempty_bucket_ts_ += rung_[rung_cnt_-1].bucket_width_;
+        } while( rung_[rung_cnt_-1].buffer_[++bucket_index].empty() );
     }
-    top_.clear();
-
-    /* Copy events from bucket_k into Bottom */
-    if (!recurseRung(&bucket_index)) assert(0);
-
-    for (auto e : *rung_[n_rung_-1][bucket_index]) { bottom_.push(e); }
-    bottom_start_ = r_current_[n_rung_-1];
-    rung_[n_rung_-1][bucket_index]->clear();
-
-    /* If bucket returned is the last valid rung of the bucket */
-    if (last_nonempty_bucket_[n_rung_-1] == bucket_index+1) {
-        last_nonempty_bucket_[n_rung_-1] = 0;
-        r_start_[n_rung_-1]         = 0;
-        r_current_[n_rung_-1]       = 0;
-        bucket_width_[n_rung_-1]    = 0;
-        n_rung_--;
-
-    } else {
-        while((++bucket_index < last_nonempty_bucket_[n_rung_-1]) && 
-                (rung_[n_rung_-1][bucket_index]->empty()));
-        if (bucket_index < last_nonempty_bucket_[n_rung_-1]) {
-            r_current_[n_rung_-1] = 
-                r_start_[n_rung_-1] + bucket_index*bucket_width_[n_rung_-1];
-        } else {
-            last_nonempty_bucket_[n_rung_-1] = 0;
-            r_start_[n_rung_-1]         = 0;
-            r_current_[n_rung_-1]       = 0;
-            bucket_width_[n_rung_-1]    = 0;
-            n_rung_--;
-        }
-    }
-
+    recurseRung();
     lock_.unlock();
+
     return bottom_.pop();
 }
 
 void LadderQueue::insert(std::shared_ptr<Event> event) {
 
-    assert(event != nullptr);
-    auto timestamp = event->timestamp();
+    assert(event);
+    auto ts = event->timestamp();
 
     lock_.lock();
 
-    /* Insert into top, if valid */
-    if (timestamp > top_start_) {  //deviation from APPENDIX of ladderq
-        if(top_.empty()) {
-            max_ts_ = min_ts_ = timestamp;
-        } else {
-            if (min_ts_ > timestamp) min_ts_ = timestamp;
-            if (max_ts_ < timestamp) max_ts_ = timestamp;
+    // Insert into top, if valid
+    if (ts >= top_.start_ts_) {
+        if(top_.buffer_.empty()) {
+            top_.max_ts_ = ts;
         }
-        top_.push_back(event);
+        top_.max_ts_ = std::max( ts, top_.max_ts_ );
+        top_.buffer_.push_back(event);
         lock_.unlock();
         return;
     }
 
-    /* Step through rungs */
+    // Step through rungs
     unsigned int rung_index = 0;
-    while ((rung_index < n_rung_) && (timestamp < r_current_[rung_index])) {
+    while ( (rung_index < rung_cnt_) && (ts < rung_[rung_index].first_nonempty_bucket_ts_) ) {
         rung_index++;
     }
 
-    if (rung_index < n_rung_) {  /* found a rung */
-        assert(timestamp >= r_start_[rung_index]);
-        unsigned int bucket_index = std::min(
-            (unsigned int)(timestamp - r_start_[rung_index]) / bucket_width_[rung_index],
-                                                            RUNG_BUCKET_CNT(rung_index)-1);
+    // If a valid rung was found, insert the event
+    if (rung_index < rung_cnt_) {
+        unsigned int bucket_index = (ts - rung_[rung_index].start_ts_) /
+                                                            rung_[rung_index].bucket_width_;
 
-        /* Adjust rung parameters */
-        if (last_nonempty_bucket_[rung_index] < bucket_index+1) {
-            last_nonempty_bucket_[rung_index] = bucket_index+1;
-        }
-        unsigned int temp_ts = r_start_[rung_index] + bucket_index*bucket_width_[rung_index];
-        if (r_current_[rung_index] > temp_ts) {
-            r_current_[rung_index] = temp_ts;
-        }
+        rung_[rung_index].last_nonempty_bucket_ts_ =
+                    std::max (  rung_[rung_index].last_nonempty_bucket_ts_,
+                                rung_[rung_index].start_ts_ +
+                                    bucket_index*rung_[rung_index].bucket_width_    );
 
-        rung_[rung_index][bucket_index]->push_back(event);
+        rung_[rung_index].buffer_[bucket_index].push_back(event);
+        recurseRung();
         lock_.unlock();
         return;
     }
-
-    bottom_start_ = std::min(bottom_start_, timestamp);
+    bottom_start_ = std::min(bottom_start_, ts);
     lock_.unlock();
 
-    /* NOTE : Bottom is allowed to overflow (i.e. > THRESHOLD), if needed.
-     *        This has been done to keep lock-free stack APIs simple and efficient.
-     */
+    // Insert into Bottom
     bottom_.push(event);
 }
 
 bool LadderQueue::erase(std::shared_ptr<Event> event) {
 
-    bool status = false;
-    assert(event != nullptr);
-    auto timestamp = event->timestamp();
+    assert(event);
+    auto ts = event->timestamp();
 
     lock_.lock();
 
-    /* Check and erase from top, if found */
-    if (timestamp > top_start_) {
-        if (top_.empty()) assert(0);
-        for (auto iter = top_.begin(); iter != top_.end(); iter++) {
-            if (iter == top_.end()) assert(0);
-            if ( (*iter == event) && ((*iter)->receiverName() == event->receiverName()) ) {
-                (void) top_.erase(iter);
+    // Erase from top, if found there
+    if (ts >= top_.start_ts_) {
+        if(top_.buffer_.empty()) {
+            lock_.unlock();
+            return false;
+        }
+        top_.max_ts_ = 0;
+        bool status = false;
+        for (auto it = top_.buffer_.begin(); it != top_.buffer_.end();) {
+            if (*it == event) {
+                status = true;
+                it = top_.buffer_.erase(it);
+            } else {
+                top_.max_ts_ = std::max( (*it)->timestamp(), top_.max_ts_ );
+                it++;
+            }
+        }
+        lock_.unlock();
+        return status;
+    }
+
+    // Step through rungs
+    unsigned int rung_index = 0;
+    while ( (rung_index < rung_cnt_) && (ts < rung_[rung_index].first_nonempty_bucket_ts_) ) {
+        rung_index++;
+    }
+
+    // Delete the element if found inside a valid rung
+    if (rung_index < rung_cnt_) {
+        unsigned int bucket_index = (ts - rung_[rung_index].start_ts_) /
+                                                    rung_[rung_index].bucket_width_;
+        unsigned int current_index =
+                (rung_[rung_index].first_nonempty_bucket_ts_ - rung_[rung_index].start_ts_) /
+                                                    rung_[rung_index].bucket_width_;
+        unsigned int last_valid_index =
+                (rung_[rung_index].last_nonempty_bucket_ts_ - rung_[rung_index].start_ts_) /
+                                                    rung_[rung_index].bucket_width_;
+
+        // NOTE: Don't delete event if it is the only event in the
+        //       first or last non-empty bucket of a inner rung
+        if (rung_[rung_index].buffer_[bucket_index].size() <= 1) {
+
+            // If chosen rung is an inner one
+            if (rung_index < rung_cnt_-1) {
+
+                // If the chosen bucket is the first or the last non-empty bucket
+                if ( bucket_index == current_index || bucket_index == last_valid_index ) {
+                    lock_.unlock();
+                    return false;
+                }
+            }
+        }
+
+        // Delete the event, if found
+        bool status = false;
+        for (auto it = rung_[rung_index].buffer_[bucket_index].begin();
+                                it != rung_[rung_index].buffer_[bucket_index].end(); it++) {
+            if (*it == event) {
+                (void) rung_[rung_index].buffer_[bucket_index].erase(it);
                 status = true;
                 break;
             }
         }
-        lock_.unlock();
-        return status;
-    }
 
-    /* Step through rungs */
-    unsigned int rung_index = 0;
-    for (rung_index = 0; rung_index < n_rung_; rung_index++) {
-        if (timestamp >= r_current_[rung_index]) break;
-    }
+        // If erase successful and chosen bucket in the last rung is empty after erase
+        if (status && rung_index == rung_cnt_-1 &&
+                            !rung_[rung_index].buffer_[bucket_index].size()) {
 
-    /* If no valid rung found */
-    if (rung_index >= n_rung_) {
-        lock_.unlock();
-        return status;
-    }
+            // If that bucket was the only one in the last rung
+            if (current_index == last_valid_index) {
+                rung_cnt_--;
+                recurseRung();
 
-    unsigned int bucket_index = std::min(
-            (unsigned int)(timestamp - r_start_[rung_index]) / bucket_width_[rung_index],
-                                                            RUNG_BUCKET_CNT(rung_index)-1);
-    auto rung_bucket = rung_[rung_index][bucket_index];
-    if (rung_bucket->empty()) assert(0);
+            } else if (bucket_index == current_index) { // first non-empty bucket
+                // Update the first nonempty ts for last rung
+                do {
+                    rung_[rung_index].first_nonempty_bucket_ts_ += rung_[rung_index].bucket_width_;
+                } while( rung_[rung_index].buffer_[++bucket_index].empty() );
+                recurseRung();
 
-    for (auto iter = rung_bucket->begin(); ; iter++) {
-        if (iter == rung_bucket->end()) assert(0);
-        if ( (*iter == event) && ((*iter)->receiverName() == event->receiverName()) ) {
-            (void) rung_bucket->erase(iter);
-            status = true;
-            break;
-        }
-    }
-
-    /* If bucket is empty after deletion */
-    if (rung_bucket->empty()) {
-        /* Check whether rung bucket count needs adjustment */
-        if (last_nonempty_bucket_[rung_index] == bucket_index+1) {
-            bool is_rung_empty = false;
-            do {
-                if (!bucket_index) {
-                    is_rung_empty = true;
-                    last_nonempty_bucket_[rung_index] = 0;
-                    r_current_[rung_index] = r_start_[rung_index];
-                    break;
-                }
-                bucket_index--;
-                rung_bucket = rung_[rung_index][bucket_index];
-            } while (rung_bucket->empty());
-
-            if (!is_rung_empty) {
-                last_nonempty_bucket_[rung_index] = bucket_index+1;
+            } else if (bucket_index == last_valid_index) { // last non-empty bucket
+                // Update the last nonempty ts for last rung
+                do {
+                    rung_[rung_index].last_nonempty_bucket_ts_ -= rung_[rung_index].bucket_width_;
+                } while( rung_[rung_index].buffer_[--bucket_index].empty() );
             }
         }
+        lock_.unlock();
+        return status;
     }
     lock_.unlock();
 
-    /* NOTE : Bottom won't be checked for the event and will return false */
-
-    return status;
+    // Nothing can be deleted from lock-free Bottom
+    return false;
 }
 
 unsigned int LadderQueue::lowestTimestamp() {
 
-    return bottom_start_;
+    lock_.lock();
+    unsigned int ts = bottom_start_;
+    lock_.unlock();
+
+    return ts;
 }
 
-bool LadderQueue::createNewRung(unsigned int num_events, 
-                                unsigned int init_start_and_cur_val, 
-                                bool *is_bucket_width_static) {
-
-    assert(is_bucket_width_static);
-    assert(num_events);
-
-    *is_bucket_width_static = false;
+void LadderQueue::createNewRung() {
 
     /* Check if this is the first rung creation */
-    if (!n_rung_) {
-        assert(max_ts_ >= min_ts_);
-        bucket_width_[0] = (min_ts_ == max_ts_) ? MIN_BUCKET_WIDTH : 
-                                    (max_ts_ - min_ts_ + num_events -1) / num_events;
-        top_start_          = max_ts_;
-        r_start_[0]         = min_ts_;
-        r_current_[0]       = min_ts_;
-        last_nonempty_bucket_[0] = 0;
-        n_rung_++;
-
-        /* Create the actual rungs */
-        //create double of required no of buckets. ref sec 2.4 of ladderq
-        unsigned int bucket_index = 0;
-        for (bucket_index = rung_0_length_; bucket_index < 2*num_events; bucket_index++) {
-            rung_[0].push_back(std::make_shared<std::vector<std::shared_ptr<Event>>>());
-            rung_[0][bucket_index]->reserve(THRESHOLD);
-        }
-        rung_0_length_ = bucket_index;
+    if (!rung_cnt_) {
+        rung_cnt_++;
+        rung_[0].bucket_width_ = (top_.max_ts_ - top_.start_ts_ + rung_[0].buffer_.size()) /
+                                                                            rung_[0].buffer_.size();
+        rung_[0].start_ts_  = top_.start_ts_;
 
     } else { // When rungs already exist
-        /* Check if bucket width has reached the min limit */
-        if (bucket_width_[n_rung_-1] <= MIN_BUCKET_WIDTH) {
-            *is_bucket_width_static = true;
-            return false;
-        }
-        /* Check whether new rungs can be created */
-        assert(n_rung_ < MAX_RUNG_CNT);
-        n_rung_++;
-        bucket_width_[n_rung_-1] = (bucket_width_[n_rung_-2] + num_events - 1) / num_events;
-        r_start_[n_rung_-1] = r_current_[n_rung_-1] = init_start_and_cur_val;
-        last_nonempty_bucket_[n_rung_-1] = 0;
+        rung_cnt_++;
+        rung_[rung_cnt_-1].bucket_width_ =
+            (rung_[rung_cnt_-2].bucket_width_ + rung_[rung_cnt_-1].buffer_.size()) /
+                                                        rung_[rung_cnt_-1].buffer_.size();
+        rung_[rung_cnt_-1].start_ts_  = rung_[rung_cnt_-2].first_nonempty_bucket_ts_;
     }
-    return true;
 }
 
-bool LadderQueue::recurseRung(unsigned int *index) {
+void LadderQueue::recurseRung() {
 
-    bool status = false;
-    *index = 0;
+    // If there are no rungs
+    if (!rung_cnt_) return;
+    
+    // If rung count has reached upper threshold
+    if (rung_cnt_ >= MAX_RUNG_CNT) return;
 
-    /* Find_bucket label */
-    while(1) {
-        if (!n_rung_) break;
-        if (n_rung_ > MAX_RUNG_CNT) assert(0);
+    // If the last rung has only one non-empty bucket
+    if (rung_[rung_cnt_-1].last_nonempty_bucket_ts_ ==
+                    rung_[rung_cnt_-1].first_nonempty_bucket_ts_) return;
 
-        unsigned int bucket_index = 0;
-        r_current_[n_rung_-1] = r_start_[n_rung_-1];
-        while ((bucket_index < RUNG_BUCKET_CNT(n_rung_-1)) && 
-                            rung_[n_rung_-1][bucket_index]->empty()) {
-            bucket_index++;
-        }
+    // If the last rung has minimum bucket width
+    if (rung_[rung_cnt_-1].bucket_width_ == MIN_BUCKET_WIDTH) return;
 
-        // If the last rung is empty
-        if (bucket_index == RUNG_BUCKET_CNT(n_rung_-1)) {
-            r_start_[n_rung_-1]         = 0;
-            r_current_[n_rung_-1]       = 0;
-            bucket_width_[n_rung_-1]    = 0;
-            last_nonempty_bucket_[n_rung_-1] = 0;
-            n_rung_--;
+    unsigned int bucket_index =
+        (rung_[rung_cnt_-1].first_nonempty_bucket_ts_ - rung_[rung_cnt_-1].start_ts_) /
+                                                rung_[rung_cnt_-1].bucket_width_;
 
-        } else {
-            r_current_[n_rung_-1] += bucket_index*bucket_width_[n_rung_-1];
+    // If event count inside the first non-empty bucket of last rung is within threshold
+    if (rung_[rung_cnt_-1].buffer_[bucket_index].size() <= THRESHOLD) return;
 
-            // If the bucket does not have any bucket overflow
-            if (rung_[n_rung_-1][bucket_index]->size() <= THRESHOLD) {
-                *index = bucket_index;
-                status = true;
-                break;
-            }
+    // Create a new rung if event count exceeds threshold
+    createNewRung();
 
-            /* When there is a bucket overflow */
-            bool is_bucket_width_static = false;
-
-            // Try to create a new rung
-            if (!createNewRung( rung_[n_rung_-1][bucket_index]->size(),
-                                r_current_[n_rung_-1], 
-                                &is_bucket_width_static )) {
-                if (is_bucket_width_static) {
-                    *index = bucket_index;
-                    status = true;
-                }
-                break;
-            }
-
-            // Move events from the bucket in penultimate rung to the new rung
-            for (auto iter = rung_[n_rung_-2][bucket_index]->begin(); 
-                        iter != rung_[n_rung_-2][bucket_index]->end(); iter++) {
-                assert((*iter)->timestamp() >= r_start_[n_rung_-1] );
-                unsigned int new_bucket_index = std::min( 
-                    (unsigned int) ((*iter)->timestamp() - r_start_[n_rung_-1]) / 
-                                    bucket_width_[n_rung_-1], RUNG_BUCKET_CNT(n_rung_-1)-1);
-                rung_[n_rung_-1][new_bucket_index]->push_back(*iter);
-
-                /* Calculate bucket count for new rung */
-                if (last_nonempty_bucket_[n_rung_-1] < new_bucket_index+1) {
-                    last_nonempty_bucket_[n_rung_-1] = new_bucket_index+1;
-                }
-            }
-            rung_[n_rung_-2][bucket_index]->clear();
-
-            /* Re-calculate r_current and last_nonempty_bucket_ of old rung */
-            bool bucket_found = false;
-            for (unsigned int index = bucket_index+1; 
-                            index < RUNG_BUCKET_CNT(n_rung_-2); index++) {
-                if (!rung_[n_rung_-2][index]->empty()) {
-                    if (!bucket_found) {
-                        bucket_found = true;
-                        r_current_[n_rung_-2] = 
-                            r_start_[n_rung_-2] + index*bucket_width_[n_rung_-2];
-                    }
-                    last_nonempty_bucket_[n_rung_-2] = index+1;
-                }
-            }
-            if (!bucket_found) {
-                last_nonempty_bucket_[n_rung_-2] = 0;
-                r_current_[n_rung_-2] = r_start_[n_rung_-2];
-            }
-        }
+    // Move events from the bucket to the new rung
+    rung_[rung_cnt_-1].first_nonempty_bucket_ts_ = (unsigned int)-1;
+    rung_[rung_cnt_-1].last_nonempty_bucket_ts_ = 0;
+    for (auto event : rung_[rung_cnt_-2].buffer_[bucket_index]) {
+        unsigned int index = 
+            (event->timestamp() - rung_[rung_cnt_-1].start_ts_) / rung_[rung_cnt_-1].bucket_width_;
+        rung_[rung_cnt_-1].buffer_[index].push_back(event);
+        rung_[rung_cnt_-1].first_nonempty_bucket_ts_ =
+                        std::min(   rung_[rung_cnt_-1].first_nonempty_bucket_ts_ ,
+                                    rung_[rung_cnt_-1].start_ts_ +
+                                            index*rung_[rung_cnt_-1].bucket_width_  );
+        rung_[rung_cnt_-1].last_nonempty_bucket_ts_ =
+                        std::max(   rung_[rung_cnt_-1].last_nonempty_bucket_ts_ ,
+                                    rung_[rung_cnt_-1].start_ts_ +
+                                            index*rung_[rung_cnt_-1].bucket_width_  );
     }
-    return status;
+    rung_[rung_cnt_-2].buffer_[bucket_index].clear();
+
+    // Update the current ts for penultimate rung
+    do {
+        rung_[rung_cnt_-2].first_nonempty_bucket_ts_ += rung_[rung_cnt_-2].bucket_width_;
+    } while( rung_[rung_cnt_-2].buffer_[++bucket_index].empty() );
+
+    // Repeat the recursive process
+    recurseRung();
 }
 
 } // namespace warped
