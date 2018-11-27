@@ -24,21 +24,13 @@ You can run the Autotools build without any options, although specifying a prefi
 location) is recommended.
 
     autoreconf -i
-    ./configure --prefix=$HOME/lib/warped2
+    ./configure --with-mpi-includedir=/usr/include/mpich --with-mpi-libdir=/usr/lib/mpich --prefix=$HOME/lib/warped2
     make
     make install
 
-#### Troubleshooting
-
-If you get a linker error telling you that the MPI library could not be found, you may need
-to specify the path to the MPI headers and libraries manually in the configuration
-step. You can specify the path to the library file with the `--with-mpi-libdir` configure option,
-and the header location with the `--with-mpi-includedir` option.
-
- 	./configure --with-mpi-includedir=/usr/include/mpich --with-mpi-libdir=/usr/lib/mpich --prefix=$HOME/lib/warped2
-
-Replace the paths in the above example with the locations of the MPI libraries and headers
-on your machine.   
+The --with-mpi-includedir and --with-mpi-libdir flags need to point to the MPI libraries and
+header files respectively.Replace the paths in the above example with the locations of the MPI libraries and headers
+on your machine.  
 
 #### Building from a tarball
 
