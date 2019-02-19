@@ -73,6 +73,7 @@ void SequentialEventDispatcher::startSimulation(
                 std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
 
     std::cout << "Events processed: " << count << std::endl;
+    std::cout << "LP count: " << lps[0].size() << std::endl;
     std::cout << "Simulation completed in " << num_seconds << " second(s)" << "\n\n";
 
     stats_->writeToFile();
