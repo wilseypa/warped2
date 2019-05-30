@@ -17,29 +17,31 @@ public:
         unsigned int period, unsigned int num_worker_threads)
         : TimeWarpGVTManager(comm_manager, period, num_worker_threads) {}
 
+    virtual ~TimeWarpAsynchronousGVTManager() = default;
+    
     // Registers message handlers and initializes data
     void initialize() override;
 
-    bool readyToStart();
+    bool readyToStart() override;
 
-    void progressGVT();
+    void progressGVT() override;
 
-    void receiveEventUpdate(std::shared_ptr<Event>& event, Color color);
+    void receiveEventUpdate(std::shared_ptr<Event>& event, Color color) override;
 
-    Color sendEventUpdate(std::shared_ptr<Event>& event);
+    Color sendEventUpdate(std::shared_ptr<Event>& event) override;
 
-    bool gvtUpdated();
+    bool gvtUpdated() override;
 
-    int64_t getMessageCount() {
+    inline int64_t getMessageCount() override {
         return initialColorCount();
     }
 
     void reportThreadMin(unsigned int timestamp, unsigned int thread_id,
-                                 unsigned int local_gvt_flag);
+                                 unsigned int local_gvt_flag) override;
 
-    void reportThreadSendMin(unsigned int timestamp, unsigned int thread_id);
+    void reportThreadSendMin(unsigned int timestamp, unsigned int thread_id)  override;
 
-    unsigned int getLocalGVTFlag();
+    unsigned int getLocalGVTFlag() override;
 
 protected:
     // Message handler for a Mattern token

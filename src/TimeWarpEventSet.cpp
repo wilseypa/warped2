@@ -230,7 +230,7 @@ std::unique_ptr<std::vector<std::shared_ptr<Event>>>
         event_riterator++;
     }
 
-    return (std::move(events));
+    return events;
 }
 
 /*

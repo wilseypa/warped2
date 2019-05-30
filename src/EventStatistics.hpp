@@ -15,6 +15,8 @@ class EventStatistics {
 public:
     EventStatistics(std::string filename) : filename_(std::move(filename)) {}
 
+    virtual ~EventStatistics() = default;
+
     // Record an event.
     virtual void record(const std::string& source, unsigned int send_time,
                         Event* event) = 0;

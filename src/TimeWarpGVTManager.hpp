@@ -19,6 +19,7 @@ public:
         : comm_manager_(comm_manager), gvt_period_(period), num_worker_threads_(num_worker_threads) {}
 
     virtual void initialize();
+    virtual ~TimeWarpGVTManager() = default;
 
     void checkProgressGVT();
 

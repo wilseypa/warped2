@@ -427,7 +427,7 @@ std::unique_ptr<Partitioner>
 Configuration::makePartitioner(std::unique_ptr<Partitioner> user_partitioner) {
     const auto& partitioner_type = (*root_)["partitioning"]["type"];
     if (partitioner_type == "default") {
-        return std::move(user_partitioner);
+        return user_partitioner;
     }
     return makePartitioner();
 }

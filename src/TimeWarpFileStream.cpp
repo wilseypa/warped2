@@ -11,6 +11,10 @@ TimeWarpFileStream::TimeWarpFileStream (FileStream&& x) {
 }
 
 TimeWarpFileStream& TimeWarpFileStream::operator= (TimeWarpFileStream&& rhs) {
+
+    if (this == &rhs)
+	return *this;
+    
     *this = std::move(rhs);
     return *this;
 }

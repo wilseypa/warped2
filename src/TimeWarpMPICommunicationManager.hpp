@@ -22,6 +22,7 @@ public:
     TimeWarpMPICommunicationManager(unsigned int max_buffer_size, unsigned max_aggregate) :
         max_buffer_size_(max_buffer_size*max_aggregate), max_aggregate_(max_aggregate) {}
 
+    virtual ~TimeWarpMPICommunicationManager() = default;
     unsigned int initialize();
     void finalize();
     unsigned int getNumProcesses();

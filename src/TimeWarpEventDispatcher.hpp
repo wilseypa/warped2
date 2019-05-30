@@ -1,9 +1,12 @@
 #ifndef TIME_WARP_EVENT_DISPATCHER_H
 #define TIME_WARP_EVENT_DISPATCHER_H
 
+#define THREAD_LOCAL_SPECIFIER _Thread_local
+
 #ifdef __GNUC__ 
   #if __GNUC_MINOR__ < 8
-    #define thread_local __thread
+    #undef THREAD_LOCAL_SPECIFIER
+    #define THREAD_LOCAL_SPECIFIER __thread
   #endif
 #endif
 
@@ -110,7 +113,7 @@ private:
     const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
     const std::unique_ptr<TimeWarpStatistics> tw_stats_;
 
-    static thread_local unsigned int thread_id;
+    static THREAD_LOCAL_SPECIFIER unsigned int thread_id;
 };
 
 struct EventMessage : public TimeWarpKernelMessage {

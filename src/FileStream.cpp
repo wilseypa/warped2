@@ -15,6 +15,9 @@ FileStream::FileStream (FileStream&& x) {
 }
 
 FileStream& FileStream::operator= (FileStream&& rhs) {
+    if (this == &rhs)
+	return *this;
+
     *this = std::move(rhs);
     return *this;
 }

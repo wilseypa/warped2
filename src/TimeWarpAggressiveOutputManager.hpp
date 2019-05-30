@@ -13,6 +13,7 @@ namespace warped {
 class TimeWarpAggressiveOutputManager : public TimeWarpOutputManager {
 public:
     TimeWarpAggressiveOutputManager() = default;
+    virtual ~TimeWarpAggressiveOutputManager() = default;
 
     std::unique_ptr<std::vector<std::shared_ptr<Event>>>
         rollback(std::shared_ptr<Event> straggler_event, unsigned int local_lp_id);

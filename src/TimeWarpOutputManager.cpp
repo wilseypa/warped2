@@ -55,7 +55,7 @@ TimeWarpOutputManager::removeEventsSentAfter(std::shared_ptr<Event> straggler_ev
         max = output_queue_[local_lp_id].rbegin();
     }
 
-    return std::move(events_to_cancel);
+    return events_to_cancel;
 }
 
 std::size_t TimeWarpOutputManager::size(unsigned int local_lp_id) {

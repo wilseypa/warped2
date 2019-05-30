@@ -19,6 +19,8 @@ enum class MessageType {
 
 struct TimeWarpKernelMessage {
     TimeWarpKernelMessage() = default;
+    virtual ~TimeWarpKernelMessage() = default;
+
     TimeWarpKernelMessage(unsigned int sender, unsigned int receiver) :
         sender_id(sender), receiver_id(receiver) {}
 

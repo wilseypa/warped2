@@ -19,11 +19,13 @@ public:
     TimeWarpPeriodicStateManager(unsigned int period) :
         period_(period) {}
 
+    virtual ~TimeWarpPeriodicStateManager() = default;
+
     void initialize(unsigned int num_local_lps) override;
 
     // Saves the state of the specified lp if the count is equal to 0.
     virtual void saveState(std::shared_ptr<Event> current_event, unsigned int local_lp_id,
-        LogicalProcess *lp);
+        LogicalProcess *lp) override;
 
 private:
     // Period is the number of events that must be processed before saving state

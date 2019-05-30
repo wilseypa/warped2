@@ -17,6 +17,8 @@ class TimeWarpOutputManager {
 public:
     TimeWarpOutputManager() = default;
 
+    virtual ~TimeWarpOutputManager() = default;
+
     // Creates an output queue for each lp as well as locks for each output queue.
     void initialize(unsigned int num_local_lps);
 

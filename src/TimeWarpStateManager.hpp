@@ -20,7 +20,8 @@ class TimeWarpStateManager {
 public:
 
     TimeWarpStateManager() = default;
-
+    virtual ~TimeWarpStateManager() = default;
+    
     // Creates a state queue for each lps as well as a lock for each state queue
     virtual void initialize(unsigned int num_local_lps);
 
