@@ -17,7 +17,7 @@
 #include "LogicalProcess.hpp"
 #include "Event.hpp"
 #include "utility/memory.hpp"
-#include "LadderQueue.hpp"
+#include "RopeLadderQueue.hpp"
 
 namespace warped {
 
@@ -78,7 +78,7 @@ private:
     unsigned int num_of_schedulers_ = 0;
 
     // Queues to hold the scheduled events
-    std::vector<std::unique_ptr<LadderQueue>> schedule_queue_;
+    std::vector<std::unique_ptr<RopeLadderQueue>> schedule_queue_;
 
     // Map unprocessed queue to a schedule queue
     std::vector<unsigned int> input_queue_scheduler_map_;

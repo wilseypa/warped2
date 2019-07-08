@@ -1,9 +1,9 @@
-#include "LadderQueue.hpp"
+#include "RopeLadderQueue.hpp"
 #include <cassert>
 
 namespace warped {
 
-LadderQueue::LadderQueue() {
+RopeLadderQueue::RopeLadderQueue() {
 
     /* Reserve the size of Top */
     top_.buffer_.reserve(2*THRESHOLD);
@@ -23,7 +23,7 @@ LadderQueue::LadderQueue() {
     }
 }
 
-std::shared_ptr<Event> LadderQueue::dequeue() {
+std::shared_ptr<Event> RopeLadderQueue::dequeue() {
 
     // Remove from bottom if not empty
     if (auto e = bottom_.pop()) {
@@ -84,7 +84,7 @@ std::shared_ptr<Event> LadderQueue::dequeue() {
     return bottom_.pop();
 }
 
-void LadderQueue::insert(std::shared_ptr<Event> event) {
+void RopeLadderQueue::insert(std::shared_ptr<Event> event) {
 
     assert(event);
     auto ts = event->timestamp();
@@ -130,7 +130,7 @@ void LadderQueue::insert(std::shared_ptr<Event> event) {
     bottom_.push(event);
 }
 
-bool LadderQueue::erase(std::shared_ptr<Event> event) {
+bool RopeLadderQueue::erase(std::shared_ptr<Event> event) {
 
     assert(event);
     auto ts = event->timestamp();
@@ -233,7 +233,7 @@ bool LadderQueue::erase(std::shared_ptr<Event> event) {
     return false;
 }
 
-unsigned int LadderQueue::lowestTimestamp() {
+unsigned int RopeLadderQueue::lowestTimestamp() {
 
     lock_.lock();
     unsigned int ts = bottom_start_;
@@ -242,7 +242,7 @@ unsigned int LadderQueue::lowestTimestamp() {
     return ts;
 }
 
-void LadderQueue::createNewRung() {
+void RopeLadderQueue::createNewRung() {
 
     /* Check if this is the first rung creation */
     if (!rung_cnt_) {
@@ -260,7 +260,7 @@ void LadderQueue::createNewRung() {
     }
 }
 
-void LadderQueue::recurseRung() {
+void RopeLadderQueue::recurseRung() {
 
     // If there are no rungs
     if (!rung_cnt_) return;

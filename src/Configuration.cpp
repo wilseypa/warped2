@@ -336,7 +336,7 @@ check the following configurations:\n") + invalid_string);
                       << "Number of Schedule queues: " << num_schedulers << "\n";
 
             std::cout << "Type of Schedule queue:    ";
-            std::cout << "Lock-free Unsorted Bottom Ladder Queue\n";
+            std::cout << "Rope Ladder Queue\n";
 
             std::cout << "Type of Scheduler lock:    ";
 #ifdef SCHEDULE_QUEUE_SPINLOCKS

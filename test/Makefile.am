@@ -11,7 +11,7 @@ WARPED_TEST_PROGS = \
     test_CommandLineConfiguration \
     test_Event \
     test_IndividualEventStatistics \
-    test_LadderQueue \
+    test_RopeLadderQueue \
     test_CircularQueue \
     test_SplayTree \
     test_LogicalProcess \

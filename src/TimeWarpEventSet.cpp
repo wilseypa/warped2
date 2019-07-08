@@ -32,7 +32,7 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
 
     /* Create the schedule queues */
     for (unsigned int scheduler_id = 0; scheduler_id < num_of_schedulers_; scheduler_id++) {
-        schedule_queue_.push_back(make_unique<LadderQueue>());
+        schedule_queue_.push_back(make_unique<RopeLadderQueue>());
     }
 
     /* Map worker threads to schedule queues. */

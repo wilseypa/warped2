@@ -1,7 +1,7 @@
 #ifndef LADDER_QUEUE_HPP
 #define LADDER_QUEUE_HPP
 
-/* Ladder Queue Library */
+/* Rope Ladder Queue Library */
 
 /* Include section */
 #include <iostream>
@@ -24,9 +24,9 @@ using bucket = std::vector<std::shared_ptr<warped::Event>>;
 
 namespace warped {
 
-class LadderQueue {
+class RopeLadderQueue {
 public:
-    LadderQueue();
+    RopeLadderQueue();
 
     std::shared_ptr<Event> dequeue();
 

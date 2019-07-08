@@ -26,7 +26,7 @@ WARPED_NOINST_HPP_FILES = \
     src/EventDispatcher.hpp \
     src/EventStatistics.hpp \
     src/IndividualEventStatistics.hpp \
-    src/LadderQueue.hpp \
+    src/RopeLadderQueue.hpp \
     src/CircularList.hpp \
     src/CircularQueue.hpp \
     src/LTSFQueue.hpp \
@@ -66,7 +66,7 @@ WARPED_CPP_FILES = \
     src/FileStream.cpp \
     src/IndividualEventStatistics.cpp \
     src/LogicalProcess.cpp \
-    src/LadderQueue.cpp \
+    src/RopeLadderQueue.cpp \
     src/ProfileGuidedPartitioner.cpp \
     src/RoundRobinPartitioner.cpp \
     src/SequentialEventDispatcher.cpp \
