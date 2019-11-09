@@ -5,6 +5,7 @@
 #include "TimeWarpEventSet.hpp"
 #include "utility/warnings.hpp"
 
+
 namespace warped {
 
 void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*>>& lps,
@@ -84,9 +85,14 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
 
         assert(input_queue_[lp_id]->size() == 1);
 
+
+#if defined (MANY_THREADS_PER_LTSF)
         schedule_queue_lock_[scheduler_id].lock();
+#endif
         schedule_queue_[scheduler_id]->insert(event);
+#if defined (MANY_THREADS_PER_LTSF)
         schedule_queue_lock_[scheduler_id].unlock();
+#endif
         scheduled_event_pointer_[lp_id] = event;
 
     } else {
@@ -96,7 +102,10 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
             // If the pointer comparison of the smallest event does not match scheduled event, well
             // that means we should update the schedule queue...
 
+#if defined (MANY_THREADS_PER_LTSF)
             schedule_queue_lock_[scheduler_id].lock();
+#endif
+
 #if defined(CIRCULAR_QUEUE)
             if (schedule_queue_[scheduler_id]->deactivate(scheduled_event_pointer_[lp_id])) {
 #else
@@ -108,7 +117,10 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
                 schedule_queue_[scheduler_id]->insert(smallest_event);
                 scheduled_event_pointer_[lp_id] = smallest_event;
             }
+
+#if defined (MANY_THREADS_PER_LTSF)
             schedule_queue_lock_[scheduler_id].unlock();
+#endif
         }
     }
 }
@@ -120,7 +132,9 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
 
+#if defined (MANY_THREADS_PER_LTSF)
     schedule_queue_lock_[scheduler_id].lock();
+#endif
 
 #if defined(SORTED_LADDER_QUEUE) || defined(PARTIALLY_SORTED_LADDER_QUEUE)
     auto event = schedule_queue_[scheduler_id]->dequeue();
@@ -150,7 +164,9 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     // then, a rollback will bring the processed positive event back to input queue and they will
     // be cancelled.
 
+#if defined (MANY_THREADS_PER_LTSF)
     schedule_queue_lock_[scheduler_id].unlock();
+#endif
 
     return event;
 }
@@ -248,9 +264,16 @@ void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
     if (!input_queue_[lp_id]->empty()) {
         scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
         unsigned int scheduler_id = input_queue_scheduler_map_[lp_id];
+
+#if defined (MANY_THREADS_PER_LTSF)
         schedule_queue_lock_[scheduler_id].lock();
+#endif
         schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[lp_id]);
+#if defined (MANY_THREADS_PER_LTSF)
         schedule_queue_lock_[scheduler_id].unlock();
+#endif
+
+
     } else {
         scheduled_event_pointer_[lp_id] = nullptr;
     }
@@ -289,9 +312,14 @@ void TimeWarpEventSet::replenishScheduler (unsigned int lp_id) {
     // NOTE: A pointer to the scheduled event will remain in the input queue
     if (!input_queue_[lp_id]->empty()) {
         scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
+
+#if defined (MANY_THREADS_PER_LTSF)
         schedule_queue_lock_[scheduler_id].lock();
+#endif
         schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[lp_id]);
+#if defined (MANY_THREADS_PER_LTSF)
         schedule_queue_lock_[scheduler_id].unlock();
+#endif
     } else {
         scheduled_event_pointer_[lp_id] = nullptr;
     }
