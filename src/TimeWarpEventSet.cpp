@@ -23,6 +23,7 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
 #if defined (SCHEDULE_QUEUE_SPINLOCKS)
     schedule_queue_lock_ = make_unique<TicketLock []>(num_of_schedulers_);
 #elif !defined (ONE_THREAD_PER_LTSF)
+std::cout << "NOT DEFINED" << std::endl;
     schedule_queue_lock_ = make_unique<std::mutex []>(num_of_schedulers_);
 #endif
 
@@ -143,10 +144,6 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 #else
     unsigned int scheduler_id = thread_id;
 #endif
-
-if (scheduler_id != thread_id) {
-std::cout << "thread_id: " << thread_id << "   scheduler_id: " << scheduler_id << std::endl;
-}
 
 #if !defined (ONE_THREAD_PER_LTSF)
     schedule_queue_lock_[scheduler_id].lock();
