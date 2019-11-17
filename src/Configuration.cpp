@@ -235,7 +235,7 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
 
 // If we only want one thread per queue, then we tie the amount of worker treads to the amount of schedule queues
 // Number of worker threads is defined after the number of schedule queues if defined below
-#if defined (ONE_THREAD_PER_LTSF)
+#if !defined (ONE_THREAD_PER_LTSF)
         // WORKER THREADS
         int num_worker_threads = (*root_)["time-warp"]["worker-threads"].asInt();
         if (!checkTimeWarpConfigs(num_worker_threads, all_config_ids, comm_manager)) {
