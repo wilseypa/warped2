@@ -84,7 +84,7 @@ private:
     unsigned int num_of_schedulers_ = 0;
 
     // Lock to protect the schedule queues
-#ifdef (SCHEDULE_QUEUE_SPINLOCKS)
+#if defined (SCHEDULE_QUEUE_SPINLOCKS)
     std::unique_ptr<TicketLock []> schedule_queue_lock_;
 #elif !defined (ONE_THREAD_PER_LTSF)
     std::unique_ptr<std::mutex []> schedule_queue_lock_;
