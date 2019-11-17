@@ -138,7 +138,11 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
  */
 std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
+#if !defined (ONE_THREAD_PER_LTSF)
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
+#else
+    unsigned int scheduler_id = thread_id;
+#endif
 
 if (scheduler_id != thread_id) {
 std::cout << "thread_id: " << thread_id << "   scheduler_id: " << scheduler_id << std::endl;
