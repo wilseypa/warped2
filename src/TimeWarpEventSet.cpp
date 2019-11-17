@@ -95,22 +95,31 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
 #endif
         scheduled_event_pointer_[lp_id] = event;
 
-    } else {
+    } 
+
+    // This else section of code can be called by other threads, this means that other threads can try to swap
+    // events in different schedule queues. This needs to be disabled if we are taking out schedule queue locks.
+#if !defined (ONE_THREAD_PER_LTSF)   
+    else {
+
+
         auto smallest_event = *input_queue_[lp_id]->begin();
 
         if (smallest_event != scheduled_event_pointer_[lp_id]) {
             // If the pointer comparison of the smallest event does not match scheduled event, well
             // that means we should update the schedule queue...
 
-#if !defined (ONE_THREAD_PER_LTSF)
+
             schedule_queue_lock_[scheduler_id].lock();
 #endif
 
-#if defined(CIRCULAR_QUEUE)
+#if defined(CIRCULAR_QUEUE) && !defined (ONE_THREAD_PER_LTSF)
             if (schedule_queue_[scheduler_id]->deactivate(scheduled_event_pointer_[lp_id])) {
-#else
+#elif !defined (ONE_THREAD_PER_LTSF) && !defined(CIRCULAR_QUEUE)
             if (schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[lp_id])) {
 #endif
+
+#if !defined (ONE_THREAD_PER_LTSF)
                 // ...but only if the event was successfully erased from the schedule queue. If it is
                 // not then the event is already being processed and a rollback will have to occur.
 
@@ -118,11 +127,10 @@ void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> e
                 scheduled_event_pointer_[lp_id] = smallest_event;
             }
 
-#if !defined (ONE_THREAD_PER_LTSF)
             schedule_queue_lock_[scheduler_id].unlock();
-#endif
         }
     }
+#endif
 }
 
 /*
