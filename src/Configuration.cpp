@@ -233,11 +233,15 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
 
         std::unique_ptr<TimeWarpEventSet> event_set = make_unique<TimeWarpEventSet>();
 
+// If we only want one thread per queue, then we tie the amount of worker treads to the amount of schedule queues
+// Number of worker threads is defined after the number of schedule queues if defined below
+#if defined (ONE_THREAD_PER_LTSF)
         // WORKER THREADS
         int num_worker_threads = (*root_)["time-warp"]["worker-threads"].asInt();
         if (!checkTimeWarpConfigs(num_worker_threads, all_config_ids, comm_manager)) {
             invalid_string += std::string("\tNumber of worker threads\n");
         }
+#endif
 
         // SCHEDULE QUEUES
         int num_schedulers = (*root_)["time-warp"]["scheduler-count"].asInt();
@@ -245,11 +249,12 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
             invalid_string += std::string("\tNumber of schedule queues\n");
         }
 
-        // If we disable schedule queue locks, then we need to make sure that there are 
-        // exactly one worker thread per schedule queue
-        #if defined (ONE_THREAD_PER_LTSF)
-            assert(num_worker_threads%num_schedulers == 0);
-        #endif
+// If we disable schedule queue locks, then we need to make sure that there are 
+// exactly one worker thread per schedule queue
+#if defined (ONE_THREAD_PER_LTSF)
+        int num_worker_threads = num_schedulers;
+        assert(num_worker_threads%num_schedulers == 0);
+#endif
 
         // LP MIGRATION
         auto lp_migration_status = (*root_)["time-warp"]["lp-migration"].asString();
