@@ -245,6 +245,12 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
             invalid_string += std::string("\tNumber of schedule queues\n");
         }
 
+        // If we disable schedule queue locks, then we need to make sure that there are 
+        // exactly one worker thread per schedule queue
+        #if defined (ONE_THREAD_PER_LTSF)
+            assert(num_worker_threads%num_schedulers == 0);
+        #endif
+
         // LP MIGRATION
         auto lp_migration_status = (*root_)["time-warp"]["lp-migration"].asString();
         if (lp_migration_status == "off") {
