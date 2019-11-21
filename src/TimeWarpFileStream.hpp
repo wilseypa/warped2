@@ -61,7 +61,7 @@ public:
     virtual TimeWarpFileStream& operator<< (void* val) override;
     virtual TimeWarpFileStream& operator<< (const char * val) override;
     virtual TimeWarpFileStream& operator<< (std::streambuf* sb) override;
-    virtual TimeWarpFileStream& operator<< (FileStream& (*pf)(FileStream&)) override;
+    // virtual TimeWarpFileStream& operator<< (FileStream& (*pf)(FileStream&)) override;
     virtual TimeWarpFileStream& operator<< (std::ios& (*pf)(std::ios&)) override;
     virtual TimeWarpFileStream& operator<< (std::ios_base& (*pf)(std::ios_base&)) override;
     virtual TimeWarpFileStream& put(char c) override;

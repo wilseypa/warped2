@@ -121,10 +121,10 @@ FileStream& FileStream::operator<< (std::streambuf* sb) {
     return *this;
 }
 
-FileStream& FileStream::operator<< (FileStream& (*pf)(FileStream&)) {
-    *this << pf;
-    return *this;
-}
+// FileStream& FileStream::operator<< (FileStream& (*pf)(FileStream&)) {
+//    *this << pf;
+//    return *this;
+// }
 
 FileStream& FileStream::operator<< (std::ios& (*pf)(std::ios&)) {
     fstream_ << pf;
@@ -208,10 +208,10 @@ FileStream& FileStream::operator>> (std::streambuf* sb) {
     return *this;
 }
 
-FileStream& FileStream::operator>> (FileStream& (*pf)(FileStream)) {
-    *this >> pf;
-    return *this;
-}
+// FileStream& FileStream::operator>> (FileStream& (*pf)(FileStream)) {
+//    *this >> pf;
+//    return *this;
+// }
 
 FileStream& FileStream::operator>> (std::ios& (*pf)(std::ios&)) {
     fstream_ >> pf;
