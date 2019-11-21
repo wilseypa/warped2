@@ -20,10 +20,13 @@ void TimeWarpEventSet::initialize (const std::vector<std::vector<LogicalProcess*
     /* Create the input and processed queues and their locks.
        Also create the input queue-scheduler map and scheduled event pointer. */
     input_queue_lock_ = make_unique<std::mutex []>(num_of_lps);
+
+#if !defined (ONE_THREAD_PER_LTSF)
 #if defined (SCHEDULE_QUEUE_SPINLOCKS)
     schedule_queue_lock_ = make_unique<TicketLock []>(num_of_schedulers_);
-#elif !defined (ONE_THREAD_PER_LTSF)
+#else
     schedule_queue_lock_ = make_unique<std::mutex []>(num_of_schedulers_);
+#endif
 #endif
 
     for (unsigned int scheduler_id = 0; scheduler_id < lps.size(); scheduler_id++) {

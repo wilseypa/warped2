@@ -245,6 +245,9 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
 
         // SCHEDULE QUEUES
         int num_schedulers = (*root_)["time-warp"]["scheduler-count"].asInt();
+#if defined (ONE_THREAD_PER_LTSF)
+        assert(num_schedulers > 0);
+#endif
         if (!checkTimeWarpConfigs(num_schedulers, all_config_ids, comm_manager)) {
             invalid_string += std::string("\tNumber of schedule queues\n");
         }
@@ -253,7 +256,6 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
 // exactly one worker thread per schedule queue
 #if defined (ONE_THREAD_PER_LTSF)
         int num_worker_threads = num_schedulers;
-        assert(num_worker_threads%num_schedulers == 0);
 #endif
 
         // LP MIGRATION
