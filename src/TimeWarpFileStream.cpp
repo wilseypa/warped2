@@ -199,10 +199,10 @@ TimeWarpFileStream& TimeWarpFileStream::operator<< (std::streambuf* sb) {
     return *this;
 }
 
-TimeWarpFileStream& TimeWarpFileStream::operator<< (FileStream& (*pf)(FileStream&)) {
-    *this << pf;
-    return *this;
-}
+// TimeWarpFileStream& TimeWarpFileStream::operator<< (FileStream& (*pf)(FileStream&)) {
+//    *this << pf;
+//    return *this;
+// }
 
 TimeWarpFileStream& TimeWarpFileStream::operator<< (std::ios& (*pf)(std::ios&)) {
     std::stringstream ss;

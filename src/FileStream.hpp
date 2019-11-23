@@ -49,7 +49,7 @@ public:
     virtual FileStream& operator<< (void* val);
     virtual FileStream& operator<< (const char * val);
     virtual FileStream& operator<< (std::streambuf* sb);
-    virtual FileStream& operator<< (FileStream& (*pf)(FileStream&));
+    // virtual FileStream& operator<< (FileStream& (*pf)(FileStream&));
     virtual FileStream& operator<< (std::ios& (*pf)(std::ios&));
     virtual FileStream& operator<< (std::ios_base& (*pf)(std::ios_base&));
     virtual FileStream& put(char c);
@@ -68,7 +68,7 @@ public:
     FileStream& operator>> (long double& val);
     FileStream& operator>> (void*& val);
     FileStream& operator>> (std::streambuf* sb);
-    FileStream& operator>> (FileStream& (*pf)(FileStream));
+    // FileStream& operator>> (FileStream& (*pf)(FileStream));
     FileStream& operator>> (std::ios& (*pf)(std::ios&));
     FileStream& operator>> (std::ios_base& (*pf)(std::ios_base&));
     std::streamsize gcount() const;
