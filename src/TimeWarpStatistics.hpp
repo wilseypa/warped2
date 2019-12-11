@@ -39,7 +39,10 @@ struct Stats {
         uint64_t,                   // Rolled back events           18
         double,                     // Average Rollback Length      19
         double,                     // Efficiency                   20
-        uint64_t                    // dummy/number of elements     21
+        uint64_t,                   // Events for starved objects   21
+        uint64_t,                   // Scheduled event swaps        22
+        double,                     // Design Efficiency            23
+        uint64_t                    // dummy/number of elements     24
     > stats_;
 
     template<unsigned I>
@@ -70,7 +73,10 @@ const stats_index<17> NUM_OBJECTS;
 const stats_index<18> EVENTS_ROLLEDBACK;
 const stats_index<19> AVERAGE_RBLENGTH;
 const stats_index<20> EFFICIENCY;
-const stats_index<21> NUM_STATISTICS;
+const stats_index<21> EVENTS_FOR_STARVED_OBJECTS;
+const stats_index<22> SCHEDULED_EVENT_SWAPS;
+const stats_index<23> DESIGN_EFFICIENCY;
+const stats_index<24> NUM_STATISTICS;
 
 class TimeWarpStatistics {
 public:
@@ -130,6 +136,8 @@ private:
     uint64_t *committed_events_by_node_;
     uint64_t *total_events_received_by_node_;
     uint64_t *num_objects_by_node_;
+    uint64_t *starved_obj_events_by_node_;
+    uint64_t *event_swaps_by_node_;
 
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
 
@@ -142,4 +150,3 @@ private:
 } // namespace warped
 
 #endif
-
