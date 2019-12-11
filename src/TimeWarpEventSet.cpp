@@ -70,47 +70,46 @@ void TimeWarpEventSet::releaseInputQueueLock (unsigned int lp_id) {
  *
  *  NOTE: scheduled_event_pointer is also protected by the input queue lock
  */
-void TimeWarpEventSet::insertEvent (unsigned int lp_id, std::shared_ptr<Event> event) {
-
+InsertStatus TimeWarpEventSet::insertEvent (
+                    unsigned int lp_id, std::shared_ptr<Event> event) {
     // Always insert event into input queue
     input_queue_[lp_id]->insert(event);
-
     unsigned int scheduler_id = input_queue_scheduler_map_[lp_id];
-
     if (scheduled_event_pointer_[lp_id] == nullptr) {
         // If no event is currently scheduled. This can only happen if the thread that handles
         // events for lp with id == lp_id has determined that there are no more events left in
         // its input queue
-
         assert(input_queue_[lp_id]->size() == 1);
-
         schedule_queue_lock_[scheduler_id].lock();
         schedule_queue_[scheduler_id]->insert(event);
         schedule_queue_lock_[scheduler_id].unlock();
         scheduled_event_pointer_[lp_id] = event;
-
-    } else {
-        auto smallest_event = *input_queue_[lp_id]->begin();
-
-        if (smallest_event != scheduled_event_pointer_[lp_id]) {
-            // If the pointer comparison of the smallest event does not match scheduled event, well
-            // that means we should update the schedule queue...
-
-            schedule_queue_lock_[scheduler_id].lock();
-#if defined(CIRCULAR_QUEUE)
-            if (schedule_queue_[scheduler_id]->deactivate(scheduled_event_pointer_[lp_id])) {
-#else
-            if (schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[lp_id])) {
-#endif
-                // ...but only if the event was successfully erased from the schedule queue. If it is
-                // not then the event is already being processed and a rollback will have to occur.
-
-                schedule_queue_[scheduler_id]->insert(smallest_event);
-                scheduled_event_pointer_[lp_id] = smallest_event;
-            }
-            schedule_queue_lock_[scheduler_id].unlock();
-        }
+        return InsertStatus::StarvedObject;
     }
+
+    auto smallest_event = *input_queue_[lp_id]->begin();
+    if (smallest_event == scheduled_event_pointer_[lp_id]) {
+        return InsertStatus::LpOnly;
+    }
+
+    // If the pointer comparison of the smallest event does not match scheduled event, well
+    // that means we should update the schedule queue...
+    auto ret = InsertStatus::SchedEventSwapSuccess;
+    schedule_queue_lock_[scheduler_id].lock();
+#if defined(CIRCULAR_QUEUE)
+    if (schedule_queue_[scheduler_id]->deactivate(scheduled_event_pointer_[lp_id])) {
+#else
+    if (schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[lp_id])) {
+#endif
+        // ...but only if the event was successfully erased from the schedule queue. If it is
+        // not then the event is already being processed and a rollback will have to occur.
+        schedule_queue_[scheduler_id]->insert(smallest_event);
+        scheduled_event_pointer_[lp_id] = smallest_event;
+    } else {
+        ret = InsertStatus::SchedEventSwapFailure;
+    }
+    schedule_queue_lock_[scheduler_id].unlock();
+    return ret;
 }
 
 /*

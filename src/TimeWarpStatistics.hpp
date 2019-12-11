@@ -40,9 +40,10 @@ struct Stats {
         double,                     // Average Rollback Length      19
         double,                     // Efficiency                   20
         uint64_t,                   // Events for starved objects   21
-        uint64_t,                   // Scheduled event swaps        22
-        double,                     // Design Efficiency            23
-        uint64_t                    // dummy/number of elements     24
+        uint64_t,                   // Scheduled event swap success 22
+        uint64_t,                   // Scheduled event swap failed  23
+        double,                     // Design Efficiency            24
+        uint64_t                    // dummy/number of elements     25
     > stats_;
 
     template<unsigned I>
@@ -52,16 +53,16 @@ struct Stats {
 
 };
 
-const stats_index<0> LOCAL_POSITIVE_EVENTS_SENT;
-const stats_index<1> REMOTE_POSITIVE_EVENTS_SENT;
-const stats_index<2> LOCAL_NEGATIVE_EVENTS_SENT;
-const stats_index<3> REMOTE_NEGATIVE_EVENTS_SENT;
-const stats_index<4> TOTAL_EVENTS_SENT;
-const stats_index<5> PERCENT_REMOTE;
-const stats_index<6> PRIMARY_ROLLBACKS;
-const stats_index<7> SECONDARY_ROLLBACKS;
-const stats_index<8> TOTAL_ROLLBACKS;
-const stats_index<9> COAST_FORWARDED_EVENTS;
+const stats_index<0>  LOCAL_POSITIVE_EVENTS_SENT;
+const stats_index<1>  REMOTE_POSITIVE_EVENTS_SENT;
+const stats_index<2>  LOCAL_NEGATIVE_EVENTS_SENT;
+const stats_index<3>  REMOTE_NEGATIVE_EVENTS_SENT;
+const stats_index<4>  TOTAL_EVENTS_SENT;
+const stats_index<5>  PERCENT_REMOTE;
+const stats_index<6>  PRIMARY_ROLLBACKS;
+const stats_index<7>  SECONDARY_ROLLBACKS;
+const stats_index<8>  TOTAL_ROLLBACKS;
+const stats_index<9>  COAST_FORWARDED_EVENTS;
 const stats_index<10> EVENTS_PROCESSED;
 const stats_index<11> EVENTS_COMMITTED;
 const stats_index<12> TOTAL_NEGATIVE_EVENTS;
@@ -74,9 +75,10 @@ const stats_index<18> EVENTS_ROLLEDBACK;
 const stats_index<19> AVERAGE_RBLENGTH;
 const stats_index<20> EFFICIENCY;
 const stats_index<21> EVENTS_FOR_STARVED_OBJECTS;
-const stats_index<22> SCHEDULED_EVENT_SWAPS;
-const stats_index<23> DESIGN_EFFICIENCY;
-const stats_index<24> NUM_STATISTICS;
+const stats_index<22> SCHEDULED_EVENT_SWAPS_SUCCESS;
+const stats_index<23> SCHEDULED_EVENT_SWAPS_FAILURE;
+const stats_index<24> DESIGN_EFFICIENCY;
+const stats_index<25> NUM_STATISTICS;
 
 class TimeWarpStatistics {
 public:
@@ -137,7 +139,8 @@ private:
     uint64_t *total_events_received_by_node_;
     uint64_t *num_objects_by_node_;
     uint64_t *starved_obj_events_by_node_;
-    uint64_t *event_swaps_by_node_;
+    uint64_t *event_swaps_success_by_node_;
+    uint64_t *event_swaps_failed_by_node_;
 
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
 

@@ -393,11 +393,19 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
 
     // NOTE: Event is assumed to be less than the maximum simulation time.
     event_set_->acquireInputQueueLock(receiver_lp_id);
-    event_set_->insertEvent(receiver_lp_id, event);
+    auto status = event_set_->insertEvent(receiver_lp_id, event);
     event_set_->releaseInputQueueLock(receiver_lp_id);
 
-   // Make sure to track sends if we are in the middle of a GVT calculation.
-   gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
+    // Make sure to track sends if we are in the middle of a GVT calculation.
+    gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
+
+    if (status == TimeWarpEventSet::InsertStatus::StarvedObject) {
+        tw_stats_->upCount(EVENTS_FOR_STARVED_OBJECTS, thread_id);
+    } else if (status == TimeWarpEventSet::InsertStatus::SchedEventSwapSuccess) {
+        tw_stats_->upCount(SCHEDULED_EVENT_SWAPS_SUCCESS, thread_id);
+    } else if (status == TimeWarpEventSet::InsertStatus::SchedEventSwapFailure) {
+        tw_stats_->upCount(SCHEDULED_EVENT_SWAPS_FAILURE, thread_id);
+    }
 }
 
 void TimeWarpEventDispatcher::cancelEvents(

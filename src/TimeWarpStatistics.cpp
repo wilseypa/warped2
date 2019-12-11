@@ -99,14 +99,19 @@ void TimeWarpStatistics::calculateStats() {
             case EVENTS_FOR_STARVED_OBJECTS.value:
                 sumReduceLocal(EVENTS_FOR_STARVED_OBJECTS, starved_obj_events_by_node_);
                 break;
-            case SCHEDULED_EVENT_SWAPS.value:
-                sumReduceLocal(SCHEDULED_EVENT_SWAPS, event_swaps_by_node_);
+            case SCHEDULED_EVENT_SWAPS_SUCCESS.value:
+                sumReduceLocal(SCHEDULED_EVENT_SWAPS_SUCCESS, event_swaps_success_by_node_);
+                break;
+            case SCHEDULED_EVENT_SWAPS_FAILURE.value:
+                sumReduceLocal(SCHEDULED_EVENT_SWAPS_FAILURE, event_swaps_failed_by_node_);
                 break;
             case DESIGN_EFFICIENCY.value:
-                global_stats_[DESIGN_EFFICIENCY] = 1.0 -
-                    static_cast<double>(global_stats_[EVENTS_FOR_STARVED_OBJECTS] +
-                            global_stats_[SCHEDULED_EVENT_SWAPS]) /
-                    static_cast<double>(global_stats_[EVENTS_PROCESSED]);
+                auto scheduler_impact_cnt = global_stats_[EVENTS_FOR_STARVED_OBJECTS]
+                                          + global_stats_[SCHEDULED_EVENT_SWAPS_SUCCESS]
+                                          + global_stats_[SCHEDULED_EVENT_SWAPS_FAILURE];
+                global_stats_[DESIGN_EFFICIENCY] =
+                    1.0 - static_cast<double>(scheduler_impact_cnt) /
+                            static_cast<double>(global_stats_[EVENTS_PROCESSED]);
                 break;
             default:
                 break;
@@ -136,7 +141,8 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
             << processed_events_by_node_[i]     << ",\t"
             << committed_events_by_node_[i]     << ",\t"
             << starved_obj_events_by_node_[i]   << ",\t"
-            << event_swaps_by_node_[i]          << std::endl;
+            << event_swaps_success_by_node_[i]  << ",\t"
+            << event_swaps_failed_by_node_[i]   << std::endl;
     }
 
     ofs << "Total"                                    << ",\t"
@@ -153,7 +159,8 @@ void TimeWarpStatistics::writeToFile(double num_seconds) {
         << global_stats_[EVENTS_PROCESSED]            << ",\t"
         << global_stats_[EVENTS_COMMITTED]            << ",\t"
         << global_stats_[EVENTS_FOR_STARVED_OBJECTS]  << ",\t"
-        << global_stats_[SCHEDULED_EVENT_SWAPS]       << ",\t"
+        << global_stats_[SCHEDULED_EVENT_SWAPS_SUCCESS] << ",\t"
+        << global_stats_[SCHEDULED_EVENT_SWAPS_FAILURE] << ",\t"
         << global_stats_[AVERAGE_MAX_MEMORY]          << std::endl;
 
     ofs.close();
@@ -188,7 +195,8 @@ void TimeWarpStatistics::printStats() {
               << "\tEfficiency:                " << global_stats_[EFFICIENCY]*100.0 << "%\n\n"
 
               << "\tEvents for starved objs:   " << global_stats_[EVENTS_FOR_STARVED_OBJECTS] << "\n"
-              << "\tScheduled events swapped:  " << global_stats_[SCHEDULED_EVENT_SWAPS] << "\n"
+              << "\tSched event swaps success: " << global_stats_[SCHEDULED_EVENT_SWAPS_SUCCESS] << "\n"
+              << "\tSched event swaps failure: " << global_stats_[SCHEDULED_EVENT_SWAPS_FAILURE] << "\n"
               << "\tDesign Efficiency:         " << global_stats_[DESIGN_EFFICIENCY]*100.0 << "%\n\n"
 
               << "\tAverage maximum memory:    " << global_stats_[AVERAGE_MAX_MEMORY] << " MB\n"
@@ -207,7 +215,8 @@ void TimeWarpStatistics::printStats() {
     delete [] processed_events_by_node_;
     delete [] committed_events_by_node_;
     delete [] starved_obj_events_by_node_;
-    delete [] event_swaps_by_node_;
+    delete [] event_swaps_success_by_node_;
+    delete [] event_swaps_failed_by_node_;
 }
 
 } // namespace warped

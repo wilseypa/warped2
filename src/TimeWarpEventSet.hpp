@@ -24,6 +24,13 @@
 
 namespace warped {
 
+enum class InsertStatus {
+    LpOnly,
+    StarvedObject,
+    SchedEventSwapSuccess,
+    SchedEventSwapFailure
+};
+
 class TimeWarpEventSet {
 public:
     TimeWarpEventSet() = default;
@@ -37,7 +44,7 @@ public:
 
     void releaseInputQueueLock (unsigned int lp_id);
 
-    void insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
+    InsertStatus insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id);
 
