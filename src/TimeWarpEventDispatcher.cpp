@@ -399,11 +399,11 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     // Make sure to track sends if we are in the middle of a GVT calculation.
     gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
 
-    if (status == TimeWarpEventSet::InsertStatus::StarvedObject) {
+    if (status == InsertStatus::StarvedObject) {
         tw_stats_->upCount(EVENTS_FOR_STARVED_OBJECTS, thread_id);
-    } else if (status == TimeWarpEventSet::InsertStatus::SchedEventSwapSuccess) {
+    } else if (status == InsertStatus::SchedEventSwapSuccess) {
         tw_stats_->upCount(SCHEDULED_EVENT_SWAPS_SUCCESS, thread_id);
-    } else if (status == TimeWarpEventSet::InsertStatus::SchedEventSwapFailure) {
+    } else if (status == InsertStatus::SchedEventSwapFailure) {
         tw_stats_->upCount(SCHEDULED_EVENT_SWAPS_FAILURE, thread_id);
     }
 }

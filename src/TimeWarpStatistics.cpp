@@ -106,12 +106,12 @@ void TimeWarpStatistics::calculateStats() {
                 sumReduceLocal(SCHEDULED_EVENT_SWAPS_FAILURE, event_swaps_failed_by_node_);
                 break;
             case DESIGN_EFFICIENCY.value:
-                auto scheduler_impact_cnt = global_stats_[EVENTS_FOR_STARVED_OBJECTS]
+                global_stats_[DESIGN_EFFICIENCY] = 1.0 -
+                        static_cast<double>(global_stats_[EVENTS_FOR_STARVED_OBJECTS]
                                           + global_stats_[SCHEDULED_EVENT_SWAPS_SUCCESS]
-                                          + global_stats_[SCHEDULED_EVENT_SWAPS_FAILURE];
-                global_stats_[DESIGN_EFFICIENCY] =
-                    1.0 - static_cast<double>(scheduler_impact_cnt) /
-                            static_cast<double>(global_stats_[EVENTS_PROCESSED]);
+                                          + global_stats_[SCHEDULED_EVENT_SWAPS_FAILURE]
+                                          - global_stats_[NUM_OBJECTS])
+                                          / global_stats_[EVENTS_PROCESSED];
                 break;
             default:
                 break;
