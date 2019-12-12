@@ -45,6 +45,8 @@ public:
     TimeWarpEventDispatcher(unsigned int max_sim_time,
         unsigned int num_worker_threads,
         bool is_lp_migration_on,
+        unsigned int k0,
+        unsigned int k1,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
         std::unique_ptr<TimeWarpEventSet> event_set,
         std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -94,6 +96,8 @@ private:
 
     unsigned int num_worker_threads_;
     bool is_lp_migration_on_;
+    unsigned int k0_;
+    unsigned int k1_;
     unsigned int num_local_lps_;
 
     std::unordered_map<std::string, LogicalProcess*> lps_by_name_;
