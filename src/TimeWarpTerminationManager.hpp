@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 
 #include "TimeWarpCommunicationManager.hpp"
 
@@ -50,7 +51,7 @@ public:
 private:
 
     State state_ = State::ACTIVE;
-    std::mutex state_lock_;
+    std::shared_mutex state_lock_;
     State sticky_state_ = State::ACTIVE;
 
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;

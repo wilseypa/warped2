@@ -3,6 +3,7 @@
 
 #include <memory> // for shared_ptr
 #include <atomic>
+#include <shared_mutex>
 
 #include <pthread.h>
 
@@ -50,6 +51,10 @@ protected:
     std::atomic<Color> color_ = ATOMIC_VAR_INIT(Color::WHITE);
 
     std::atomic<unsigned int> local_gvt_flag_ = ATOMIC_VAR_INIT(0);
+
+    std::shared_mutex report_gvt_lock_;
+
+    bool report_gvt_;
 
     std::unique_ptr<unsigned int []> local_min_;
 

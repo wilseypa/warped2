@@ -22,6 +22,8 @@ void TimeWarpSynchronousGVTManager::initialize() {
 
     recv_min_ = std::numeric_limits<unsigned int>::max();
 
+    report_gvt_ = false;
+
     TimeWarpGVTManager::initialize();
 }
 

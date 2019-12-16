@@ -10,6 +10,7 @@
 #include <set>
 #include <unordered_map>
 #include <mutex>
+#include <shared_mutex>
 #include <memory>
 #include <atomic>
 
@@ -76,7 +77,7 @@ private:
     unsigned int num_of_lps_ = 0;
 
     // Lock to protect the unprocessed queues
-    std::unique_ptr<std::mutex []> input_queue_lock_;
+    std::unique_ptr<std::shared_mutex []> input_queue_lock_;
 
     // Queues to hold the unprocessed events for each lp
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
@@ -93,7 +94,7 @@ private:
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
     std::unique_ptr<TicketLock []> schedule_queue_lock_;
 #else
-    std::unique_ptr<std::mutex []> schedule_queue_lock_;
+    std::unique_ptr<std::shared_mutex []> schedule_queue_lock_;
 #endif
 
     // Queues to hold the scheduled events
