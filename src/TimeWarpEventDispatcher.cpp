@@ -91,26 +91,24 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
         threads.push_back(std::move(thread));
     }
 
-    unsigned int gvt = 0;
+
+    // Create manager threads
+    // GVT manager
     auto sim_start = std::chrono::steady_clock::now();
+    auto gvt_thread(std::thread {&TimeWarpEventDispatcher::GVTManagerThread, this});
+    threads.push_back(std::move(gvt_thread));
 
-    // Master thread main loop
+    // Communication manager
+    auto comm_thread(std::thread {&TimeWarpEventDispatcher::CommunicationManagerThread, this});
+    threads.push_back(std::move(comm_thread));
+
+    // Termination Manager
     while (!termination_manager_->terminationStatus()) {
-
-        comm_manager_->handleMessages();
 
         // Check to see if we should start/continue the termination process
         if (termination_manager_->nodePassive()) {
             termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID(), 0);
         }
-
-        gvt_manager_->checkProgressGVT();
-
-        if (gvt_manager_->gvtUpdated()) {
-            gvt = gvt_manager_->getGVT();
-            onGVT(gvt);
-        }
-
     }
 
     comm_manager_->waitForAllProcesses();
@@ -127,7 +125,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
         t.join();
     }
 
-    gvt = (unsigned int)-1;
+    unsigned int gvt = (unsigned int)-1;
     for (unsigned int current_lp_id = 0; current_lp_id < num_local_lps_; current_lp_id++) {
         unsigned int num_committed = event_set_->fossilCollect(gvt, current_lp_id);
         tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
@@ -139,6 +137,18 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
         tw_stats_->writeToFile(num_seconds);
         tw_stats_->printStats();
     }
+}
+
+void TimeWarpEventDispatcher::GVTManagerThread(){
+    unsigned int gvt = 0;
+
+    gvt_manager_->checkProgressGVT();
+
+    if (gvt_manager_->gvtUpdated()) {
+        gvt = gvt_manager_->getGVT();
+        onGVT(gvt);
+    }
+
 }
 
 void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
@@ -156,6 +166,11 @@ void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
 
     uint64_t c = tw_stats_->upCount(GVT_CYCLES, num_worker_threads_);
     tw_stats_->updateAverage(AVERAGE_MAX_MEMORY, mem, c);
+}
+
+void TimeWarpEventDispatcher::CommunicationManagerThread(){
+    comm_manager_->handleMessages();
+
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {

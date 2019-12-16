@@ -92,6 +92,10 @@ private:
 
     void onGVT(unsigned int gvt);
 
+    void GVTManagerThread();
+
+    void CommunicationManagerThread();
+
 /* ============================================================================ */
 
     unsigned int num_worker_threads_;
