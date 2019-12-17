@@ -92,6 +92,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     }
 
 
+    pthread_barrier_init(&barrier_sync_1, NULL, num_worker_threads_+2);
+    pthread_barrier_init(&barrier_sync_2, NULL, 2);
+
     // Create manager threads
     // GVT manager
     auto sim_start = std::chrono::steady_clock::now();
@@ -102,15 +105,28 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     auto comm_thread(std::thread {&TimeWarpEventDispatcher::CommunicationManagerThread, this});
     threads.push_back(std::move(comm_thread));
 
-    // Termination Manager
+    // Termination Manager    
     while (!termination_manager_->terminationStatus()) {
 
-        // Check to see if we should start/continue the termination process
-        if (termination_manager_->nodePassive()) {
-            termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID(), 0);
+        termination_manager_->setTerminate(true);
+
+        pthread_barrier_wait(&barrier_sync_1);
+        // comm_manager halt function here
+        pthread_barrier_wait(&barrier_sync_2);
+        // comm_manager resume function here
+        pthread_barrier_wait(&barrier_sync_1);
+        pthread_barrier_wait(&barrier_sync_1);
+        pthread_barrier_wait(&barrier_sync_2);
+        
+        // If this node is passive, then we set this node to terminate and send a termination token to the next node
+        if (termination_manager_->nodePassive()){
+            termination_manager_->setTerminate(true);         
+            termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID(), 0);       
+        } else {
+            termination_manager_->setTerminate(false);
         }
     }
-
+    
     comm_manager_->waitForAllProcesses();
     auto sim_stop = std::chrono::steady_clock::now();
 

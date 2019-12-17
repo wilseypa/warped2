@@ -48,10 +48,12 @@ public:
 
     void updateMsgCount(int delta);
 
+    void setTerminate(bool termination_value);
+
 private:
 
     State state_ = State::ACTIVE;
-    std::shared_mutex state_lock_;
+    std::mutex state_lock_;
     State sticky_state_ = State::ACTIVE;
 
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
@@ -63,6 +65,7 @@ private:
 
     bool is_master_ = false;
 
+    std::shared_mutex termination_lock_;
     bool terminate_ = false;
 };
 
