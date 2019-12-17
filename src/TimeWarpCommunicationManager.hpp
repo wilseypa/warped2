@@ -58,6 +58,12 @@ public:
 
     unsigned int getNodeID(std::string lp_name);
 
+    virtual bool barrierHoldStatus();
+
+    virtual void barrierPause();
+
+    virtual void barrierResume();
+
 protected:
     // Map to lookup message handler given a message type
     std::unordered_map<int, std::function<void(std::unique_ptr<TimeWarpKernelMessage>)>>

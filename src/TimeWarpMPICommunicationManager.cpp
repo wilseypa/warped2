@@ -19,6 +19,8 @@ unsigned int TimeWarpMPICommunicationManager::initialize() {
     argv[0] = NULL;
     int provided;
 
+    barrier_hold_ = false;
+
     MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &provided);
 
     delete [] argv;
@@ -283,6 +285,27 @@ unsigned int TimeWarpMPICommunicationManager::testReceiveRequests() {
 
     return count;
 
+}
+
+bool TimeWarpMPICommunicationManager::barrierHoldStatus(){
+    bool hold_status;
+
+    barrier_hold_lock_.lock_shared();
+    hold_status = barrier_hold_;
+    barrier_hold_lock_.unlock_shared();
+
+    return hold_status;
+}
+
+void TimeWarpMPICommunicationManager::barrierPause(){
+    barrier_hold_lock_.lock();
+    barrier_hold_ = true;
+    barrier_hold_lock_.unlock();
+}
+
+// Don't need to lock here since the communication manager will be waiting at a barrier sync operation
+void TimeWarpMPICommunicationManager::barrierResume(){
+    barrier_hold_ = false;
 }
 
 } // namespace warped

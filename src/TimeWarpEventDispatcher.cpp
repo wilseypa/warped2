@@ -111,9 +111,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
         termination_manager_->setTerminate(true);
 
         pthread_barrier_wait(&barrier_sync_1);
-        // comm_manager halt function here
+        comm_manager_->barrierPause();
         pthread_barrier_wait(&barrier_sync_2);
-        // comm_manager resume function here
+        comm_manager_->barrierResume();
         pthread_barrier_wait(&barrier_sync_1);
         pthread_barrier_wait(&barrier_sync_1);
         pthread_barrier_wait(&barrier_sync_2);
@@ -185,8 +185,15 @@ void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
 }
 
 void TimeWarpEventDispatcher::CommunicationManagerThread(){
-    comm_manager_->handleMessages();
-
+    // Will run until this thread is destroyed
+    while(true){
+        comm_manager_->handleMessages();
+        
+        if (comm_manager_->barrierHoldStatus()){
+            pthread_barrier_wait(&barrier_sync_2);
+            pthread_barrier_wait(&barrier_sync_2);
+        }
+    }
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
