@@ -156,15 +156,17 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
 }
 
 void TimeWarpEventDispatcher::GVTManagerThread(){
-    unsigned int gvt = 0;
+    // Will run until this thread is destroyed
+    while(true){
+        unsigned int gvt = 0;
 
-    gvt_manager_->checkProgressGVT();
+        gvt_manager_->checkProgressGVT();
 
-    if (gvt_manager_->gvtUpdated()) {
-        gvt = gvt_manager_->getGVT();
-        onGVT(gvt);
+        if (gvt_manager_->gvtUpdated()) {
+            gvt = gvt_manager_->getGVT();
+            onGVT(gvt);
+        }
     }
-
 }
 
 void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
