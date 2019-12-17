@@ -157,9 +157,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
 
 void TimeWarpEventDispatcher::GVTManagerThread(){
     // Will run until this thread is destroyed
-    while(true){
-        unsigned int gvt = 0;
+    unsigned int gvt = 0;
 
+    while(true){
         gvt_manager_->checkProgressGVT();
 
         if (gvt_manager_->gvtUpdated()) {
