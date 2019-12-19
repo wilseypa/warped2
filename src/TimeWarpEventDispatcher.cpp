@@ -92,8 +92,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     }
 
 
-    pthread_barrier_init(&barrier_sync_1, NULL, num_worker_threads_+2);
-    pthread_barrier_init(&barrier_sync_2, NULL, 2);
+    pthread_barrier_init(&termination_barrier_sync_1, NULL, num_worker_threads_+2);
+    pthread_barrier_init(&termination_barrier_sync_2, NULL, 2);
 
     // Create manager threads
     // GVT manager
@@ -110,13 +110,13 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
 
         termination_manager_->setTerminate(true);
 
-        pthread_barrier_wait(&barrier_sync_1);
+        pthread_barrier_wait(&termination_barrier_sync_1);
         comm_manager_->barrierPause();
-        pthread_barrier_wait(&barrier_sync_2);
+        pthread_barrier_wait(&termination_barrier_sync_2);
         comm_manager_->barrierResume();
-        pthread_barrier_wait(&barrier_sync_1);
-        pthread_barrier_wait(&barrier_sync_1);
-        pthread_barrier_wait(&barrier_sync_2);
+        pthread_barrier_wait(&termination_barrier_sync_1);
+        pthread_barrier_wait(&termination_barrier_sync_1);
+        pthread_barrier_wait(&termination_barrier_sync_2);
         
         // If this node is passive, then we set this node to terminate and send a termination token to the next node
         if (termination_manager_->nodePassive()){
@@ -156,17 +156,36 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
 }
 
 void TimeWarpEventDispatcher::GVTManagerThread(){
-    // Will run until this thread is destroyed
     unsigned int gvt = 0;
 
-    while(true){
-        gvt_manager_->checkProgressGVT();
+    // Only 1 node
+    if (comm_manager_->getNumProcesses() == 1) {
+        while(1){
 
-        if (gvt_manager_->gvtUpdated()) {
-            gvt = gvt_manager_->getGVT();
-            onGVT(gvt);
+            //std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+
+            gvt_manager_->progressGVT();
+
+            if (gvt_manager_->gvtUpdated()) {
+                gvt = gvt_manager_->getGVT();
+                onGVT(gvt);
+            }
         }
-    }
+    } 
+    // Distributed proccess, main node
+    /*else if (comm_manager_->getID() == 0){
+        while(1){
+
+
+        }
+    } */
+    // Distributed proccess, not the main node
+    /*else if (comm_manager_->getID() != 0){
+        while(1){
+
+
+        }
+    }*/
 }
 
 void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
@@ -192,8 +211,8 @@ void TimeWarpEventDispatcher::CommunicationManagerThread(){
         comm_manager_->handleMessages();
         
         if (comm_manager_->barrierHoldStatus()){
-            pthread_barrier_wait(&barrier_sync_2);
-            pthread_barrier_wait(&barrier_sync_2);
+            pthread_barrier_wait(&termination_barrier_sync_2);
+            pthread_barrier_wait(&termination_barrier_sync_2);
         }
     }
 }

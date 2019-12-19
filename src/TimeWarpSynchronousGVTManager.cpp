@@ -34,43 +34,29 @@ bool TimeWarpSynchronousGVTManager::readyToStart() {
 }
 
 void TimeWarpSynchronousGVTManager::progressGVT() {
-    if (gvt_state_ == GVTState::LOCAL) {
+    
+    report_gvt_lock_.lock();
+    report_gvt_ = true;
+    report_gvt_lock_.unlock();
+    pthread_barrier_wait(&min_report_barrier_);
 
-        color_.store(Color::RED);
-        local_gvt_flag_.store(1);
-        pthread_barrier_wait(&min_report_barrier_);
-
-        gvt_state_ = GVTState::GLOBAL;
-
-        int64_t total_msg_count;
-        while (true) {
-            comm_manager_->flushMessages();
-            comm_manager_->handleMessages();
-            int64_t local_msg_count = white_msg_count_.load();
-            comm_manager_->sumAllReduceInt64(&local_msg_count, &total_msg_count);
-            if(total_msg_count == 0)
-                break;
-        }
-
-        unsigned int local_min = recv_min_;
-        recv_min_ = std::numeric_limits<unsigned int>::max();
-        for (unsigned int i = 0; i <= num_worker_threads_; i++) {
-            local_min = std::min(local_min, std::min(local_min_[i], send_min_[i]));
-            local_min_[i] = std::numeric_limits<unsigned int>::max();
-            send_min_[i] = std::numeric_limits<unsigned int>::max();
-        }
-
-        comm_manager_->minAllReduceUint(&local_min, &gVT_);
-
-        gvt_updated_ = true;
-
-        color_.store(Color::WHITE);
-        local_gvt_flag_.store(0);
-        pthread_barrier_wait(&min_report_barrier_);
-
-        gvt_stop = std::chrono::steady_clock::now();
-        gvt_state_ = GVTState::IDLE;
+    // Collect GVT from all of the worker threads 
+    unsigned int local_min = recv_min_;
+    recv_min_ = std::numeric_limits<unsigned int>::max();
+    for (unsigned int i = 0; i <= num_worker_threads_; i++) {
+        local_min = std::min(local_min, std::min(local_min_[i], send_min_[i]));
+        local_min_[i] = std::numeric_limits<unsigned int>::max();
+        send_min_[i] = std::numeric_limits<unsigned int>::max();
     }
+
+    comm_manager_->minAllReduceUint(&local_min, &gVT_);
+
+    gvt_updated_ = true;
+
+    report_gvt_lock_.lock();
+    report_gvt_ = false;
+    report_gvt_lock_.unlock();
+    pthread_barrier_wait(&min_report_barrier_);
 }
 
 Color TimeWarpSynchronousGVTManager::sendEventUpdate(std::shared_ptr<Event>& event) {

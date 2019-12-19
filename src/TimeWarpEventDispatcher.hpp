@@ -100,8 +100,8 @@ private:
 
 /* ============================================================================ */
 
-    pthread_barrier_t barrier_sync_1;
-    pthread_barrier_t barrier_sync_2;
+    pthread_barrier_t termination_barrier_sync_1;
+    pthread_barrier_t termination_barrier_sync_2;
 
     unsigned int num_worker_threads_;
     bool is_lp_migration_on_;
