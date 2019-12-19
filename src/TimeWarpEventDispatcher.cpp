@@ -227,10 +227,41 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     auto epoch = std::chrono::steady_clock::now();
 #endif
 
+
+    std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
+    if (event == nullptr) {
+        goto refresh_schedule_queue;
+    }
+start_of_process_event:
+    while(1){
+        for (unsigned int i = 0; i < k0_; i++){
+            for (unsigned int j = 0; i < k1_; i++){
+
+
+
+            }
+            event = event_set_->getEvent(thread_id);
+            if (event == nullptr) {
+                goto refresh_schedule_queue;
+            }
+        }
+
+
+    }
+
+refresh_schedule_queue:
+    // if (refresh queue and grab event success) {
+        goto start_of_process_event;
+    // }
+
+
+
+
+
+
+
+
     while (!termination_manager_->terminationStatus()) {
-        // NOTE: local_gvt_flag must be obtained before getting the next event to avoid the
-        //  "simultaneous reporting problem"
-        local_gvt_flag = gvt_manager_->getLocalGVTFlag();
 
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
