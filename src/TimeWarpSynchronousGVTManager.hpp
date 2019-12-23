@@ -43,6 +43,10 @@ public:
 
     unsigned int getLocalGVTFlag() override;
 
+    bool getGVTFlag() override;
+
+    void workerThreadGVTBarrierSync();
+
 protected:
     bool gvt_updated_ = false;
 

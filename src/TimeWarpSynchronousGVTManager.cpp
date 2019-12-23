@@ -105,7 +105,21 @@ void TimeWarpSynchronousGVTManager::reportThreadSendMin(unsigned int timestamp, 
 }
 
 unsigned int TimeWarpSynchronousGVTManager::getLocalGVTFlag() {
-    return local_gvt_flag_.load();
+    return 10;
+}
+
+bool TimeWarpSynchronousGVTManager::getGVTFlag() {
+    bool report_gvt_status;
+
+    report_gvt_lock_.lock_shared();
+    report_gvt_status = report_gvt_;
+    report_gvt_lock_.unlock_shared();
+
+    return report_gvt_status;
+}
+
+void TimeWarpSynchronousGVTManager::workerThreadGVTBarrierSync(){
+    pthread_barrier_wait(&min_report_barrier_);
 }
 
 } // namespace warped

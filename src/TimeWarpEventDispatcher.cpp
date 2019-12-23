@@ -228,14 +228,19 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 #endif
 
 
+    // GetEvent needs to be modyfied to do readLock
+    // Had to add getGVTFlag() and workerThreadGVTBarrierSync() to the base TWGVTManager then I had to add it to the Asynchronous version. Not sure how to avoid doing that
+
+
     std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
     if (event == nullptr) {
         goto refresh_schedule_queue;
     }
+
 start_of_process_event:
     while(1){
         for (unsigned int i = 0; i < k0_; i++){
-            for (unsigned int j = 0; i < k1_; i++){
+            for (unsigned int j = 0; j < k1_; j++){
 
 
 
@@ -245,13 +250,23 @@ start_of_process_event:
                 goto refresh_schedule_queue;
             }
         }
-
+        if (gvt_manager_->getGVTFlag()){
+            gvt_manager_->workerThreadGVTBarrierSync();
+            // fossil collection
+            event = event_set_->getEvent(thread_id);
+            // estGvtEst() ??????
+            gvt_manager_->workerThreadGVTBarrierSync();
+        }
 
     }
 
 refresh_schedule_queue:
     // if (refresh queue and grab event success) {
         goto start_of_process_event;
+    // } else {
+            pthread_barrier_wait(&termination_barrier_sync_1);
+
+
     // }
 
 
