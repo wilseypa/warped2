@@ -253,7 +253,7 @@ start_of_process_event:
         if (gvt_manager_->getGVTFlag()){
             gvt_manager_->workerThreadGVTBarrierSync();
             // fossil collection
-            event = event_set_->getEvent(thread_id);
+            event = event_set_->getEvent(thread_id);  // No lock here
             // estGvtEst() ??????
             gvt_manager_->workerThreadGVTBarrierSync();
         }
@@ -264,8 +264,20 @@ refresh_schedule_queue:
     // if (refresh queue and grab event success) {
         goto start_of_process_event;
     // } else {
+            // I think pthread_barrier_wait(&termination_barrier_sync_1); is missing and should be here
+            pthread_barrier_wait(&termination_barrier_sync_1);
+            event = event_set_->getEvent(thread_id); // No lock here
+            if (event != nullptr) {  // In the algorithm it says !e ← ltsf.refreshEvents(), I think thats wrong
+                termination_manager_->setTerminate(false);
+            }
+
             pthread_barrier_wait(&termination_barrier_sync_1);
 
+            if (termination_manager_->terminationStatus()){
+                // proceed to termination
+            } else {
+                goto start_of_process_event;
+            }
 
     // }
 
