@@ -9,7 +9,9 @@ namespace warped {
 void TimeWarpStatistics::initialize(unsigned int num_worker_threads, unsigned int num_objects) {
     num_worker_threads_ = num_worker_threads;
 
-    local_stats_ = make_unique<Stats []>(num_worker_threads+1);
+    prime_   = make_unique<Counters []>(num_worker_threads+1);
+    reserve_ = make_unique<Counters []>(num_worker_threads+1);
+    offline_ = make_unique<Counters []>(num_worker_threads+1);
     local_stats_[num_worker_threads][NUM_OBJECTS] = num_objects;
 }
 
