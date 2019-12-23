@@ -245,7 +245,7 @@ start_of_process_event:
 
 
             }
-            // refreshEvents in LTSF queue, with read lock
+            event_set_->refreshScheduleQueue(thread_id, with_read_lock);
             event = event_set_->getEvent(thread_id);
             if (event == nullptr) {
                 goto refresh_schedule_queue;
@@ -254,7 +254,7 @@ start_of_process_event:
         if (gvt_manager_->getGVTFlag()){
             gvt_manager_->workerThreadGVTBarrierSync();
             // fossil collection
-            // refreshEvents in LTSF queue, no lock
+            event_set_->refreshScheduleQueue(thread_id, without_read_lock);
             event = event_set_->getEvent(thread_id);
             // estGvtEst() ??????
             gvt_manager_->workerThreadGVTBarrierSync();
@@ -263,7 +263,7 @@ start_of_process_event:
     }
 
 refresh_schedule_queue:
-    // refreshEvents in LTSF queue, with read lock
+    event_set_->refreshScheduleQueue(thread_id, with_read_lock);
     event = event_set_->getEvent(thread_id);
     if (event == nullptr) {
         goto start_of_process_event;
@@ -271,7 +271,7 @@ refresh_schedule_queue:
         // I think pthread_barrier_wait(&termination_barrier_sync_1); is missing and should be here
         pthread_barrier_wait(&termination_barrier_sync_1);
 
-        // refreshEvents in LTSF queue, no lock
+        event_set_->refreshScheduleQueue(thread_id, without_read_lock);
         event = event_set_->getEvent(thread_id); // No lock here
         if (event != nullptr) {  // In the algorithm it says !e ← ltsf.refreshEvents(), I think thats wrong
             termination_manager_->setTerminate(false);

@@ -135,12 +135,15 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     return event;
 }
 
-void TimeWarpEventSet::refreshSceduleQueue(unsigned int thread_id){
+void TimeWarpEventSet::refreshScheduleQueue(unsigned int thread_id, bool read_lock){
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
-
+    unsigned int current_lp_id;
     // Go to all input queues
     for (unsigned int i; i < worker_thread_input_queue_map_[scheduler_id].size(); i++){
-        scheduled_event_pointer_[i] = *input_queue_[worker_thread_input_queue_map_[scheduler_id][i]]->begin();
+        current_lp_id = worker_thread_input_queue_map_[scheduler_id][i];
+        if (read_lock) input_queue_lock_[current_lp_id].lock_shared();
+        scheduled_event_pointer_[i] = *input_queue_[current_lp_id]->begin();
+        if (read_lock) input_queue_lock_[current_lp_id].unlock_shared();
     }
 }
 

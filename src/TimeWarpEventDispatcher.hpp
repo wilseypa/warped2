@@ -40,6 +40,8 @@ class TimeWarpGVTManager;
 class TimeWarpTerminationManager;
 enum class Color;
 
+
+
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
 class TimeWarpEventDispatcher : public EventDispatcher {
@@ -130,6 +132,9 @@ private:
 
     // Double check to make sure this is implemented correctly in the TWEventDispatcher initialize function
     std::vector<std::vector<unsigned int>> worker_thread_input_queue_map_; // Get input queue ids from thread_id
+
+    const bool with_read_lock = true;
+    const bool without_read_lock = false;
 };
 
 struct EventMessage : public TimeWarpKernelMessage {

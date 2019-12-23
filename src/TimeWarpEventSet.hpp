@@ -72,7 +72,7 @@ public:
 
     unsigned int fossilCollect (unsigned int fossil_collect_time, unsigned int lp_id);
 
-    void refreshSceduleQueue(unsigned int thread_id);
+    void refreshScheduleQueue(unsigned int thread_id, bool read_lock);
 
     void setWorkerThreadInputQueueMap(std::vector<std::vector<unsigned int>> map);
 
