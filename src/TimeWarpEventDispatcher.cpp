@@ -245,6 +245,7 @@ start_of_process_event:
 
 
             }
+            // refreshEvents in LTSF queue, with read lock
             event = event_set_->getEvent(thread_id);
             if (event == nullptr) {
                 goto refresh_schedule_queue;
@@ -253,7 +254,8 @@ start_of_process_event:
         if (gvt_manager_->getGVTFlag()){
             gvt_manager_->workerThreadGVTBarrierSync();
             // fossil collection
-            event = event_set_->getEvent(thread_id);  // No lock here
+            // refreshEvents in LTSF queue, no lock
+            event = event_set_->getEvent(thread_id);
             // estGvtEst() ??????
             gvt_manager_->workerThreadGVTBarrierSync();
         }
@@ -261,25 +263,29 @@ start_of_process_event:
     }
 
 refresh_schedule_queue:
-    // if (refresh queue and grab event success) {
+    // refreshEvents in LTSF queue, with read lock
+    event = event_set_->getEvent(thread_id);
+    if (event == nullptr) {
         goto start_of_process_event;
-    // } else {
-            // I think pthread_barrier_wait(&termination_barrier_sync_1); is missing and should be here
-            pthread_barrier_wait(&termination_barrier_sync_1);
-            event = event_set_->getEvent(thread_id); // No lock here
-            if (event != nullptr) {  // In the algorithm it says !e ← ltsf.refreshEvents(), I think thats wrong
-                termination_manager_->setTerminate(false);
-            }
+    } else {
+        // I think pthread_barrier_wait(&termination_barrier_sync_1); is missing and should be here
+        pthread_barrier_wait(&termination_barrier_sync_1);
 
-            pthread_barrier_wait(&termination_barrier_sync_1);
+        // refreshEvents in LTSF queue, no lock
+        event = event_set_->getEvent(thread_id); // No lock here
+        if (event != nullptr) {  // In the algorithm it says !e ← ltsf.refreshEvents(), I think thats wrong
+            termination_manager_->setTerminate(false);
+        }
 
-            if (termination_manager_->terminationStatus()){
-                // proceed to termination
-            } else {
-                goto start_of_process_event;
-            }
+        pthread_barrier_wait(&termination_barrier_sync_1);
 
-    // }
+        if (termination_manager_->terminationStatus()){
+            // proceed to termination
+        } else {
+            goto start_of_process_event;
+        }
+
+    }
 
 
 
@@ -307,6 +313,8 @@ refresh_schedule_queue:
 #ifdef PARTIALLY_SORTED_LADDER_QUEUE
             lowest_timestamp = event_set_->lowestTimestamp(thread_id);
 #endif
+
+            local_gvt_flag = 0; // temporary added to stop errors
 
             gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
 
@@ -632,14 +640,21 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<LogicalProcess
 
     event_set_->initialize(lps, num_local_lps_, is_lp_migration_on_, num_worker_threads_);
 
+    std::vector<unsigned int> empty_vector;
+    unsigned int worker_thread_number = 0;
     unsigned int lp_id = 0;
     for (auto& partition : lps) {
+        worker_thread_input_queue_map_.push_back(empty_vector);
         for (auto& lp : partition) {
             lps_by_name_[lp->name_] = lp;
             local_lp_id_by_name_[lp->name_] = lp_id;
+            worker_thread_input_queue_map_[worker_thread_number].push_back(lp_id);
             lp_id++;
         }
+        worker_thread_number++;
     }
+
+    event_set_->setWorkerThreadInputQueueMap(worker_thread_input_queue_map_);
 
     // Creates the state queues, output queues, and filestream queues for each local lp
     state_manager_->initialize(num_local_lps_);

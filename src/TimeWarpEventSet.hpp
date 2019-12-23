@@ -72,6 +72,10 @@ public:
 
     unsigned int fossilCollect (unsigned int fossil_collect_time, unsigned int lp_id);
 
+    void refreshSceduleQueue(unsigned int thread_id);
+
+    void setWorkerThreadInputQueueMap(std::vector<std::vector<unsigned int>> map);
+
 private:
     // Number of lps
     unsigned int num_of_lps_ = 0;
@@ -110,13 +114,15 @@ private:
 #endif
 
     // Map unprocessed queue to a schedule queue
-    std::vector<unsigned int> input_queue_scheduler_map_;
+    std::vector<unsigned int> input_queue_scheduler_map_; // Get scheduler id from lp_id
+
+    std::vector<std::vector<unsigned int>> worker_thread_input_queue_map_;
 
     // LP Migration flag
     bool is_lp_migration_on_;
 
     // Map worker thread to a schedule queue
-    std::vector<unsigned int> worker_thread_scheduler_map_;
+    std::vector<unsigned int> worker_thread_scheduler_map_; // Get scheduler id from from thread_id
 
     // Event scheduled from all lps
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;

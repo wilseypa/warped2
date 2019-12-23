@@ -112,35 +112,18 @@ InsertStatus TimeWarpEventSet::insertEvent (
     return ret;
 }
 
-/*
- *  NOTE: caller must always have the input queue lock for the lp with id lp_id
- */
+
 std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
 
-    schedule_queue_lock_[scheduler_id].lock();
-
-#if defined(SORTED_LADDER_QUEUE) || defined(PARTIALLY_SORTED_LADDER_QUEUE)
-    auto event = schedule_queue_[scheduler_id]->dequeue();
-
-#elif defined(SPLAY_TREE)
-    auto event = schedule_queue_[scheduler_id]->begin();
-    if (event != nullptr) {
-        schedule_queue_[scheduler_id]->erase(event);
-    }
-
-#elif defined(CIRCULAR_QUEUE)
-    auto event = schedule_queue_[scheduler_id]->pop_front();
-
-#else  /* STL MultiSet */
     auto event_iterator = schedule_queue_[scheduler_id]->begin();
     auto event = (event_iterator != schedule_queue_[scheduler_id]->end()) ?
                     *event_iterator : nullptr;
     if (event != nullptr) {
         schedule_queue_[scheduler_id]->erase(event_iterator);
     }
-#endif
+
 
     // NOTE: scheduled_event_pointer is not changed here so that other threads will not schedule new
     // events and this thread can move events into processed queue and update schedule queue correctly.
@@ -149,10 +132,19 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     // then, a rollback will bring the processed positive event back to input queue and they will
     // be cancelled.
 
-    schedule_queue_lock_[scheduler_id].unlock();
-
     return event;
 }
+
+void TimeWarpEventSet::refreshSceduleQueue(unsigned int thread_id){
+    unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
+
+    // Go to all input queues
+    for (unsigned int i; i < worker_thread_input_queue_map_[scheduler_id].size(); i++){
+        scheduled_event_pointer_[i] = *input_queue_[worker_thread_input_queue_map_[scheduler_id][i]]->begin();
+    }
+}
+
+
 
 #ifdef PARTIALLY_SORTED_LADDER_QUEUE
 /*
@@ -347,6 +339,12 @@ unsigned int TimeWarpEventSet::fossilCollect (unsigned int fossil_collect_time, 
 
     return count;
 }
+
+
+void TimeWarpEventSet::setWorkerThreadInputQueueMap(std::vector<std::vector<unsigned int>> map){
+    worker_thread_input_queue_map_ = map;
+}
+
 
 } // namespace warped
 

@@ -127,6 +127,9 @@ private:
     const std::unique_ptr<TimeWarpStatistics> tw_stats_;
 
     static THREAD_LOCAL_SPECIFIER unsigned int thread_id;
+
+    // Double check to make sure this is implemented correctly in the TWEventDispatcher initialize function
+    std::vector<std::vector<unsigned int>> worker_thread_input_queue_map_; // Get input queue ids from thread_id
 };
 
 struct EventMessage : public TimeWarpKernelMessage {
