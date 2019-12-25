@@ -220,8 +220,7 @@ void TimeWarpEventDispatcher::CommunicationManagerThread(){
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
     thread_id = id;
-    unsigned int local_gvt_flag;
-    unsigned int gvt = 0;
+    //unsigned int gvt = 0;
 
 #ifdef TIMEWARP_EVENT_LOG
     auto epoch = std::chrono::steady_clock::now();
@@ -241,6 +240,97 @@ start_of_process_event:
     while(1){
         for (unsigned int i = 0; i < k0_; i++){
             for (unsigned int j = 0; j < k1_; j++){
+
+#ifdef TIMEWARP_EVENT_LOG
+            // Event stat - start processing time, sender name, receiver name, timestamp
+            auto event_stats = std::to_string((std::chrono::steady_clock::now() - epoch).count());
+            event_stats     += "," + event->sender_name_;
+            event_stats     += "," + event->receiverName();
+            event_stats     += "," + std::to_string(event->timestamp());
+#endif
+
+                assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
+
+                unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];
+                LogicalProcess* current_lp = lps_by_name_[event->receiverName()];
+
+                // Get the last processed event so we can check for a rollback
+                auto last_processed_event = event_set_->lastProcessedEvent(current_lp_id);
+
+                // The rules with event processing
+                //      1. Negative events are given priority over positive events if they both exist
+                //          in the lps input queue
+                //      2. We assume that if we have a negative message, then we also have the positive
+                //          message either in the input queue or in the processed queue. If the positive
+                //          event is in the processed queue, then a rollback will occur and both events
+                //          will end up in the input queue.
+                //      3. When a negative event is taken from the schedule queue, it will be cancelled
+                //          with it's corresponding negative message in the input queue. A rollback
+                //          may occur first.
+                //      4. When a positive event is taken from the schedule queue, it will always be
+                //          processed. A rollback may occur first if it is a straggler.
+
+                // A rollback can occur in two situations:
+                //      1. We get an event that is strictly less than the last processed event.
+                //      2. We get an event that is equal to the last processed event and is negative.
+
+                if (last_processed_event &&
+                        ((*event < *last_processed_event) ||
+                            ((*event == *last_processed_event) &&
+                            (event->event_type_ == EventType::NEGATIVE)))) {
+                    rollback(event);
+#ifdef TIMEWARP_EVENT_LOG
+                event_stats += ",1"; // Event stats - rollback
+
+            } else {
+                event_stats += ",0"; // Event stats - no rollback
+#endif
+                }
+
+                // Check to see if event is NEGATIVE and cancel
+                if (event->event_type_ == EventType::NEGATIVE) {
+                    event_set_->acquireInputQueueLock(current_lp_id);
+                    bool found = event_set_->cancelEvent(current_lp_id, event);
+                    event_set_->startScheduling(current_lp_id);
+                    event_set_->releaseInputQueueLock(current_lp_id);
+
+                    if (found) {
+                        tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
+#ifdef TIMEWARP_EVENT_LOG
+                        event_stats += ",2"; // Event stats - negative event, cancelled
+                    } else {
+                        event_stats += ",1"; // Event stats - negative event, not cancelled
+#endif
+                    }
+
+#ifdef TIMEWARP_EVENT_LOG
+                // Event stats - event processing time
+                auto end_event = std::chrono::steady_clock::now();
+                event_stats +=  "," + std::to_string((end_event-epoch).count());
+
+                // Event stats - store it
+                event_stats += "\n";
+                event_log_[thread_id]->insert(event_stats);
+#endif
+                continue;
+
+#ifdef TIMEWARP_EVENT_LOG
+                } else {
+                    event_stats += ",0"; // Event stats - positive event
+#endif
+                }
+
+                // process event and get new events
+                auto new_events = current_lp->receiveEvent(*event);
+
+                tw_stats_->upCount(EVENTS_PROCESSED, thread_id);
+
+                // Save state
+                state_manager_->saveState(event, current_lp_id, current_lp);
+
+
+
+
 
 
 
@@ -265,7 +355,7 @@ start_of_process_event:
 refresh_schedule_queue:
     event_set_->refreshScheduleQueue(thread_id, with_read_lock);
     event = event_set_->getEvent(thread_id);
-    if (event == nullptr) {
+    if (event != nullptr) {
         goto start_of_process_event;
     } else {
         // I think pthread_barrier_wait(&termination_barrier_sync_1); is missing and should be here
@@ -281,6 +371,17 @@ refresh_schedule_queue:
 
         if (termination_manager_->terminationStatus()){
             // proceed to termination
+
+#ifdef TIMEWARP_EVENT_LOG
+            // Write event statistics to the log file
+            std::ofstream logfile;
+            logfile.open( eventLogFileName(thread_id).c_str(),
+                                    std::ofstream::out | std::ofstream::app );
+            while (event_log_[thread_id]->size()) {
+                logfile << event_log_[thread_id]->pop_front();
+            }
+            logfile.close();
+#endif
         } else {
             goto start_of_process_event;
         }
@@ -294,113 +395,20 @@ refresh_schedule_queue:
 
 
 
-    while (!termination_manager_->terminationStatus()) {
+/*    while (!termination_manager_->terminationStatus()) {
 
         std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
         if (event != nullptr) {
 
-#ifdef TIMEWARP_EVENT_LOG
-            // Event stat - start processing time, sender name, receiver name, timestamp
-            auto event_stats = std::to_string((std::chrono::steady_clock::now() - epoch).count());
-            event_stats     += "," + event->sender_name_;
-            event_stats     += "," + event->receiverName();
-            event_stats     += "," + std::to_string(event->timestamp());
-#endif
 
-            // If needed, report event for this thread so GVT can be calculated
-            auto lowest_timestamp = event->timestamp();
+            
+            
 
-#ifdef PARTIALLY_SORTED_LADDER_QUEUE
-            lowest_timestamp = event_set_->lowestTimestamp(thread_id);
-#endif
 
-            local_gvt_flag = 0; // temporary added to stop errors
 
-            gvt_manager_->reportThreadMin(lowest_timestamp, thread_id, local_gvt_flag);
 
-            // Make sure that if this thread is currently seen as passive, we update it's state
-            //  so we don't terminate early.
-            if (termination_manager_->threadPassive(thread_id)) {
-                termination_manager_->setThreadActive(thread_id);
-            }
 
-            assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
-            unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];
-            LogicalProcess* current_lp = lps_by_name_[event->receiverName()];
-
-            // Get the last processed event so we can check for a rollback
-            auto last_processed_event = event_set_->lastProcessedEvent(current_lp_id);
-
-            // The rules with event processing
-            //      1. Negative events are given priority over positive events if they both exist
-            //          in the lps input queue
-            //      2. We assume that if we have a negative message, then we also have the positive
-            //          message either in the input queue or in the processed queue. If the positive
-            //          event is in the processed queue, then a rollback will occur and both events
-            //          will end up in the input queue.
-            //      3. When a negative event is taken from the schedule queue, it will be cancelled
-            //          with it's corresponding negative message in the input queue. A rollback
-            //          may occur first.
-            //      4. When a positive event is taken from the schedule queue, it will always be
-            //          processed. A rollback may occur first if it is a straggler.
-
-            // A rollback can occur in two situations:
-            //      1. We get an event that is strictly less than the last processed event.
-            //      2. We get an event that is equal to the last processed event and is negative.
-
-            if (last_processed_event &&
-                    ((*event < *last_processed_event) ||
-                        ((*event == *last_processed_event) &&
-                         (event->event_type_ == EventType::NEGATIVE)))) {
-                rollback(event);
-#ifdef TIMEWARP_EVENT_LOG
-                event_stats += ",1"; // Event stats - rollback
-
-            } else {
-                event_stats += ",0"; // Event stats - no rollback
-#endif
-            }
-
-            // Check to see if event is NEGATIVE and cancel
-            if (event->event_type_ == EventType::NEGATIVE) {
-                event_set_->acquireInputQueueLock(current_lp_id);
-                bool found = event_set_->cancelEvent(current_lp_id, event);
-                event_set_->startScheduling(current_lp_id);
-                event_set_->releaseInputQueueLock(current_lp_id);
-
-                if (found) {
-                    tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
-#ifdef TIMEWARP_EVENT_LOG
-                    event_stats += ",2"; // Event stats - negative event, cancelled
-                } else {
-                    event_stats += ",1"; // Event stats - negative event, not cancelled
-#endif
-                }
-
-#ifdef TIMEWARP_EVENT_LOG
-                // Event stats - event processing time
-                auto end_event = std::chrono::steady_clock::now();
-                event_stats +=  "," + std::to_string((end_event-epoch).count());
-
-                // Event stats - store it
-                event_stats += "\n";
-                event_log_[thread_id]->insert(event_stats);
-#endif
-                continue;
-
-#ifdef TIMEWARP_EVENT_LOG
-            } else {
-                event_stats += ",0"; // Event stats - positive event
-#endif
-            }
-
-            // process event and get new events
-            auto new_events = current_lp->receiveEvent(*event);
-
-            tw_stats_->upCount(EVENTS_PROCESSED, thread_id);
-
-            // Save state
-            state_manager_->saveState(event, current_lp_id, current_lp);
+            
 
             // Send new events
             sendEvents(event, new_events, current_lp_id, current_lp);
@@ -455,23 +463,9 @@ refresh_schedule_queue:
             if (!termination_manager_->threadPassive(thread_id)) {
                 termination_manager_->setThreadPassive(thread_id);
             }
-
-#ifdef TIMEWARP_EVENT_LOG
-            // Write event statistics to the log file
-            std::ofstream logfile;
-            logfile.open( eventLogFileName(thread_id).c_str(),
-                                    std::ofstream::out | std::ofstream::app );
-            while (event_log_[thread_id]->size()) {
-                logfile << event_log_[thread_id]->pop_front();
-            }
-            logfile.close();
-#endif
-
-            // We must have this so that the GVT calculations can continue with passive threads.
-            // Just report infinite for a time.
-            gvt_manager_->reportThreadMin((unsigned int)-1, thread_id, local_gvt_flag);
+       
         }
-    }
+    }*/
 }
 
 void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
