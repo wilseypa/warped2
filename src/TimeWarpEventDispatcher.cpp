@@ -360,7 +360,13 @@ start_of_process_event:
                 }
                 logfile.close();
 #endif
-            }
+                
+                // Grab the next event
+                event = event_set_->getEvent(thread_id);
+                if (event == nullptr) {
+                    goto refresh_schedule_queue;
+                }
+            } 
             event_set_->refreshScheduleQueue(thread_id, with_read_lock);
             event = event_set_->getEvent(thread_id);
             if (event == nullptr) {
