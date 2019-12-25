@@ -330,10 +330,36 @@ start_of_process_event:
 
 
 
+// Add insert event here. It only updates the LTSF queue if the lp has an event about to be executed
+                // Send new events
+                sendEvents(event, new_events, current_lp_id, current_lp);
 
+#ifdef TIMEWARP_EVENT_LOG
+                // Event stats - event processing time
+                auto end_event = std::chrono::steady_clock::now();
+                event_stats +=  "," + std::to_string((end_event-epoch).count());
 
+                // Event stats - store it
+                event_stats += "\n";
+                event_log_[thread_id]->insert(event_stats);
+#endif
 
+                // Move the next event from lp into the schedule queue
+                // Also transfer old event to processed queue
+                event_set_->acquireInputQueueLock(current_lp_id);
+                event_set_->replenishScheduler(current_lp_id);
+                event_set_->releaseInputQueueLock(current_lp_id);
 
+#ifdef TIMEWARP_EVENT_LOG
+                // Write event statistics to the log file
+                std::ofstream logfile;
+                logfile.open( eventLogFileName(thread_id).c_str(),
+                                        std::ofstream::out | std::ofstream::app );
+                while (event_log_[thread_id]->size()) {
+                    logfile << event_log_[thread_id]->pop_front();
+                }
+                logfile.close();
+#endif
             }
             event_set_->refreshScheduleQueue(thread_id, with_read_lock);
             event = event_set_->getEvent(thread_id);
@@ -362,7 +388,7 @@ refresh_schedule_queue:
         pthread_barrier_wait(&termination_barrier_sync_1);
 
         event_set_->refreshScheduleQueue(thread_id, without_read_lock);
-        event = event_set_->getEvent(thread_id); // No lock here
+        event = event_set_->getEvent(thread_id); 
         if (event != nullptr) {  // In the algorithm it says !e ← ltsf.refreshEvents(), I think thats wrong
             termination_manager_->setTerminate(false);
         }
@@ -372,16 +398,7 @@ refresh_schedule_queue:
         if (termination_manager_->terminationStatus()){
             // proceed to termination
 
-#ifdef TIMEWARP_EVENT_LOG
-            // Write event statistics to the log file
-            std::ofstream logfile;
-            logfile.open( eventLogFileName(thread_id).c_str(),
-                                    std::ofstream::out | std::ofstream::app );
-            while (event_log_[thread_id]->size()) {
-                logfile << event_log_[thread_id]->pop_front();
-            }
-            logfile.close();
-#endif
+
         } else {
             goto start_of_process_event;
         }
@@ -401,27 +418,6 @@ refresh_schedule_queue:
         if (event != nullptr) {
 
 
-            
-            
-
-
-
-
-
-            
-
-            // Send new events
-            sendEvents(event, new_events, current_lp_id, current_lp);
-
-#ifdef TIMEWARP_EVENT_LOG
-            // Event stats - event processing time
-            auto end_event = std::chrono::steady_clock::now();
-            event_stats +=  "," + std::to_string((end_event-epoch).count());
-
-            // Event stats - store it
-            event_stats += "\n";
-            event_log_[thread_id]->insert(event_stats);
-#endif
 
             // Check for recent gvt update
             gvt = gvt_manager_->getGVT();
@@ -440,23 +436,10 @@ refresh_schedule_queue:
 
                 tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
 
-#ifdef TIMEWARP_EVENT_LOG
-                // Write event statistics to the log file
-                std::ofstream logfile;
-                logfile.open( eventLogFileName(thread_id).c_str(),
-                                        std::ofstream::out | std::ofstream::app );
-                while (event_log_[thread_id]->size()) {
-                    logfile << event_log_[thread_id]->pop_front();
-                }
-                logfile.close();
-#endif
+
             }
 
-            // Move the next event from lp into the schedule queue
-            // Also transfer old event to processed queue
-            event_set_->acquireInputQueueLock(current_lp_id);
-            event_set_->replenishScheduler(current_lp_id);
-            event_set_->releaseInputQueueLock(current_lp_id);
+            
 
         } else {
             // This thread no longer has anything to do because it's schedule queue is empty.
@@ -464,6 +447,7 @@ refresh_schedule_queue:
                 termination_manager_->setThreadPassive(thread_id);
             }
        
+
         }
     }*/
 }
@@ -517,9 +501,6 @@ void TimeWarpEventDispatcher::sendLocalEvent(std::shared_ptr<Event> event) {
     event_set_->acquireInputQueueLock(receiver_lp_id);
     auto status = event_set_->insertEvent(receiver_lp_id, event);
     event_set_->releaseInputQueueLock(receiver_lp_id);
-
-    // Make sure to track sends if we are in the middle of a GVT calculation.
-    gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
 
     if (status == InsertStatus::StarvedObject) {
         tw_stats_->upCount(EVENTS_FOR_STARVED_OBJECTS, thread_id);
@@ -709,8 +690,6 @@ void TimeWarpEventDispatcher::enqueueRemoteEvent(std::shared_ptr<Event> event,
         auto event_msg = make_unique<EventMessage>(comm_manager_->getID(), receiver_id, event, color);
         termination_manager_->updateMsgCount(1);
         comm_manager_->insertMessage(std::move(event_msg));
-
-        gvt_manager_->reportThreadSendMin(event->timestamp(), thread_id);
     }
 }
 

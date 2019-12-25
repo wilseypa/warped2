@@ -117,6 +117,8 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
 
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
 
+    schedule_queue_lock_[scheduler_id].lock();
+
     auto event_iterator = schedule_queue_[scheduler_id]->begin();
     auto event = (event_iterator != schedule_queue_[scheduler_id]->end()) ?
                     *event_iterator : nullptr;
@@ -131,6 +133,8 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     // NOTE: Event also remains in input queue until processing done. If this a a negative event
     // then, a rollback will bring the processed positive event back to input queue and they will
     // be cancelled.
+
+    schedule_queue_lock_[scheduler_id].unlock();
 
     return event;
 }
@@ -241,9 +245,9 @@ void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
     // for the given lp, otherwise set to nullptr
     if (!input_queue_[lp_id]->empty()) {
         scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
-        unsigned int scheduler_id = input_queue_scheduler_map_[lp_id];
+        unsigned int scheduler_id = input_queue_scheduler_map_[lp_id];    
         schedule_queue_lock_[scheduler_id].lock();
-        schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[lp_id]);
+        schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[lp_id]);    
         schedule_queue_lock_[scheduler_id].unlock();
     } else {
         scheduled_event_pointer_[lp_id] = nullptr;
