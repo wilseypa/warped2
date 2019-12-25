@@ -43,10 +43,6 @@ public:
 
     unsigned int getLocalGVTFlag() override;
 
-    bool getGVTFlag() override;
-
-    void workerThreadGVTBarrierSync() override;
-
 protected:
     // Message handler for a Mattern token
     void receiveMatternGVTToken(std::unique_ptr<TimeWarpKernelMessage> msg);

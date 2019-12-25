@@ -19,4 +19,13 @@ void TimeWarpGVTManager::checkProgressGVT() {
     progressGVT();
 }
 
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+bool TimeWarpGVTManager::getGVTFlag(){
+    return false;
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::workerThreadGVTBarrierSync(){
+}
+
 } // namespace warped

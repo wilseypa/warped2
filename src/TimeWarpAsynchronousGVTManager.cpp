@@ -273,12 +273,4 @@ unsigned int TimeWarpAsynchronousGVTManager::getLocalGVTFlag() {
     return local_gvt_flag_.load();
 }
 
-bool TimeWarpAsynchronousGVTManager::getGVTFlag(){
-    return false;
-}
-
-void TimeWarpAsynchronousGVTManager::workerThreadGVTBarrierSync(){
-}
-
-
 } // namespace warped

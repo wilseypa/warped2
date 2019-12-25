@@ -38,11 +38,11 @@ public:
 
     virtual unsigned int getLocalGVTFlag() = 0;
 
-    virtual bool getGVTFlag() = 0;
+    virtual bool getGVTFlag();
 
     virtual bool gvtUpdated() = 0;
 
-    virtual void workerThreadGVTBarrierSync() = 0;
+    virtual void workerThreadGVTBarrierSync();
 
     virtual int64_t getMessageCount() = 0;
 
