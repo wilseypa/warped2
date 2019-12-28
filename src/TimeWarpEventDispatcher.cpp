@@ -328,9 +328,6 @@ start_of_process_event:
                 // Save state
                 state_manager_->saveState(event, current_lp_id, current_lp);
 
-
-
-// Add insert event here. It only updates the LTSF queue if the lp has an event about to be executed
                 // Send new events
                 sendEvents(event, new_events, current_lp_id, current_lp);
 
