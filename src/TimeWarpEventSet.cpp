@@ -113,7 +113,7 @@ InsertStatus TimeWarpEventSet::insertEvent (
 }
 
 
-std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
+std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id, bool input_queue_check) {
 
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
 
@@ -123,6 +123,17 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id) {
     auto event = (event_iterator != schedule_queue_[scheduler_id]->end()) ?
                     *event_iterator : nullptr;
     if (event != nullptr) {
+        if (input_queue_check){
+            unsigned int lp_id = lp_id_by_name_[event->receiverName()];
+            input_queue_lock_[lp_id].lock_shared();
+            auto smallest_event = *input_queue_[lp_id]->begin();
+            input_queue_lock_[lp_id].unlock_shared();
+
+            //Switch if they are not the same
+            if (smallest_event != event) {event = smallest_event;}
+        }
+        
+        // Erase no matter what 
         schedule_queue_[scheduler_id]->erase(event_iterator);
     }
 
@@ -350,6 +361,10 @@ unsigned int TimeWarpEventSet::fossilCollect (unsigned int fossil_collect_time, 
 
 void TimeWarpEventSet::setWorkerThreadInputQueueMap(std::vector<std::vector<unsigned int>> map){
     worker_thread_input_queue_map_ = map;
+}
+
+void TimeWarpEventSet::setLocalLPIdByName(std::unordered_map<std::string, unsigned int> map_input){
+    lp_id_by_name_ = map_input;
 }
 
 

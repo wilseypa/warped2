@@ -135,6 +135,9 @@ private:
 
     const bool with_read_lock = true;
     const bool without_read_lock = false;
+
+    const bool with_input_queue_check = true;
+    const bool without_input_queue_check = false;
 };
 
 struct EventMessage : public TimeWarpKernelMessage {

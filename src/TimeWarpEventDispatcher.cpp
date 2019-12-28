@@ -231,7 +231,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     // Had to add getGVTFlag() and workerThreadGVTBarrierSync() to the base TWGVTManager then I had to add it to the Asynchronous version. Not sure how to avoid doing that
 
 
-    std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
+    std::shared_ptr<Event> event = event_set_->getEvent(thread_id, without_input_queue_check);
     if (event == nullptr) {
         goto refresh_schedule_queue;
     }
@@ -358,14 +358,16 @@ start_of_process_event:
                 logfile.close();
 #endif
                 
-                // Grab the next event
-                event = event_set_->getEvent(thread_id);
-                if (event == nullptr) {
-                    goto refresh_schedule_queue;
+                // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of k1
+                if (j+1 != k1_){
+                    event = event_set_->getEvent(thread_id, with_input_queue_check);
+                    if (event == nullptr) {
+                        goto refresh_schedule_queue;
+                    }
                 }
             } 
             event_set_->refreshScheduleQueue(thread_id, with_read_lock);
-            event = event_set_->getEvent(thread_id);
+            event = event_set_->getEvent(thread_id, without_input_queue_check);
             if (event == nullptr) {
                 goto refresh_schedule_queue;
             }
@@ -374,8 +376,8 @@ start_of_process_event:
             gvt_manager_->workerThreadGVTBarrierSync();
             // fossil collection
             event_set_->refreshScheduleQueue(thread_id, without_read_lock);
-            event = event_set_->getEvent(thread_id);
-            // estGvtEst() ??????
+            event = event_set_->getEvent(thread_id, without_input_queue_check);
+            // setGvtEst()
             gvt_manager_->workerThreadGVTBarrierSync();
         }
 
@@ -383,7 +385,7 @@ start_of_process_event:
 
 refresh_schedule_queue:
     event_set_->refreshScheduleQueue(thread_id, with_read_lock);
-    event = event_set_->getEvent(thread_id);
+    event = event_set_->getEvent(thread_id, without_input_queue_check);
     if (event != nullptr) {
         goto start_of_process_event;
     } else {
@@ -391,7 +393,7 @@ refresh_schedule_queue:
         pthread_barrier_wait(&termination_barrier_sync_1);
 
         event_set_->refreshScheduleQueue(thread_id, without_read_lock);
-        event = event_set_->getEvent(thread_id); 
+        event = event_set_->getEvent(thread_id, without_input_queue_check); 
         if (event != nullptr) {  // In the algorithm it says !e ← ltsf.refreshEvents(), I think thats wrong
             termination_manager_->setTerminate(false);
         }
@@ -632,6 +634,7 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<LogicalProcess
         worker_thread_number++;
     }
 
+    event_set_->setLocalLPIdByName(local_lp_id_by_name_);
     event_set_->setWorkerThreadInputQueueMap(worker_thread_input_queue_map_);
 
     // Creates the state queues, output queues, and filestream queues for each local lp
