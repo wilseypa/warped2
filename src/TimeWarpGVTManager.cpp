@@ -28,4 +28,9 @@ bool TimeWarpGVTManager::getGVTFlag(){
 void TimeWarpGVTManager::workerThreadGVTBarrierSync(){
 }
 
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::reportThreadMin(unsigned int timestamp, unsigned int thread_id){
+    timestamp++; thread_id++;
+}
+
 } // namespace warped

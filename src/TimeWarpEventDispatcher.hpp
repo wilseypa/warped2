@@ -113,6 +113,7 @@ private:
 
     std::unordered_map<std::string, LogicalProcess*> lps_by_name_;
     std::unordered_map<std::string, unsigned int> local_lp_id_by_name_;
+    std::unordered_map<unsigned int, std::string> local_lp_name_by_id_;
 
 #ifdef TIMEWARP_EVENT_LOG
     // Event log for each worker thread

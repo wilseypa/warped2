@@ -38,7 +38,13 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
     report_gvt_lock_.lock();
     report_gvt_ = true;
     report_gvt_lock_.unlock();
+
     pthread_barrier_wait(&min_report_barrier_);
+    pthread_barrier_wait(&min_report_barrier_);
+
+    report_gvt_lock_.lock();
+    report_gvt_ = false;
+    report_gvt_lock_.unlock();
 
     // Collect GVT from all of the worker threads 
     unsigned int local_min = recv_min_;
@@ -51,12 +57,7 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
 
     comm_manager_->minAllReduceUint(&local_min, &gVT_);
 
-    gvt_updated_ = true;
-
-    report_gvt_lock_.lock();
-    report_gvt_ = false;
-    report_gvt_lock_.unlock();
-    pthread_barrier_wait(&min_report_barrier_);
+    gvt_updated_ = true; 
 }
 
 Color TimeWarpSynchronousGVTManager::sendEventUpdate(std::shared_ptr<Event>& event) {
@@ -96,6 +97,10 @@ void TimeWarpSynchronousGVTManager::reportThreadMin(unsigned int timestamp, unsi
         pthread_barrier_wait(&min_report_barrier_);
         pthread_barrier_wait(&min_report_barrier_);
     }
+}
+
+void TimeWarpSynchronousGVTManager::reportThreadMin(unsigned int timestamp, unsigned int thread_id) {
+        local_min_[thread_id] = timestamp;   
 }
 
 void TimeWarpSynchronousGVTManager::reportThreadSendMin(unsigned int timestamp, unsigned int thread_id) {

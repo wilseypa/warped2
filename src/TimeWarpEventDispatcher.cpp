@@ -220,16 +220,12 @@ void TimeWarpEventDispatcher::CommunicationManagerThread(){
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
     thread_id = id;
-    //unsigned int gvt = 0;
+    unsigned int min_timestamp = std::numeric_limits<unsigned int>::max();
+    unsigned int gvt = 0;
 
 #ifdef TIMEWARP_EVENT_LOG
     auto epoch = std::chrono::steady_clock::now();
 #endif
-
-
-    // GetEvent needs to be modyfied to do readLock
-    // Had to add getGVTFlag() and workerThreadGVTBarrierSync() to the base TWGVTManager then I had to add it to the Asynchronous version. Not sure how to avoid doing that
-
 
     std::shared_ptr<Event> event = event_set_->getEvent(thread_id, without_input_queue_check);
     if (event == nullptr) {
@@ -374,10 +370,42 @@ start_of_process_event:
         }
         if (gvt_manager_->getGVTFlag()){
             gvt_manager_->workerThreadGVTBarrierSync();
+            
             // fossil collection
+            unsigned int fossil_current_lp_id;
+            LogicalProcess* fossil_current_lp;
+            gvt = gvt_manager_->getGVT();
+            for (unsigned int t = 0; t < worker_thread_input_queue_map_[thread_id].size(); t++){
+                fossil_current_lp_id = worker_thread_input_queue_map_[thread_id][t];
+                fossil_current_lp = lps_by_name_[local_lp_name_by_id_[fossil_current_lp_id]];
+                if (gvt > fossil_current_lp->last_fossil_collect_gvt_) {
+                    fossil_current_lp->last_fossil_collect_gvt_ = gvt;
+
+                    // Fossil collect all queues for this lp
+                    twfs_manager_->fossilCollect(gvt, fossil_current_lp_id);
+                    output_manager_->fossilCollect(gvt, fossil_current_lp_id);
+
+                    unsigned int event_fossil_collect_time =
+                        state_manager_->fossilCollect(gvt, fossil_current_lp_id);
+
+                    unsigned int num_committed =
+                        event_set_->fossilCollect(event_fossil_collect_time, fossil_current_lp_id);
+
+                    tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
+                }
+            }
+
             event_set_->refreshScheduleQueue(thread_id, without_read_lock);
             event = event_set_->getEvent(thread_id, without_input_queue_check);
-            // setGvtEst()
+
+            // Go through each input queue and get the min timestamp
+            unsigned int gvt_current_lp_id;
+            for (unsigned int t = 0; t < worker_thread_input_queue_map_[thread_id].size(); t++){
+                gvt_current_lp_id = worker_thread_input_queue_map_[thread_id][t];
+                min_timestamp = std::min(min_timestamp, event_set_->returnLowestTimestamp(gvt_current_lp_id));
+            }
+            gvt_manager_->reportThreadMin(min_timestamp, thread_id);
+            min_timestamp = std::numeric_limits<unsigned int>::max();
             gvt_manager_->workerThreadGVTBarrierSync();
         }
 
@@ -628,6 +656,7 @@ TimeWarpEventDispatcher::initialize(const std::vector<std::vector<LogicalProcess
         for (auto& lp : partition) {
             lps_by_name_[lp->name_] = lp;
             local_lp_id_by_name_[lp->name_] = lp_id;
+            local_lp_name_by_id_[lp_id] = lp->name_;
             worker_thread_input_queue_map_[worker_thread_number].push_back(lp_id);
             lp_id++;
         }

@@ -163,7 +163,6 @@ void TimeWarpEventSet::refreshScheduleQueue(unsigned int thread_id, bool read_lo
 }
 
 
-
 #ifdef PARTIALLY_SORTED_LADDER_QUEUE
 /*
  *  NOTE: This is needed only for partially unsorted ladder queue
@@ -365,6 +364,10 @@ void TimeWarpEventSet::setWorkerThreadInputQueueMap(std::vector<std::vector<unsi
 
 void TimeWarpEventSet::setLocalLPIdByName(std::unordered_map<std::string, unsigned int> map_input){
     lp_id_by_name_ = map_input;
+}
+
+unsigned int TimeWarpEventSet::returnLowestTimestamp(unsigned int lp_id){
+    return (*input_queue_[lp_id]->begin())->timestamp();
 }
 
 

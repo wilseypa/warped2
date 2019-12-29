@@ -78,6 +78,8 @@ public:
 
     void setLocalLPIdByName(std::unordered_map<std::string, unsigned int> map_input);
 
+    unsigned int returnLowestTimestamp(unsigned int lp_id);
+
 private:
     // Number of lps
     unsigned int num_of_lps_ = 0;

@@ -34,6 +34,8 @@ public:
     virtual void reportThreadMin(unsigned int timestamp, unsigned int thread_id,
                                  unsigned int local_gvt_flag) = 0;
 
+    virtual void reportThreadMin(unsigned int timestamp, unsigned int thread_id);
+
     virtual void reportThreadSendMin(unsigned int timestamp, unsigned int thread_id) = 0;
 
     virtual unsigned int getLocalGVTFlag() = 0;

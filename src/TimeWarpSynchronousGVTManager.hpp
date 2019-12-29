@@ -41,6 +41,8 @@ public:
 
     void reportThreadSendMin(unsigned int timestamp, unsigned int thread_id) override;
 
+    void reportThreadMin(unsigned int timestamp, unsigned int thread_id);
+
     unsigned int getLocalGVTFlag() override;
 
     bool getGVTFlag() override;
