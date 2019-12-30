@@ -58,11 +58,11 @@ public:
 
     unsigned int getNodeID(std::string lp_name);
 
-    virtual bool barrierHoldStatus();
+    virtual bool barrierHoldStatus() = 0;
 
-    virtual void barrierPause();
+    virtual void barrierPause() = 0;
 
-    virtual void barrierResume();
+    virtual void barrierResume() = 0;
 
 protected:
     // Map to lookup message handler given a message type
