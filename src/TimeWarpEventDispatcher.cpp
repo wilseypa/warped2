@@ -106,8 +106,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     threads.push_back(std::move(comm_thread));
 
     // Termination Manager    
+std::cout << "T - Start" << std::endl;
     while (!termination_manager_->terminationStatus()) {
-
         termination_manager_->setTerminate(true);
 
         pthread_barrier_wait(&termination_barrier_sync_1);
@@ -160,8 +160,8 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
 
     // Only 1 node
     if (comm_manager_->getNumProcesses() == 1) {
+std::cout << "G - Start" << std::endl;
         while(1){
-
             //std::this_thread::sleep_for(std::chrono::nanoseconds(10));
 
             gvt_manager_->progressGVT();
@@ -207,7 +207,9 @@ void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
 
 void TimeWarpEventDispatcher::CommunicationManagerThread(){
     // Will run until this thread is destroyed
+std::cout << "C - Start" << std::endl;
     while(true){
+
         comm_manager_->handleMessages();
         
         if (comm_manager_->barrierHoldStatus()){
@@ -217,8 +219,14 @@ void TimeWarpEventDispatcher::CommunicationManagerThread(){
     }
 }
 
-void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
+
+
+
+
+
+void TimeWarpEventDispatcher::processEvents(unsigned int id) {
+std::cout << "P - Start" << std::endl;
     thread_id = id;
     unsigned int min_timestamp = std::numeric_limits<unsigned int>::max();
     unsigned int gvt = 0;
@@ -236,7 +244,6 @@ start_of_process_event:
     while(1){
         for (unsigned int i = 0; i < k0_; i++){
             for (unsigned int j = 0; j < k1_; j++){
-
 #ifdef TIMEWARP_EVENT_LOG
             // Event stat - start processing time, sender name, receiver name, timestamp
             auto event_stats = std::to_string((std::chrono::steady_clock::now() - epoch).count());
@@ -417,7 +424,7 @@ refresh_schedule_queue:
     if (event != nullptr) {
         goto start_of_process_event;
     } else {
-        // I think pthread_barrier_wait(&termination_barrier_sync_1); is missing and should be here
+        pthread_barrier_wait(&termination_barrier_sync_1);// I think pthread_barrier_wait(&termination_barrier_sync_1); is missing and should be here
         pthread_barrier_wait(&termination_barrier_sync_1);
 
         event_set_->refreshScheduleQueue(thread_id, without_read_lock);

@@ -114,7 +114,6 @@ InsertStatus TimeWarpEventSet::insertEvent (
 
 
 std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id, bool input_queue_check) {
-
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
 
     //schedule_queue_lock_[scheduler_id].lock();
@@ -132,7 +131,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id, bool 
             //Switch if they are not the same
             if (smallest_event != event) {event = smallest_event;}
         }
-        
+     
         // Erase no matter what 
         schedule_queue_[scheduler_id]->erase(event_iterator);
     }
@@ -154,11 +153,14 @@ void TimeWarpEventSet::refreshScheduleQueue(unsigned int thread_id, bool read_lo
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
     unsigned int current_lp_id;
     // Go to all input queues
-    for (unsigned int i; i < worker_thread_input_queue_map_[scheduler_id].size(); i++){
+    for (unsigned int i = 0; i < worker_thread_input_queue_map_[scheduler_id].size(); i++){
         current_lp_id = worker_thread_input_queue_map_[scheduler_id][i];
+
         if (read_lock) input_queue_lock_[current_lp_id].lock_shared();
         scheduled_event_pointer_[i] = *input_queue_[current_lp_id]->begin();
+        schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[i]);
         if (read_lock) input_queue_lock_[current_lp_id].unlock_shared();
+        // I feel like I need to erase the old event also
     }
 }
 
