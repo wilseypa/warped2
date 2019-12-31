@@ -50,9 +50,8 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
     unsigned int local_min = recv_min_;
     recv_min_ = std::numeric_limits<unsigned int>::max();
     for (unsigned int i = 0; i <= num_worker_threads_; i++) {
-        local_min = std::min(local_min, std::min(local_min_[i], send_min_[i]));
+        local_min = std::min(local_min, local_min_[i]);
         local_min_[i] = std::numeric_limits<unsigned int>::max();
-        send_min_[i] = std::numeric_limits<unsigned int>::max();
     }
 
     comm_manager_->minAllReduceUint(&local_min, &gVT_);

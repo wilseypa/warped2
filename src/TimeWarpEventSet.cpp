@@ -160,7 +160,7 @@ void TimeWarpEventSet::refreshScheduleQueue(unsigned int thread_id, bool read_lo
         scheduled_event_pointer_[i] = *input_queue_[current_lp_id]->begin();
         schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[i]);
         if (read_lock) input_queue_lock_[current_lp_id].unlock_shared();
-        // I feel like I need to erase the old event also
+        // I feel like I need to erase the old event from the schedule queue
     }
 }
 

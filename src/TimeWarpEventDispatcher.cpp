@@ -315,6 +315,14 @@ start_of_process_event:
                 event_stats += "\n";
                 event_log_[thread_id]->insert(event_stats);
 #endif
+                
+                // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of k1
+                if (j+1 != k1_){
+                    event = event_set_->getEvent(thread_id, with_input_queue_check);
+                    if (event == nullptr) {
+                        goto refresh_schedule_queue;
+                    }
+                }
                 continue;
 
 #ifdef TIMEWARP_EVENT_LOG
@@ -360,7 +368,7 @@ start_of_process_event:
                 }
                 logfile.close();
 #endif
-                
+
                 // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of k1
                 if (j+1 != k1_){
                     event = event_set_->getEvent(thread_id, with_input_queue_check);
