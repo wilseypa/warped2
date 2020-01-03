@@ -378,9 +378,13 @@ start_of_process_event:
                 }
             } 
             event_set_->refreshScheduleQueue(thread_id, with_read_lock);
-            event = event_set_->getEvent(thread_id, without_input_queue_check);
-            if (event == nullptr) {
-                goto refresh_schedule_queue;
+
+            // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of k0
+            if (i+1 != k0_){
+                event = event_set_->getEvent(thread_id, without_input_queue_check);
+                if (event == nullptr) {
+                    goto refresh_schedule_queue;
+                }
             }
         }
         if (gvt_manager_->getGVTFlag()){
