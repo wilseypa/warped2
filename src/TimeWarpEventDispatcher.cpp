@@ -162,7 +162,7 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
     if (comm_manager_->getNumProcesses() == 1) {
 std::cout << "G - Start" << std::endl;
         while(1){
-            //std::this_thread::sleep_for(std::chrono::nanoseconds(10));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(1000000000));
 
             gvt_manager_->progressGVT();
 
@@ -378,7 +378,6 @@ start_of_process_event:
                 }
             } 
             event_set_->refreshScheduleQueue(thread_id, with_read_lock);
-
             // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of k0
             if (i+1 != k0_){
                 event = event_set_->getEvent(thread_id, without_input_queue_check);
@@ -431,6 +430,7 @@ start_of_process_event:
     }
 
 refresh_schedule_queue:
+
     event_set_->refreshScheduleQueue(thread_id, with_read_lock);
     event = event_set_->getEvent(thread_id, without_input_queue_check);
     if (event != nullptr) {
