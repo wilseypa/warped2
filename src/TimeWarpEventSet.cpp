@@ -153,12 +153,9 @@ void TimeWarpEventSet::refreshScheduleQueue(unsigned int thread_id, bool read_lo
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
     unsigned int current_lp_id;
 
-
-
-
     // Go to all input queues for this schedule queue
     for (unsigned int i = 0; i < worker_thread_input_queue_map_[scheduler_id].size(); i++){
-//std::cout << i << std::endl;
+
         current_lp_id = worker_thread_input_queue_map_[scheduler_id][i];
 
         // If the input queue is not empty proceed
@@ -285,18 +282,19 @@ void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
  *  NOTE: the scheduled_event_pointer is also protected by input queue lock
  */
 void TimeWarpEventSet::replenishScheduler (unsigned int lp_id) {
-
     // Something is completely wrong if there is no scheduled event because we obviously just
     // processed an event that was scheduled.
     assert(scheduled_event_pointer_[lp_id]);
-
+std::cout << "RS 2.1" << std::endl;
     // Move the just processed event to the processed queue
     auto num_erased = input_queue_[lp_id]->erase(scheduled_event_pointer_[lp_id]);
+std::cout << "RS 2.2" << std::endl;
     assert(num_erased == 1);
+std::cout << "RS 2.3" << std::endl;
     unused(num_erased);
-
+std::cout << "RS 3" << std::endl;
     processed_queue_[lp_id]->push_back(scheduled_event_pointer_[lp_id]);
-
+std::cout << "RS 4" << std::endl;
     // Map the lp to the next schedule queue (cyclic order)
     // This is supposed to balance the load across all the schedule queues
     // Input queue lock is sufficient to ensure consistency

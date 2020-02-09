@@ -122,8 +122,6 @@ void TimeWarpTerminationManager::setThreadActive(unsigned int thread_id) {
 }
 
 bool TimeWarpTerminationManager::terminationStatus() {
-    bool termination;
-
     termination_lock_.lock_shared();
     termination = terminate_;
     termination_lock_.unlock_shared();
@@ -140,9 +138,6 @@ void TimeWarpTerminationManager::setTerminate(bool termination_value){
     terminate_ = termination_value;
     termination_lock_.unlock();
 }
-
-
-
 
 bool TimeWarpTerminationManager::nodePassive() {
     return (state_ == State::PASSIVE);

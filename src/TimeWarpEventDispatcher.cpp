@@ -43,8 +43,8 @@ THREAD_LOCAL_SPECIFIER unsigned int TimeWarpEventDispatcher::thread_id;
 TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     unsigned int num_worker_threads,
     bool is_lp_migration_on,
-    unsigned int k0,
-    unsigned int k1,
+    unsigned int num_refresh_per_gvt,
+    unsigned int num_events_per_refresh,
     std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
     std::unique_ptr<TimeWarpEventSet> event_set,
     std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -55,7 +55,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
     std::unique_ptr<TimeWarpStatistics> tw_stats) :
         EventDispatcher(max_sim_time), num_worker_threads_(num_worker_threads),
         is_lp_migration_on_(is_lp_migration_on),
-        k0_(k0), k1_(k1), 
+        num_refresh_per_gvt_(num_refresh_per_gvt), num_events_per_refresh_(num_events_per_refresh), 
         comm_manager_(comm_manager), event_set_(std::move(event_set)), 
         gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
         output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
@@ -106,7 +106,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     threads.push_back(std::move(comm_thread));
 
     // Termination Manager    
-std::cout << "T - Start" << std::endl;
+//std::cout << "T - Start" << std::endl;
     while (!termination_manager_->terminationStatus()) {
         termination_manager_->setTerminate(true);
 
@@ -125,8 +125,7 @@ std::cout << "T - Start" << std::endl;
         } else {
             termination_manager_->setTerminate(false);
         }
-    }
-    
+    }  
     comm_manager_->waitForAllProcesses();
     auto sim_stop = std::chrono::steady_clock::now();
 
@@ -160,7 +159,7 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
 
     // Only 1 node
     if (comm_manager_->getNumProcesses() == 1) {
-std::cout << "G - Start" << std::endl;
+//std::cout << "G - Start" << std::endl;
         while(1){
             std::this_thread::sleep_for(std::chrono::nanoseconds(1000000000));
 
@@ -207,7 +206,7 @@ void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
 
 void TimeWarpEventDispatcher::CommunicationManagerThread(){
     // Will run until this thread is destroyed
-std::cout << "C - Start" << std::endl;
+//std::cout << "C - Start" << std::endl;
     while(true){
 
         comm_manager_->handleMessages();
@@ -226,7 +225,7 @@ std::cout << "C - Start" << std::endl;
 
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
-std::cout << "P - Start" << std::endl;
+//std::cout << "P - Start" << std::endl;
     thread_id = id;
     unsigned int min_timestamp = std::numeric_limits<unsigned int>::max();
     unsigned int gvt = 0;
@@ -242,8 +241,9 @@ std::cout << "P - Start" << std::endl;
 
 start_of_process_event:
     while(1){
-        for (unsigned int i = 0; i < k0_; i++){
-            for (unsigned int j = 0; j < k1_; j++){
+//std::cout << "Start" << std::endl;
+        for (unsigned int i = 0; i < num_refresh_per_gvt_; i++){
+            for (unsigned int j = 0; j < num_events_per_refresh_; j++){
 #ifdef TIMEWARP_EVENT_LOG
             // Event stat - start processing time, sender name, receiver name, timestamp
             auto event_stats = std::to_string((std::chrono::steady_clock::now() - epoch).count());
@@ -251,7 +251,6 @@ start_of_process_event:
             event_stats     += "," + event->receiverName();
             event_stats     += "," + std::to_string(event->timestamp());
 #endif
-
                 assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
 
                 unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];
@@ -276,7 +275,7 @@ start_of_process_event:
                 // A rollback can occur in two situations:
                 //      1. We get an event that is strictly less than the last processed event.
                 //      2. We get an event that is equal to the last processed event and is negative.
-
+//std::cout << "1" << std::endl;
                 if (last_processed_event &&
                         ((*event < *last_processed_event) ||
                             ((*event == *last_processed_event) &&
@@ -289,13 +288,17 @@ start_of_process_event:
                 event_stats += ",0"; // Event stats - no rollback
 #endif
                 }
-
+//std::cout << "2.1" << std::endl;
                 // Check to see if event is NEGATIVE and cancel
                 if (event->event_type_ == EventType::NEGATIVE) {
                     event_set_->acquireInputQueueLock(current_lp_id);
+//std::cout << "2.2" << std::endl;
                     bool found = event_set_->cancelEvent(current_lp_id, event);
+//std::cout << "2.3" << std::endl;
                     event_set_->startScheduling(current_lp_id);
+//std::cout << "2.4" << std::endl;
                     event_set_->releaseInputQueueLock(current_lp_id);
+//std::cout << "2.5" << std::endl;
 
                     if (found) {
                         tw_stats_->upCount(CANCELLED_EVENTS, thread_id);
@@ -314,16 +317,15 @@ start_of_process_event:
                 // Event stats - store it
                 event_stats += "\n";
                 event_log_[thread_id]->insert(event_stats);
-#endif
-                
-                // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of k1
-                if (j+1 != k1_){
-                    event = event_set_->getEvent(thread_id, with_input_queue_check);
-                    if (event == nullptr) {
-                        goto refresh_schedule_queue;
+#endif               
+                    // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_events_per_refresh
+                    if (j+1 != num_events_per_refresh_){
+                        event = event_set_->getEvent(thread_id, with_input_queue_check);
+                        if (event == nullptr) {
+                            goto refresh_schedule_queue;
+                        }
                     }
-                }
-                continue;
+                    continue;
 
 #ifdef TIMEWARP_EVENT_LOG
                 } else {
@@ -331,17 +333,19 @@ start_of_process_event:
 #endif
                 }
 
+
+//std::cout << "4.1" << std::endl;
                 // process event and get new events
                 auto new_events = current_lp->receiveEvent(*event);
-
+//std::cout << "4.2" << std::endl;
                 tw_stats_->upCount(EVENTS_PROCESSED, thread_id);
 
                 // Save state
                 state_manager_->saveState(event, current_lp_id, current_lp);
-
+//std::cout << "4.3" << std::endl;
                 // Send new events
                 sendEvents(event, new_events, current_lp_id, current_lp);
-
+//std::cout << "4.4" << std::endl;
 #ifdef TIMEWARP_EVENT_LOG
                 // Event stats - event processing time
                 auto end_event = std::chrono::steady_clock::now();
@@ -355,7 +359,9 @@ start_of_process_event:
                 // Move the next event from lp into the schedule queue
                 // Also transfer old event to processed queue
                 event_set_->acquireInputQueueLock(current_lp_id);
+//std::cout << "4.5" << std::endl;
                 event_set_->replenishScheduler(current_lp_id);
+//std::cout << "4.6" << std::endl;
                 event_set_->releaseInputQueueLock(current_lp_id);
 
 #ifdef TIMEWARP_EVENT_LOG
@@ -368,18 +374,19 @@ start_of_process_event:
                 }
                 logfile.close();
 #endif
-
-                // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of k1
-                if (j+1 != k1_){
+//std::cout << "5" << std::endl;
+                // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_events_per_refresh
+                if (j+1 != num_events_per_refresh_){
                     event = event_set_->getEvent(thread_id, with_input_queue_check);
                     if (event == nullptr) {
                         goto refresh_schedule_queue;
                     }
                 }
             } 
+//std::cout << "6" << std::endl;
             event_set_->refreshScheduleQueue(thread_id, with_read_lock);
-            // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of k0
-            if (i+1 != k0_){
+            // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_refresh_per_gvt
+            if (i+1 != num_refresh_per_gvt_){
                 event = event_set_->getEvent(thread_id, without_input_queue_check);
                 if (event == nullptr) {
                     goto refresh_schedule_queue;

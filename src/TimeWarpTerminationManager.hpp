@@ -67,6 +67,8 @@ private:
 
     std::shared_mutex termination_lock_;
     bool terminate_ = false;
+
+    bool termination = false;
 };
 
 struct TerminationToken : public TimeWarpKernelMessage {
