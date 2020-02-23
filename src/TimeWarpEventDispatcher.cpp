@@ -92,7 +92,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     }
 
 
-    pthread_barrier_init(&termination_barrier_sync_1, NULL, num_worker_threads_+2);
+    pthread_barrier_init(&termination_barrier_sync_1, NULL, num_worker_threads_+1); // This will sync all worker threads and the termination manager
     pthread_barrier_init(&termination_barrier_sync_2, NULL, 2);
 
     // Create manager threads
@@ -110,13 +110,14 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     while (!termination_manager_->terminationStatus()) {
         termination_manager_->setTerminate(true);
 
-        pthread_barrier_wait(&termination_barrier_sync_1);
+        pthread_barrier_wait(&termination_barrier_sync_1); // Have all worker threads sync up, so that we can test for termination
         comm_manager_->barrierPause();
-        pthread_barrier_wait(&termination_barrier_sync_2);
+        pthread_barrier_wait(&termination_barrier_sync_2); // Suspend Comm Manager, so that no messages can be passed
         comm_manager_->barrierResume();
-        pthread_barrier_wait(&termination_barrier_sync_1);
-        pthread_barrier_wait(&termination_barrier_sync_1);
-        pthread_barrier_wait(&termination_barrier_sync_2);
+        pthread_barrier_wait(&termination_barrier_sync_1); // Need to wait for the comm manager to suspend before the worker threads can check their schedule queues
+        // Worker threads are checking their schedule queues between these two syncs (the line above ^^^^ and below VVVVV)
+        pthread_barrier_wait(&termination_barrier_sync_1); // Wait for all worker threads to check their schedule queues before making a desiscion on termination
+        pthread_barrier_wait(&termination_barrier_sync_2); // Resume Comm Manager
         
         // If this node is passive, then we set this node to terminate and send a termination token to the next node
         if (termination_manager_->nodePassive()){
@@ -217,11 +218,6 @@ void TimeWarpEventDispatcher::CommunicationManagerThread(){
         }
     }
 }
-
-
-
-
-
 
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
