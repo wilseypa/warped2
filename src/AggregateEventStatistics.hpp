@@ -24,6 +24,9 @@ public:
     AggregateEventStatistics(std::string filename, OutputType output_type);
 
     void record(const std::string& source, unsigned int send_time, Event* event);
+    // Record zero or more events at once
+    void record(const std::string& source, unsigned int send_time,
+                        const std::vector<std::shared_ptr<Event>>& events);
 
     // Make an undirectional edge connecting two vertices.
     Edge makeEdge(const std::string& a, const std::string& b) const;
