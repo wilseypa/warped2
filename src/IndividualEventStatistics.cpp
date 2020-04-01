@@ -44,6 +44,13 @@ void IndividualEventStatistics::record(const std::string& source, unsigned int s
                             event->timestamp(),
                             event->size() + event->base_size()  );
 }
+void IndividualEventStatistics::record(const std::string& source, unsigned int send_time,
+                             const std::vector<std::shared_ptr<Event>>& events) {
+    for (const auto& e : events) {
+        record(source, send_time, e.get());
+    }
+}
+
 
 std::ostream& IndividualEventStatistics::printStats(std::ostream& stream) const {
     if (output_type_ == OutputType::Json) {
