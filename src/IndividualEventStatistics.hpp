@@ -30,6 +30,8 @@ public:
 
     IndividualEventStatistics(std::string filename, OutputType output_type);
     void record(const std::string& source, unsigned int send_time, Event* event);
+    void record(const std::string& source, unsigned int send_time,
+                        const std::vector<std::shared_ptr<Event>>& events);
 
 private:
     std::ostream& printStats(std::ostream& stream) const;

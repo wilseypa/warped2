@@ -18,6 +18,13 @@ public:
     void record(const std::string& source, unsigned int send_time, Event* event) {
         unused(source, send_time, event);
     }
+    void record(const std::string& source, unsigned int send_time,
+                             const std::vector<std::shared_ptr<Event>>& events) {
+    for (const auto& e : events) {
+        record(source, send_time, e.get());
+    }
+}
+
 
     void writeToFile() {}
 private:

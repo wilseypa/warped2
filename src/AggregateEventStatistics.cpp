@@ -27,6 +27,14 @@ void AggregateEventStatistics::record(const std::string& source, unsigned int se
     edge_stats_[makeEdge(source, event->receiverName())] += 1;
 }
 
+void AggregateEventStatistics::record(const std::string& source, unsigned int send_time,
+                             const std::vector<std::shared_ptr<Event>>& events) {
+    for (const auto& e : events) {
+        record(source, send_time, e.get());
+    }
+}
+
+
 unsigned int AggregateEventStatistics::getStat(const Edge& e) const {
     return edge_stats_.at(e);
 }

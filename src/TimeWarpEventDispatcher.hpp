@@ -1,7 +1,7 @@
 #ifndef TIME_WARP_EVENT_DISPATCHER_H
 #define TIME_WARP_EVENT_DISPATCHER_H
 
-#define THREAD_LOCAL_SPECIFIER _Thread_local
+#define THREAD_LOCAL_SPECIFIER thread_local
 
 #ifdef __GNUC__ 
   #if __GNUC_MINOR__ < 8
