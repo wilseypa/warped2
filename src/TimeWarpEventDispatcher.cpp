@@ -432,6 +432,8 @@ start_of_process_event:
 
     }
 
+
+// WHAT HAPPENS IF WE GET A THREAD STUCK IN REFRESH_SCEDULE_QUEUE(CHECKING FOR TERMINATION) AND A THREAD STUCK IN GVT CALCULATION?
 refresh_schedule_queue:
 
     event_set_->refreshScheduleQueue(thread_id, with_read_lock);

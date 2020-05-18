@@ -294,7 +294,8 @@ std::cout << "RS 2.3" << std::endl;
     unused(num_erased);
 std::cout << "RS 3" << std::endl;
     processed_queue_[lp_id]->push_back(scheduled_event_pointer_[lp_id]);
-std::cout << "RS 4" << std::endl;
+std::cout << "RS 4   HI" << std::endl;
+std::cout << "RS 4.1" << std::endl;
     // Map the lp to the next schedule queue (cyclic order)
     // This is supposed to balance the load across all the schedule queues
     // Input queue lock is sufficient to ensure consistency
@@ -303,15 +304,17 @@ std::cout << "RS 4" << std::endl;
         scheduler_id = (scheduler_id + 1) % num_of_schedulers_;
         input_queue_scheduler_map_[lp_id] = scheduler_id;
     }
-
+std::cout << "RS 5" << std::endl;
     // Update scheduler with new event for the lp the previous event was executed for
     // NOTE: A pointer to the scheduled event will remain in the input queue
     if (!input_queue_[lp_id]->empty()) {
+std::cout << "RS 5.1" << std::endl;
         scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
         //schedule_queue_lock_[scheduler_id].lock();
         schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[lp_id]);
         //schedule_queue_lock_[scheduler_id].unlock();
     } else {
+std::cout << "RS 5.2" << std::endl;
         scheduled_event_pointer_[lp_id] = nullptr;
     }
 }
