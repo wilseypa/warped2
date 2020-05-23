@@ -162,7 +162,7 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
     if (comm_manager_->getNumProcesses() == 1) {
 //std::cout << "G - Start Thread: " << pthread_self()<< std::endl;
         while(1){
-            std::this_thread::sleep_for(std::chrono::nanoseconds(10000));
+            std::this_thread::sleep_for(std::chrono::nanoseconds(100));
 
             gvt_manager_->progressGVT();
 
@@ -228,7 +228,7 @@ bool start = true;
     unsigned int min_timestamp = std::numeric_limits<unsigned int>::max();
     unsigned int gvt = 0;
 
-std::cout << num_refresh_per_gvt_ << " " << num_events_per_refresh_ << std::endl;
+//std::cout << num_refresh_per_gvt_ << " " << num_events_per_refresh_ << std::endl;
 
 #ifdef TIMEWARP_EVENT_LOG
     auto epoch = std::chrono::steady_clock::now();
@@ -243,9 +243,9 @@ start_of_process_event:
     while(1){
 //std::cout << "Start Thread: " << pthread_self() << std::endl;
         for (unsigned int i = 0; i < num_refresh_per_gvt_; i++){
-std::cout << " i: " << i << std::endl;
+//std::cout << " i: " << i << std::endl;
             for (unsigned int j = 0; j < num_events_per_refresh_; j++){
-std::cout << "   j: " << j << std::endl;
+//std::cout << "   j: " << j << std::endl;
 #ifdef TIMEWARP_EVENT_LOG
             // Event stat - start processing time, sender name, receiver name, timestamp
             auto event_stats = std::to_string((std::chrono::steady_clock::now() - epoch).count());
@@ -270,7 +270,7 @@ else{
     }
     
 }
-std::cout << event->timestamp() << " " << event->receiverName() << " Thread: " << pthread_self() << std::endl;
+//std::cout << event->timestamp() << " " << event->receiverName() << " Thread: " << pthread_self() << std::endl;
                 // The rules with event processing
                 //      1. Negative events are given priority over positive events if they both exist
                 //          in the lps input queue
@@ -287,11 +287,11 @@ std::cout << event->timestamp() << " " << event->receiverName() << " Thread: " <
                 // A rollback can occur in two situations:
                 //      1. We get an event that is strictly less than the last processed event.
                 //      2. We get an event that is equal to the last processed event and is negative.
-//std::cout << "1 Thread: " << pthread_self() << std::endl;
                 if (last_processed_event &&
                         ((*event < *last_processed_event) ||
                             ((*event == *last_processed_event) &&
                             (event->event_type_ == EventType::NEGATIVE)))) {
+//std::cout << " ROLLBACK" << std::endl;
                     rollback(event);
 #ifdef TIMEWARP_EVENT_LOG
                 event_stats += ",1"; // Event stats - rollback
@@ -330,7 +330,7 @@ std::cout << event->timestamp() << " " << event->receiverName() << " Thread: " <
         
                     // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_events_per_refresh
                     if (j < num_events_per_refresh_-1){
-                        event = event_set_->getEvent(thread_id, with_input_queue_check);
+                        event = event_set_->getEvent(thread_id, without_input_queue_check);
                         if (event == nullptr) {
                             goto refresh_schedule_queue;
                         }
@@ -385,16 +385,17 @@ std::cout << event->timestamp() << " " << event->receiverName() << " Thread: " <
 #endif
                 // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_events_per_refresh
                 if (j < num_events_per_refresh_-1){
-                    event = event_set_->getEvent(thread_id, with_input_queue_check);
+                    event = event_set_->getEvent(thread_id, without_input_queue_check);
                     if (event == nullptr) {
                         goto refresh_schedule_queue;
                     }
                 }
             } 
 //std::cout << "6 Thread: " << pthread_self() << std::endl;
-            event_set_->refreshScheduleQueue(thread_id, with_read_lock);
+            
             // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_refresh_per_gvt
             if (i < num_refresh_per_gvt_-1){
+                event_set_->refreshScheduleQueue(thread_id, with_read_lock);
                 event = event_set_->getEvent(thread_id, without_input_queue_check);
                 if (event == nullptr) {
                     goto refresh_schedule_queue;
@@ -443,6 +444,10 @@ std::cout << event->timestamp() << " " << event->receiverName() << " Thread: " <
             gvt_manager_->reportThreadMin(min_timestamp, thread_id);
             min_timestamp = std::numeric_limits<unsigned int>::max();
             gvt_manager_->workerThreadGVTBarrierSync();
+        }
+        // In the case that GVT isn't ready to collected, we need to grab an event. Or else we will reprocess the last event
+        else {
+            event = event_set_->getEvent(thread_id, without_input_queue_check);
         }
 
     }

@@ -342,9 +342,7 @@ bool TimeWarpEventSet::cancelEvent (unsigned int lp_id, std::shared_ptr<Event> c
     assert(neg_iterator != input_queue_[lp_id]->end());
     auto pos_iterator = std::next(neg_iterator);
     assert(pos_iterator != input_queue_[lp_id]->end());
-std::cout << "  NEGATIVE 1" << std::endl;
     if (**pos_iterator == **neg_iterator) {
-std::cout << "  NEGATIVE 2" << std::endl;
         input_queue_[lp_id]->erase(neg_iterator);
         input_queue_[lp_id]->erase(pos_iterator);
         found = true;
