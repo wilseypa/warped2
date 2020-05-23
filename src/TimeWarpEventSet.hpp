@@ -80,6 +80,8 @@ public:
 
     unsigned int returnLowestTimestamp(unsigned int lp_id);
 
+    void test(unsigned int lp_id);
+
 private:
     // Number of lps
     unsigned int num_of_lps_ = 0;

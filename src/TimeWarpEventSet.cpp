@@ -152,7 +152,6 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id, bool 
 void TimeWarpEventSet::refreshScheduleQueue(unsigned int thread_id, bool read_lock){
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
     unsigned int current_lp_id;
-
     // Go to all input queues for this schedule queue
     for (unsigned int i = 0; i < worker_thread_input_queue_map_[scheduler_id].size(); i++){
 
@@ -160,16 +159,27 @@ void TimeWarpEventSet::refreshScheduleQueue(unsigned int thread_id, bool read_lo
 
         // If the input queue is not empty proceed
         if (!input_queue_[current_lp_id]->empty()) {
+
             if (read_lock) input_queue_lock_[current_lp_id].lock_shared();
-            scheduled_event_pointer_[current_lp_id] = *input_queue_[current_lp_id]->begin();
-            schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[current_lp_id]);
+            if (scheduled_event_pointer_[current_lp_id] == nullptr){
+                scheduled_event_pointer_[current_lp_id] = *input_queue_[current_lp_id]->begin();
+                schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[current_lp_id]);
+            }
+            else if (scheduled_event_pointer_[current_lp_id]->timestamp() > (*input_queue_[current_lp_id]->begin())->timestamp()){
+                // Erase the greater timestamped event from the schedule queue
+                schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[current_lp_id]);
+                scheduled_event_pointer_[current_lp_id] = *input_queue_[current_lp_id]->begin();
+                schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[current_lp_id]);
+            }
+
             if (read_lock) input_queue_lock_[current_lp_id].unlock_shared();
-            // I feel like I need to erase the old event from the schedule queue
+            
+        } else {
+            scheduled_event_pointer_[current_lp_id] = nullptr;
         }
+
     }
-
-
-
+    
 }
 
 
@@ -274,6 +284,18 @@ void TimeWarpEventSet::startScheduling (unsigned int lp_id) {
     }
 }
 
+void TimeWarpEventSet::test(unsigned int lp_id){
+    unsigned int scheduler_id = input_queue_scheduler_map_[lp_id];
+    std::multiset <std::shared_ptr<Event>, compareEvents> :: iterator itr; 
+
+    for (itr = schedule_queue_[scheduler_id]->begin(); itr != schedule_queue_[scheduler_id]->end(); itr++){
+        if ((*itr)->timestamp() < 15){
+            std::cout << (*itr)->timestamp() << " " << (*itr)->receiverName() << " Thread: " << pthread_self() << std::endl;
+        }
+    }
+    exit(1);
+}
+
 /*
  *  NOTE: This can only be called by the thread that handles event for the lp with id lp_id
  *
@@ -285,17 +307,14 @@ void TimeWarpEventSet::replenishScheduler (unsigned int lp_id) {
     // Something is completely wrong if there is no scheduled event because we obviously just
     // processed an event that was scheduled.
     assert(scheduled_event_pointer_[lp_id]);
-std::cout << "RS 2.1" << std::endl;
+
     // Move the just processed event to the processed queue
     auto num_erased = input_queue_[lp_id]->erase(scheduled_event_pointer_[lp_id]);
-std::cout << "RS 2.2" << std::endl;
     assert(num_erased == 1);
-std::cout << "RS 2.3" << std::endl;
     unused(num_erased);
-std::cout << "RS 3" << std::endl;
+
     processed_queue_[lp_id]->push_back(scheduled_event_pointer_[lp_id]);
-std::cout << "RS 4   HI" << std::endl;
-std::cout << "RS 4.1" << std::endl;
+
     // Map the lp to the next schedule queue (cyclic order)
     // This is supposed to balance the load across all the schedule queues
     // Input queue lock is sufficient to ensure consistency
@@ -304,17 +323,14 @@ std::cout << "RS 4.1" << std::endl;
         scheduler_id = (scheduler_id + 1) % num_of_schedulers_;
         input_queue_scheduler_map_[lp_id] = scheduler_id;
     }
-std::cout << "RS 5" << std::endl;
     // Update scheduler with new event for the lp the previous event was executed for
     // NOTE: A pointer to the scheduled event will remain in the input queue
     if (!input_queue_[lp_id]->empty()) {
-std::cout << "RS 5.1" << std::endl;
         scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
         //schedule_queue_lock_[scheduler_id].lock();
         schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[lp_id]);
         //schedule_queue_lock_[scheduler_id].unlock();
     } else {
-std::cout << "RS 5.2" << std::endl;
         scheduled_event_pointer_[lp_id] = nullptr;
     }
 }
@@ -326,13 +342,13 @@ bool TimeWarpEventSet::cancelEvent (unsigned int lp_id, std::shared_ptr<Event> c
     assert(neg_iterator != input_queue_[lp_id]->end());
     auto pos_iterator = std::next(neg_iterator);
     assert(pos_iterator != input_queue_[lp_id]->end());
-
+std::cout << "  NEGATIVE 1" << std::endl;
     if (**pos_iterator == **neg_iterator) {
+std::cout << "  NEGATIVE 2" << std::endl;
         input_queue_[lp_id]->erase(neg_iterator);
         input_queue_[lp_id]->erase(pos_iterator);
         found = true;
     }
-
     return found;
 }
 
