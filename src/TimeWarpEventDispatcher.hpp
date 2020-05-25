@@ -17,6 +17,7 @@
 #include <vector>
 #include <deque>
 #include <thread>
+#include <shared_mutex>
 
 #include <pthread.h>
 
@@ -104,13 +105,13 @@ private:
 
     pthread_barrier_t termination_barrier_sync_1;
     pthread_barrier_t termination_barrier_sync_2;
+    pthread_barrier_t worker_thread_barrier_sync;
 
     unsigned int num_worker_threads_;
     bool is_lp_migration_on_;
     unsigned int num_refresh_per_gvt_;
     unsigned int num_events_per_refresh_;
     unsigned int num_local_lps_;
-    bool gvt_manager_is_done_;
 
     std::unordered_map<std::string, LogicalProcess*> lps_by_name_;
     std::unordered_map<std::string, unsigned int> local_lp_id_by_name_;
@@ -134,6 +135,12 @@ private:
 
     // Double check to make sure this is implemented correctly in the TWEventDispatcher initialize function
     std::vector<std::vector<unsigned int>> worker_thread_input_queue_map_; // Get input queue ids from thread_id
+    unsigned int worker_thread_empty_schedule_queue_count_;
+    std::vector<bool> worker_thread_empty_schedule_;
+    std::shared_mutex worker_thread_empty_schedule_queue_lock_;
+
+    std::shared_mutex gvt_manager_done_lock_;
+    bool gvt_manager_done_;
 
     const bool with_read_lock = true;
     const bool without_read_lock = false;
