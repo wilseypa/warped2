@@ -395,7 +395,9 @@ void TimeWarpEventSet::setLocalLPIdByName(std::unordered_map<std::string, unsign
 }
 
 unsigned int TimeWarpEventSet::returnLowestTimestamp(unsigned int lp_id){
-    return (*input_queue_[lp_id]->begin())->timestamp();
+    unsigned int lowest_timestamp = std::numeric_limits<unsigned int>::max();
+    if (!input_queue_[lp_id]->empty()) lowest_timestamp = (*input_queue_[lp_id]->begin())->timestamp();
+    return (lowest_timestamp);
 }
 
 

@@ -105,10 +105,12 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     auto comm_thread(std::thread {&TimeWarpEventDispatcher::CommunicationManagerThread, this});
     threads.push_back(std::move(comm_thread));
 
+    bool termination = false;
+
     // Termination Manager    
-std::cout << "T - Start Thread: " << pthread_self() << std::endl;
+//std::cout << "T - Start Thread: " << pthread_self() << std::endl;
     while (!termination_manager_->terminationStatus()) {
-        termination_manager_->setTerminate(true);
+        termination = true;
 
         pthread_barrier_wait(&termination_barrier_sync_1); // Have all worker threads sync up, so that we can test for termination
         comm_manager_->barrierPause();
@@ -118,20 +120,25 @@ std::cout << "T - Start Thread: " << pthread_self() << std::endl;
         // Worker threads are checking their schedule queues between these two syncs (the line above ^^^^ and below VVVVV)
         pthread_barrier_wait(&termination_barrier_sync_1); // Wait for all worker threads to check their schedule queues before making a desiscion on termination
         pthread_barrier_wait(&termination_barrier_sync_2); // Resume Comm Manager
-        
+       
         // If this node is passive, then we set this node to terminate and send a termination token to the next node
         if (termination_manager_->nodePassive()){
-            termination_manager_->setTerminate(true);         
+            termination = true;
+            termination_manager_->setTerminate(termination);         
             termination_manager_->sendTerminationToken(State::PASSIVE, comm_manager_->getID(), 0);       
         } else {
-            termination_manager_->setTerminate(false);
+            termination = false;
+            termination_manager_->setTerminate(termination);
         }
+        pthread_barrier_wait(&termination_barrier_sync_1); // Need to allow the termination manager to set termination status, before worker threads test termination status
     }  
+
     comm_manager_->waitForAllProcesses();
     auto sim_stop = std::chrono::steady_clock::now();
 
     double num_seconds = double((sim_stop - sim_start).count()) *
                 std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
+
 
     if (comm_manager_->getID() == 0) {
         std::cout << "\nSimulation completed in " << num_seconds << " second(s)" << "\n\n";
@@ -161,12 +168,12 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
     // Only 1 node
     if (comm_manager_->getNumProcesses() == 1) {
 //std::cout << "G - Start Thread: " << pthread_self()<< std::endl;
-        while(1){
+        while(!termination_manager_->terminationStatus()){
             std::this_thread::sleep_for(std::chrono::nanoseconds(100));
 
             gvt_manager_->progressGVT();
 
-            if (gvt_manager_->gvtUpdated()) {
+            if (gvt_manager_->gvtUpdated() && !termination_manager_->terminationStatus()) {
                 gvt = gvt_manager_->getGVT();
                 onGVT(gvt);
             }
@@ -207,8 +214,8 @@ void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
 
 void TimeWarpEventDispatcher::CommunicationManagerThread(){
     // Will run until this thread is destroyed
-std::cout << "C - Start Thread: " << pthread_self() << std::endl;
-    while(true){
+//std::cout << "C - Start Thread: " << pthread_self() << std::endl;
+    while(!termination_manager_->terminationStatus()){
 
         comm_manager_->handleMessages();
         
@@ -462,73 +469,61 @@ refresh_schedule_queue:
     if (event != nullptr) {
         goto start_of_process_event;
     } else {
-//std::cout << "Term 1 Thread: " << pthread_self() << std::endl;
+
         pthread_barrier_wait(&termination_barrier_sync_1);// I think pthread_barrier_wait(&termination_barrier_sync_1); is missing and should be here
         pthread_barrier_wait(&termination_barrier_sync_1);
 
         event_set_->refreshScheduleQueue(thread_id, without_read_lock);
         event = event_set_->getEvent(thread_id, without_input_queue_check); 
         if (event != nullptr) {  // In the algorithm it says !e ← ltsf.refreshEvents(), I think thats wrong
-            termination_manager_->setTerminate(false);
+            if (termination_manager_->threadPassive(thread_id)) {
+                termination_manager_->setThreadActive(thread_id);
+            }
+            //termination_manager_->setTerminate(false); original
         }
 
+        if (!termination_manager_->threadPassive(thread_id)) { //original
+            termination_manager_->setThreadPassive(thread_id); //original
+        }                                                      //original
+
         pthread_barrier_wait(&termination_barrier_sync_1);
-//std::cout << "Term 2 Thread: " << pthread_self() << std::endl;
+        pthread_barrier_wait(&termination_barrier_sync_1);
+
         if (termination_manager_->terminationStatus()){
             // proceed to termination
+            
+            event_set_->refreshScheduleQueue(thread_id, without_read_lock);
+            event = event_set_->getEvent(thread_id, without_input_queue_check); 
+            if (event != nullptr) {
+std::cout << " STILL MORE TO GO " << std::endl;  
+                //termination_manager_->setTerminate(false);
+            }
 
+            
+
+#ifdef TIMEWARP_EVENT_LOG
+            // Write event statistics to the log file
+            std::ofstream logfile;
+            logfile.open( eventLogFileName(thread_id).c_str(),
+                                    std::ofstream::out | std::ofstream::app );
+            while (event_log_[thread_id]->size()) {
+                logfile << event_log_[thread_id]->pop_front();
+            }
+            logfile.close();
+#endif
+
+            // These will release the GVT manager, allowing it to check for termination
+            gvt_manager_->workerThreadGVTBarrierSync();
+            // We must have this so that the GVT calculations can continue with passive threads.
+            // Just report infinite for a time.
+            gvt_manager_->reportThreadMin((unsigned int)-1, thread_id);
+            gvt_manager_->workerThreadGVTBarrierSync();
 
         } else {
             goto start_of_process_event;
         }
 
     }
-
-
-
-
-
-
-
-
-/*    while (!termination_manager_->terminationStatus()) {
-
-        std::shared_ptr<Event> event = event_set_->getEvent(thread_id);
-        if (event != nullptr) {
-
-
-
-            // Check for recent gvt update
-            gvt = gvt_manager_->getGVT();
-            if (gvt > current_lp->last_fossil_collect_gvt_) {
-                current_lp->last_fossil_collect_gvt_ = gvt;
-
-                // Fossil collect all queues for this lp
-                twfs_manager_->fossilCollect(gvt, current_lp_id);
-                output_manager_->fossilCollect(gvt, current_lp_id);
-
-                unsigned int event_fossil_collect_time =
-                    state_manager_->fossilCollect(gvt, current_lp_id);
-
-                unsigned int num_committed =
-                    event_set_->fossilCollect(event_fossil_collect_time, current_lp_id);
-
-                tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
-
-
-            }
-
-            
-
-        } else {
-            // This thread no longer has anything to do because it's schedule queue is empty.
-            if (!termination_manager_->threadPassive(thread_id)) {
-                termination_manager_->setThreadPassive(thread_id);
-            }
-       
-
-        }
-    }*/
 }
 
 void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
