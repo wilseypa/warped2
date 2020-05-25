@@ -110,6 +110,7 @@ private:
     unsigned int num_refresh_per_gvt_;
     unsigned int num_events_per_refresh_;
     unsigned int num_local_lps_;
+    bool gvt_manager_is_done_;
 
     std::unordered_map<std::string, LogicalProcess*> lps_by_name_;
     std::unordered_map<std::string, unsigned int> local_lp_id_by_name_;
