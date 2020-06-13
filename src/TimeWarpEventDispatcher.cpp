@@ -114,14 +114,14 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     while (!termination_manager_->terminationStatus()) {
         termination = true;
 
-        pthread_barrier_wait(&termination_barrier_sync_1); // Have all worker threads sync up, so that we can test for termination
-        comm_manager_->barrierPause();
-        pthread_barrier_wait(&termination_barrier_sync_2); // Suspend Comm Manager, so that no messages can be passed
-        comm_manager_->barrierResume();
-        pthread_barrier_wait(&termination_barrier_sync_1); // Need to wait for the comm manager to suspend before the worker threads can check their schedule queues
+        //pthread_barrier_wait(&termination_barrier_sync_1); // Have all worker threads sync up, so that we can test for termination
+        //comm_manager_->barrierPause();
+        //pthread_barrier_wait(&termination_barrier_sync_2); // Suspend Comm Manager, so that no messages can be passed
+        //comm_manager_->barrierResume();
+        //pthread_barrier_wait(&termination_barrier_sync_1); // Need to wait for the comm manager to suspend before the worker threads can check their schedule queues
         // Worker threads are checking their schedule queues between these two syncs (the line above ^^^^ and below VVVVV)
-        pthread_barrier_wait(&termination_barrier_sync_1); // Wait for all worker threads to check their schedule queues before making a desiscion on termination
-        pthread_barrier_wait(&termination_barrier_sync_2); // Resume Comm Manager
+        //pthread_barrier_wait(&termination_barrier_sync_1); // Wait for all worker threads to check their schedule queues before making a desiscion on termination
+        //pthread_barrier_wait(&termination_barrier_sync_2); // Resume Comm Manager
        
         // If this node is passive, then we set this node to terminate and send a termination token to the next node
         if (termination_manager_->nodePassive()){
@@ -132,7 +132,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
             termination = false;
             termination_manager_->setTerminate(termination);
         }
-        pthread_barrier_wait(&termination_barrier_sync_1); // Need to allow the termination manager to set termination status, before worker threads test termination status
+        //pthread_barrier_wait(&termination_barrier_sync_1); // Need to allow the termination manager to set termination status, before worker threads test termination status
     }  
 std::cout << "  T - End" << std::endl;
 
@@ -171,14 +171,18 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
     // Only 1 node
     if (comm_manager_->getNumProcesses() == 1) {
         while(!termination_manager_->terminationStatus()){
-            std::this_thread::sleep_for(std::chrono::nanoseconds(100));
 
             gvt_manager_->progressGVT();
 
             if (gvt_manager_->gvtUpdated() && !termination_manager_->terminationStatus()) {
+                gvt_manager_->accessGVTLockShared();
                 gvt = gvt_manager_->getGVT();
+                gvt_manager_->accessGVTUnlockShared();
                 onGVT(gvt);
             }
+
+            std::this_thread::sleep_for(std::chrono::nanoseconds(1000));
+            //if (gvt == std::numeric_limits<unsigned int>::max()) break;
         }
     } 
     // Distributed proccess, main node
@@ -195,11 +199,10 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
 
         }
     }*/
-std::cout << "  G - End 1" << std::endl;
+
+// Needed for termination purposes, the Worker threads can get stuck at a barrier sync
 gvt_manager_done_lock_.lock();
-std::cout << "  G - End 2" << std::endl;
 gvt_manager_done_ = true;
-std::cout << "  G - End 3" << std::endl;
 gvt_manager_done_lock_.unlock();
 std::cout << "  G - End 4" << std::endl;
 }
@@ -240,7 +243,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     thread_id = id;
     unsigned int min_timestamp = std::numeric_limits<unsigned int>::max();
     unsigned int gvt = 0;
-    //bool near_termination = false;
+    bool report_gvt = false;
 
 #ifdef TIMEWARP_EVENT_LOG
     auto epoch = std::chrono::steady_clock::now();
@@ -248,10 +251,10 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
     std::shared_ptr<Event> event = event_set_->getEvent(thread_id, with_input_queue_check);
     if (event == nullptr) {
-        goto refresh_schedule_queue;
+        goto calculate_gvt;
     }
 
-start_of_process_event:
+//start_of_process_event:
     while(1){
         for (unsigned int i = 0; i < num_refresh_per_gvt_; i++){
             for (unsigned int j = 0; j < num_events_per_refresh_; j++){
@@ -396,18 +399,20 @@ start_of_process_event:
             }
         }
 
-//if (near_termination) { goto refresh_schedule_queue; } 
 calculate_gvt:
 
-        if (true /*gvt_manager_->getGVTFlag()*/){
-//std::cout << "W GVT 1 --- near_termination: " << near_termination << std::endl;
+        gvt_manager_->getReportGVTFlagLockShared();
+        report_gvt = gvt_manager_->getGVTFlag();
+        gvt_manager_->getReportGVTFlagUnlockShared();
+        if (report_gvt){
             gvt_manager_->workerThreadGVTBarrierSync();
-//std::cout << "W GVT 2" << std::endl;
 
             // fossil collection
             unsigned int fossil_current_lp_id;
             LogicalProcess* fossil_current_lp;
+            gvt_manager_->accessGVTLockShared();
             gvt = gvt_manager_->getGVT();
+            gvt_manager_->accessGVTUnlockShared();
             for (unsigned int t = 0; t < worker_thread_input_queue_map_[thread_id].size(); t++){
                 fossil_current_lp_id = worker_thread_input_queue_map_[thread_id][t];
                 fossil_current_lp = lps_by_name_[local_lp_name_by_id_[fossil_current_lp_id]];
@@ -446,95 +451,26 @@ calculate_gvt:
             event = event_set_->getEvent(thread_id, without_input_queue_check);
         }
 
-// Check each worker thread to see if it's time to check for termination
-        // If there is no event and schdeule queue is empty is true
-        if (event == nullptr && !worker_thread_empty_schedule_[thread_id]){
-            worker_thread_empty_schedule_queue_lock_.lock();
-            worker_thread_empty_schedule_queue_count_--;
-            worker_thread_empty_schedule_queue_lock_.unlock();
-            worker_thread_empty_schedule_[thread_id] = true;
-        }
-        // Else if there is an event and schedule queue is empty is false
-        else if (event != nullptr && worker_thread_empty_schedule_[thread_id]){
-            worker_thread_empty_schedule_queue_lock_.lock();
-            worker_thread_empty_schedule_queue_count_++;
-            worker_thread_empty_schedule_queue_lock_.unlock();
-            worker_thread_empty_schedule_[thread_id] = false;
-        }
-//std::cout << "======COUNT S" << std::endl;       
-        pthread_barrier_wait(&worker_thread_barrier_sync);
-//std::cout << "======COUNT: " << worker_thread_empty_schedule_queue_count_ << std::endl;
-        if (worker_thread_empty_schedule_queue_count_ == 0) {
-            goto refresh_schedule_queue;
-        } 
-        else if (event == nullptr){
-            goto calculate_gvt;
-        }
-    }
+        gvt_manager_->accessGVTLockShared();
+        gvt = gvt_manager_->getGVT();
+        gvt_manager_->accessGVTUnlockShared();
 
-
-// WHAT HAPPENS IF WE GET A THREAD STUCK IN REFRESH_SCEDULE_QUEUE(CHECKING FOR TERMINATION) AND A THREAD STUCK IN GVT CALCULATION?
-refresh_schedule_queue:
-
-    event_set_->refreshScheduleQueue(thread_id, with_read_lock);
-    event = event_set_->getEvent(thread_id, without_input_queue_check);
-    if (event != nullptr) {
-        goto start_of_process_event;
-    } 
-    // Check for termination
-    else {
-        //near_termination = true;
-
-//std::cout << "W Term 1" << std::endl;
-        pthread_barrier_wait(&termination_barrier_sync_1);
-//std::cout << "W Term 2" << std::endl;
-
-        // Comm Manager is suspended here
-        pthread_barrier_wait(&termination_barrier_sync_1);
-
-        event_set_->refreshScheduleQueue(thread_id, without_read_lock);
-        event = event_set_->getEvent(thread_id, without_input_queue_check); 
-        // If there are still evnts
-        if (event != nullptr) {  
-            if (termination_manager_->threadPassive(thread_id)) {
-                termination_manager_->setThreadActive(thread_id);
+        if (gvt == std::numeric_limits<unsigned int>::max()){
+            if (!termination_manager_->threadPassive(thread_id)) {
+                termination_manager_->setThreadPassive(thread_id);
             }
-        }
-        // If there are no events
-        else if (!termination_manager_->threadPassive(thread_id)) { 
-            termination_manager_->setThreadPassive(thread_id); 
-        }                                                      
 
-        pthread_barrier_wait(&termination_barrier_sync_1);
-        pthread_barrier_wait(&termination_barrier_sync_1);
-         
-        if (termination_manager_->terminationStatus()){
-            // proceed to termination
+            // One Final Check for events
             event_set_->refreshScheduleQueue(thread_id, without_read_lock);
             event = event_set_->getEvent(thread_id, without_input_queue_check); 
             if (event != nullptr) {
+                std::cout << "UNPROCESSED EVENT" << std::endl;
             }
-
-#ifdef TIMEWARP_EVENT_LOG
-            // Write event statistics to the log file
-            std::ofstream logfile;
-            logfile.open( eventLogFileName(thread_id).c_str(),
-                                    std::ofstream::out | std::ofstream::app );
-            while (event_log_[thread_id]->size()) {
-                logfile << event_log_[thread_id]->pop_front();
-            }
-            logfile.close();
-#endif
+            break;
+        }
         
-        } 
-        else {
-            if (event != nullptr) {
-//std::cout << "     SPLIT 1 " << std::endl;
-               goto start_of_process_event;
-            } else {
-//std::cout << "     SPLIT 1 " << std::endl;
-                goto calculate_gvt;
-            }
+        if (event == nullptr){
+            goto calculate_gvt;
         }
     }
 
@@ -542,15 +478,10 @@ std::cout << " Worker Done 1" << std::endl;
 
     // This will allow the gvt manager to proceed to termination
     std::this_thread::sleep_for(std::chrono::nanoseconds(10000000000));
-std::cout << " Worker Done 2" << std::endl;
     gvt_manager_done_lock_.lock_shared();
-std::cout << " Worker Done 3" << std::endl;
     if (!gvt_manager_done_){
-std::cout << " Worker Done 4" << std::endl;
         gvt_manager_->workerThreadGVTBarrierSync();
-std::cout << " Worker Done 5" << std::endl;
         gvt_manager_->workerThreadGVTBarrierSync();
-std::cout << " Worker Done 6" << std::endl;
     }
     gvt_manager_done_lock_.unlock_shared();
     
@@ -663,7 +594,9 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
     twfs_manager_->rollback(straggler_event, local_lp_id);
 
     // We have major problems if we are rolling back past the GVT
+    gvt_manager_->accessGVTLockShared();
     assert(straggler_event->timestamp() >= gvt_manager_->getGVT());
+    gvt_manager_->accessGVTUnlockShared();
 
     // Move processed events larger  than straggler back to input queue.
     event_set_->acquireInputQueueLock(local_lp_id);

@@ -3,6 +3,7 @@
 
 #include <memory> // for shared_ptr
 #include <mutex>
+#include <shared_mutex>
 
 #include "TimeWarpEventDispatcher.hpp"
 #include "TimeWarpKernelMessage.hpp"
@@ -50,7 +51,17 @@ public:
 
     unsigned int getGVT() { return gVT_; }
 
+    void accessGVTLockShared() { access_gvt_lock_.lock_shared(); }
+
+    void accessGVTUnlockShared() { access_gvt_lock_.unlock_shared(); };
+
+    virtual void getReportGVTFlagLockShared();
+    
+    virtual void getReportGVTFlagUnlockShared();
+
 protected:
+    std::shared_mutex access_gvt_lock_;
+
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
 
     unsigned int gVT_ = 0;

@@ -33,4 +33,12 @@ void TimeWarpGVTManager::reportThreadMin(unsigned int timestamp, unsigned int th
     timestamp++; thread_id++;
 }
 
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::getReportGVTFlagLockShared(){
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::getReportGVTFlagUnlockShared(){
+}
+
 } // namespace warped

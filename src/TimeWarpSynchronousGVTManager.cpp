@@ -54,7 +54,9 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
         local_min_[i] = std::numeric_limits<unsigned int>::max();
     }
 
+    access_gvt_lock_.lock();
     comm_manager_->minAllReduceUint(&local_min, &gVT_);
+    access_gvt_lock_.unlock();
 
     gvt_updated_ = true; 
 }
@@ -124,6 +126,14 @@ bool TimeWarpSynchronousGVTManager::getGVTFlag() {
 
 void TimeWarpSynchronousGVTManager::workerThreadGVTBarrierSync(){
     pthread_barrier_wait(&min_report_barrier_);
+}
+
+void TimeWarpSynchronousGVTManager::getReportGVTFlagLockShared(){ 
+    report_gvt_lock_.lock_shared(); 
+}
+    
+void TimeWarpSynchronousGVTManager::getReportGVTFlagUnlockShared(){ 
+    report_gvt_lock_.unlock_shared(); 
 }
 
 } // namespace warped

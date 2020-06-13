@@ -49,6 +49,10 @@ public:
 
     void workerThreadGVTBarrierSync();
 
+    void getReportGVTFlagLockShared() override;
+    
+    void getReportGVTFlagUnlockShared() override;
+
 protected:
     bool gvt_updated_ = false;
 
