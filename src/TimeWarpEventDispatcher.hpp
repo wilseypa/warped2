@@ -139,8 +139,8 @@ private:
     std::vector<bool> worker_thread_empty_schedule_;
     std::shared_mutex worker_thread_empty_schedule_queue_lock_;
 
-    std::shared_mutex gvt_manager_done_lock_;
-    bool gvt_manager_done_;
+    std::mutex worker_threads_done_lock_;
+    bool worker_threads_done_;
 
     const bool with_read_lock = true;
     const bool without_read_lock = false;

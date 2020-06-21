@@ -65,7 +65,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
                                               lps) {
     initialize(lps);
 
-    gvt_manager_done_ = false;
+    worker_threads_done_ = false;
 
     // Create worker threads
     std::vector<std::thread> threads;
@@ -134,7 +134,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
         }
         //pthread_barrier_wait(&termination_barrier_sync_1); // Need to allow the termination manager to set termination status, before worker threads test termination status
     }  
-std::cout << "  T - End" << std::endl;
 
     comm_manager_->waitForAllProcesses();
     auto sim_stop = std::chrono::steady_clock::now();
@@ -170,10 +169,11 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
 
     // Only 1 node
     if (comm_manager_->getNumProcesses() == 1) {
-        while(!termination_manager_->terminationStatus()){
+        while(1){
 
             gvt_manager_->progressGVT();
 
+            if (gvt == std::numeric_limits<unsigned int>::max() && worker_threads_done_) break;
             if (gvt_manager_->gvtUpdated() && !termination_manager_->terminationStatus()) {
                 gvt_manager_->accessGVTLockShared();
                 gvt = gvt_manager_->getGVT();
@@ -182,7 +182,7 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
             }
 
             std::this_thread::sleep_for(std::chrono::nanoseconds(1000));
-            //if (gvt == std::numeric_limits<unsigned int>::max()) break;
+            
         }
     } 
     // Distributed proccess, main node
@@ -199,12 +199,6 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
 
         }
     }*/
-
-// Needed for termination purposes, the Worker threads can get stuck at a barrier sync
-gvt_manager_done_lock_.lock();
-gvt_manager_done_ = true;
-gvt_manager_done_lock_.unlock();
-std::cout << "  G - End 4" << std::endl;
 }
 
 void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
@@ -235,7 +229,6 @@ void TimeWarpEventDispatcher::CommunicationManagerThread(){
             pthread_barrier_wait(&termination_barrier_sync_2);
         }
     }
-std::cout << "  C - End" << std::endl;
 }
 
 
@@ -474,20 +467,14 @@ calculate_gvt:
         }
     }
 
-std::cout << " Worker Done 1" << std::endl; 
-
-    // This will allow the gvt manager to proceed to termination
-    std::this_thread::sleep_for(std::chrono::nanoseconds(10000000000));
-    gvt_manager_done_lock_.lock_shared();
-    if (!gvt_manager_done_){
-        gvt_manager_->workerThreadGVTBarrierSync();
-        gvt_manager_->workerThreadGVTBarrierSync();
-    }
-    gvt_manager_done_lock_.unlock_shared();
-    
-
-std::cout << " Worker Done 7" << std::endl; 
-
+    // Needed for termination purposes, it's hard to time when the gvt manager will start a gvt calculation
+    // So instead of trying to time it we wait till the GVT manager is stuck at the barrier syncs 
+    // Then we set workers_threads_done boolean to true and after the GVT barrier sync the GVT manager tests if the worker threads are done
+    worker_threads_done_lock_.lock();
+    worker_threads_done_ = true;
+    worker_threads_done_lock_.unlock();
+    gvt_manager_->workerThreadGVTBarrierSync();
+    gvt_manager_->workerThreadGVTBarrierSync();
 }
 
 void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
