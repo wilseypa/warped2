@@ -54,6 +54,8 @@ public:
     void getReportGVTFlagUnlockShared() override;
 
 protected:
+    unsigned int next_gvt_ = 0;
+
     bool gvt_updated_ = false;
 
     std::atomic<int64_t> white_msg_count_ = ATOMIC_VAR_INIT(0);

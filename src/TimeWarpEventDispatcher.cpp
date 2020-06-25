@@ -170,14 +170,13 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
     // Only 1 node
     if (comm_manager_->getNumProcesses() == 1) {
         while(1){
-
             gvt_manager_->progressGVT();
 
-            if (gvt == std::numeric_limits<unsigned int>::max() && worker_threads_done_) break;
+            if (gvt == std::numeric_limits<unsigned int>::max()) break;
             if (gvt_manager_->gvtUpdated() && !termination_manager_->terminationStatus()) {
-                gvt_manager_->accessGVTLockShared();
+                //gvt_manager_->accessGVTLockShared();
                 gvt = gvt_manager_->getGVT();
-                gvt_manager_->accessGVTUnlockShared();
+                //gvt_manager_->accessGVTUnlockShared();
                 onGVT(gvt);
             }
 
@@ -243,12 +242,77 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 #endif
 
     std::shared_ptr<Event> event = event_set_->getEvent(thread_id, with_input_queue_check);
-    if (event == nullptr) {
-        goto calculate_gvt;
-    }
-
-//start_of_process_event:
+    
     while(1){
+        
+        report_gvt = gvt_manager_->getGVTFlag();
+
+        // Don't need to grab an event twice if we are reporting gvt
+        if (!report_gvt) event = event_set_->getEvent(thread_id, with_input_queue_check);  
+        
+        if (event == nullptr || report_gvt){
+            gvt_manager_->workerThreadGVTBarrierSync();
+            // fossil collection
+            unsigned int fossil_current_lp_id;
+            LogicalProcess* fossil_current_lp;
+
+            gvt = gvt_manager_->getGVT();
+
+            for (unsigned int t = 0; t < worker_thread_input_queue_map_[thread_id].size(); t++){
+                fossil_current_lp_id = worker_thread_input_queue_map_[thread_id][t];
+                fossil_current_lp = lps_by_name_[local_lp_name_by_id_[fossil_current_lp_id]];
+                if (gvt > fossil_current_lp->last_fossil_collect_gvt_) {
+                    fossil_current_lp->last_fossil_collect_gvt_ = gvt;
+
+                    // Fossil collect all queues for this lp
+                    twfs_manager_->fossilCollect(gvt, fossil_current_lp_id);
+                    output_manager_->fossilCollect(gvt, fossil_current_lp_id);
+
+                    unsigned int event_fossil_collect_time =
+                        state_manager_->fossilCollect(gvt, fossil_current_lp_id);
+
+                    unsigned int num_committed =
+                        event_set_->fossilCollect(event_fossil_collect_time, fossil_current_lp_id);
+
+                    tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
+                }
+            }
+
+            event_set_->refreshScheduleQueue(thread_id, without_read_lock);
+            event = event_set_->getEvent(thread_id, without_input_queue_check);
+
+            // Go through each input queue and get the min timestamp
+            unsigned int gvt_current_lp_id;
+            for (unsigned int t = 0; t < worker_thread_input_queue_map_[thread_id].size(); t++){
+                gvt_current_lp_id = worker_thread_input_queue_map_[thread_id][t];
+                min_timestamp = std::min(min_timestamp, event_set_->returnLowestTimestamp(gvt_current_lp_id));
+            }
+
+            gvt_manager_->reportThreadMin(min_timestamp, thread_id);
+            if (event != nullptr) {
+                min_timestamp = event->timestamp();
+            }
+            else {
+                min_timestamp = std::numeric_limits<unsigned int>::max();
+            }
+            gvt_manager_->workerThreadGVTBarrierSync();
+            if (gvt == std::numeric_limits<unsigned int>::max()){
+                if (!termination_manager_->threadPassive(thread_id)) {
+                    termination_manager_->setThreadPassive(thread_id);
+                }
+
+                // One Final Check for events
+                event_set_->refreshScheduleQueue(thread_id, without_read_lock);
+                event = event_set_->getEvent(thread_id, without_input_queue_check); 
+//if (event != nullptr)  std::cout << event->timestamp() << " 2 " << event->receiverName() << std::endl;     
+                if (event != nullptr) {
+                    std::cout << "UNPROCESSED EVENT" << std::endl;
+                }
+                break;
+            }
+        }
+
+        if (event != nullptr){
         for (unsigned int i = 0; i < num_refresh_per_gvt_; i++){
             for (unsigned int j = 0; j < num_events_per_refresh_; j++){
 
@@ -259,9 +323,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             event_stats     += "," + event->receiverName();
             event_stats     += "," + std::to_string(event->timestamp());
 #endif
-
                 assert(comm_manager_->getNodeID(event->receiverName()) == comm_manager_->getID());
-
                 unsigned int current_lp_id = local_lp_id_by_name_[event->receiverName()];
                 LogicalProcess* current_lp = lps_by_name_[event->receiverName()];
 
@@ -296,6 +358,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 event_stats += ",0"; // Event stats - no rollback
 #endif
                 }
+
                 // Check to see if event is NEGATIVE and cancel
                 if (event->event_type_ == EventType::NEGATIVE) {
                     event_set_->acquireInputQueueLock(current_lp_id);
@@ -322,12 +385,13 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 event_stats += "\n";
                 event_log_[thread_id]->insert(event_stats);
 #endif       
-        
+       
                     // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_events_per_refresh
                     if (j < num_events_per_refresh_-1){
-                        event = event_set_->getEvent(thread_id, without_input_queue_check);
+                        event = event_set_->getEvent(thread_id, with_input_queue_check);
+
                         if (event == nullptr) {
-                            goto calculate_gvt;
+                            break;
                         }
                     }
 
@@ -375,9 +439,9 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 #endif
                 // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_events_per_refresh
                 if (j < num_events_per_refresh_-1){
-                    event = event_set_->getEvent(thread_id, without_input_queue_check);
+                    event = event_set_->getEvent(thread_id, with_input_queue_check);
                     if (event == nullptr) {
-                        goto calculate_gvt;
+                        break;
                     }
                 }
             } 
@@ -387,94 +451,15 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 event_set_->refreshScheduleQueue(thread_id, with_read_lock);
                 event = event_set_->getEvent(thread_id, without_input_queue_check);
                 if (event == nullptr) {
-                    goto calculate_gvt;
-                }
-            }
-        }
-
-calculate_gvt:
-
-        gvt_manager_->getReportGVTFlagLockShared();
-        report_gvt = gvt_manager_->getGVTFlag();
-        gvt_manager_->getReportGVTFlagUnlockShared();
-        if (report_gvt){
-            gvt_manager_->workerThreadGVTBarrierSync();
-
-            // fossil collection
-            unsigned int fossil_current_lp_id;
-            LogicalProcess* fossil_current_lp;
-            gvt_manager_->accessGVTLockShared();
-            gvt = gvt_manager_->getGVT();
-            gvt_manager_->accessGVTUnlockShared();
-            for (unsigned int t = 0; t < worker_thread_input_queue_map_[thread_id].size(); t++){
-                fossil_current_lp_id = worker_thread_input_queue_map_[thread_id][t];
-                fossil_current_lp = lps_by_name_[local_lp_name_by_id_[fossil_current_lp_id]];
-                if (gvt > fossil_current_lp->last_fossil_collect_gvt_) {
-                    fossil_current_lp->last_fossil_collect_gvt_ = gvt;
-
-                    // Fossil collect all queues for this lp
-                    twfs_manager_->fossilCollect(gvt, fossil_current_lp_id);
-                    output_manager_->fossilCollect(gvt, fossil_current_lp_id);
-
-                    unsigned int event_fossil_collect_time =
-                        state_manager_->fossilCollect(gvt, fossil_current_lp_id);
-
-                    unsigned int num_committed =
-                        event_set_->fossilCollect(event_fossil_collect_time, fossil_current_lp_id);
-
-                    tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
+                    break;
                 }
             }
 
-            event_set_->refreshScheduleQueue(thread_id, without_read_lock);
-            event = event_set_->getEvent(thread_id, without_input_queue_check);
-
-            // Go through each input queue and get the min timestamp
-            unsigned int gvt_current_lp_id;
-            for (unsigned int t = 0; t < worker_thread_input_queue_map_[thread_id].size(); t++){
-                gvt_current_lp_id = worker_thread_input_queue_map_[thread_id][t];
-                min_timestamp = std::min(min_timestamp, event_set_->returnLowestTimestamp(gvt_current_lp_id));
-            }
-            gvt_manager_->reportThreadMin(min_timestamp, thread_id);
-            min_timestamp = std::numeric_limits<unsigned int>::max();
-            gvt_manager_->workerThreadGVTBarrierSync();
-        }
-        // In the case that GVT isn't ready to collected, we need to grab an event. Or else we will reprocess the last event
-        else {
-            event = event_set_->getEvent(thread_id, without_input_queue_check);
-        }
-
-        gvt_manager_->accessGVTLockShared();
-        gvt = gvt_manager_->getGVT();
-        gvt_manager_->accessGVTUnlockShared();
-
-        if (gvt == std::numeric_limits<unsigned int>::max()){
-            if (!termination_manager_->threadPassive(thread_id)) {
-                termination_manager_->setThreadPassive(thread_id);
-            }
-
-            // One Final Check for events
-            event_set_->refreshScheduleQueue(thread_id, without_read_lock);
-            event = event_set_->getEvent(thread_id, without_input_queue_check); 
-            if (event != nullptr) {
-                std::cout << "UNPROCESSED EVENT" << std::endl;
-            }
-            break;
-        }
-        
-        if (event == nullptr){
-            goto calculate_gvt;
-        }
+        } 
+       
     }
-
-    // Needed for termination purposes, it's hard to time when the gvt manager will start a gvt calculation
-    // So instead of trying to time it we wait till the GVT manager is stuck at the barrier syncs 
-    // Then we set workers_threads_done boolean to true and after the GVT barrier sync the GVT manager tests if the worker threads are done
-    worker_threads_done_lock_.lock();
-    worker_threads_done_ = true;
-    worker_threads_done_lock_.unlock();
-    gvt_manager_->workerThreadGVTBarrierSync();
-    gvt_manager_->workerThreadGVTBarrierSync();
+    }
+std::cout << "Work - End" << std::endl;
 }
 
 void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
@@ -581,9 +566,9 @@ void TimeWarpEventDispatcher::rollback(std::shared_ptr<Event> straggler_event) {
     twfs_manager_->rollback(straggler_event, local_lp_id);
 
     // We have major problems if we are rolling back past the GVT
-    gvt_manager_->accessGVTLockShared();
+    //gvt_manager_->accessGVTLockShared();
     assert(straggler_event->timestamp() >= gvt_manager_->getGVT());
-    gvt_manager_->accessGVTUnlockShared();
+    //gvt_manager_->accessGVTUnlockShared();
 
     // Move processed events larger  than straggler back to input queue.
     event_set_->acquireInputQueueLock(local_lp_id);

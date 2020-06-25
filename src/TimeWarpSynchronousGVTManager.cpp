@@ -53,9 +53,11 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
         local_min = std::min(local_min, local_min_[i]);
         local_min_[i] = std::numeric_limits<unsigned int>::max();
     }
-
+    
+    gVT_ = next_gvt_;
+    
     access_gvt_lock_.lock();
-    comm_manager_->minAllReduceUint(&local_min, &gVT_);
+    comm_manager_->minAllReduceUint(&local_min, &next_gvt_);
     access_gvt_lock_.unlock();
 
     gvt_updated_ = true; 

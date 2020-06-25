@@ -127,11 +127,9 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id, bool 
             input_queue_lock_[lp_id].lock_shared();
             auto smallest_event = *input_queue_[lp_id]->begin();
             input_queue_lock_[lp_id].unlock_shared();
-
             //Switch if they are not the same
             if (smallest_event != event) {event = smallest_event;}
         }
-     
         // Erase no matter what 
         schedule_queue_[scheduler_id]->erase(event_iterator);
     }
@@ -310,6 +308,7 @@ void TimeWarpEventSet::replenishScheduler (unsigned int lp_id) {
 
     // Move the just processed event to the processed queue
     auto num_erased = input_queue_[lp_id]->erase(scheduled_event_pointer_[lp_id]);
+
     assert(num_erased == 1);
     unused(num_erased);
 
