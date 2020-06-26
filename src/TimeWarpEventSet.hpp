@@ -51,6 +51,8 @@ public:
 
     void getInputQueueHead (unsigned int lp_id, std::shared_ptr<Event>& head, std::shared_ptr<Event> &head_next);
 
+    void changedScheduledEventPtr (unsigned int lp_id, std::shared_ptr<Event> &head);
+
 #ifdef PARTIALLY_SORTED_LADDER_QUEUE
     unsigned int lowestTimestamp (unsigned int thread_id);
 #endif

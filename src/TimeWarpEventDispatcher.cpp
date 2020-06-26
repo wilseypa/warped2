@@ -236,6 +236,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     unsigned int min_timestamp = std::numeric_limits<unsigned int>::max();
     unsigned int gvt = 0;
     bool report_gvt = false;
+    bool test = false;
 
 #ifdef TIMEWARP_EVENT_LOG
     auto epoch = std::chrono::steady_clock::now();
@@ -309,7 +310,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
         if (event != nullptr){
         for (unsigned int i = 0; i < num_refresh_per_gvt_; i++){
             for (unsigned int j = 0; j < num_events_per_refresh_; j++){
-
+                test = false;
 #ifdef TIMEWARP_EVENT_LOG
             // Event stat - start processing time, sender name, receiver name, timestamp
             auto event_stats = std::to_string((std::chrono::steady_clock::now() - epoch).count());
@@ -325,22 +326,24 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 auto last_processed_event = event_set_->lastProcessedEvent(current_lp_id);
 
                 // Try to get the most recent event, instead of processing the wrong event
-                //event_set_->acquireInputQueueLock(current_lp_id);
+                event_set_->acquireInputQueueLock(current_lp_id);
                 //event_next = 
-                //event_set_->getInputQueueHead(current_lp_id, event_input_queue_head, event_input_queue_next); 
-                //event_set_->releaseInputQueueLock(current_lp_id);
+                event_set_->getInputQueueHead(current_lp_id, event_input_queue_head, event_input_queue_next); 
+                event_set_->releaseInputQueueLock(current_lp_id);
 
-                //if (event_input_queue_head != nullptr){
-                //    if (event->timestamp() > event_input_queue_head->timestamp()){
-                //        rollback(event_input_queue_head);
-                //    }
-                //    else {
-                //        event_input_queue_head = event;
-                //    }
-                //}
-                //else {
+                if (event_input_queue_head != nullptr){
+                    if (event->timestamp() > event_input_queue_head->timestamp()){
+                        rollback(event_input_queue_head);
+                        event_set_->changedScheduledEventPtr (current_lp_id, event_input_queue_head);
+                        test = true;
+                    }
+                    else {
+                        event_input_queue_head = event;
+                    }
+                }
+                else {
                     event_input_queue_head = event;
-                //}
+                }
 
                 // The rules with event processing
                 //      1. Negative events are given priority over positive events if they both exist
@@ -358,11 +361,12 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 // A rollback can occur in two situations:
                 //      1. We get an event that is strictly less than the last processed event.
                 //      2. We get an event that is equal to the last processed event and is negative.
+                if (!test) {
                 if (last_processed_event &&
-                        ((*event < *last_processed_event) ||
-                            ((*event == *last_processed_event) &&
-                            (event->event_type_ == EventType::NEGATIVE)))) {
-                    rollback(event);
+                        ((*event_input_queue_head < *last_processed_event) ||
+                            ((*event_input_queue_head == *last_processed_event) &&
+                            (event_input_queue_head->event_type_ == EventType::NEGATIVE)))) {
+                    rollback(event_input_queue_head);
 #ifdef TIMEWARP_EVENT_LOG
                 event_stats += ",1"; // Event stats - rollback
 
@@ -370,11 +374,12 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 event_stats += ",0"; // Event stats - no rollback
 #endif
                 }
+                }
 
                 // Check to see if event is NEGATIVE and cancel
-                if (event->event_type_ == EventType::NEGATIVE) {
+                if (event_input_queue_head->event_type_ == EventType::NEGATIVE) {
                     event_set_->acquireInputQueueLock(current_lp_id);
-                    bool found = event_set_->cancelEvent(current_lp_id, event);
+                    bool found = event_set_->cancelEvent(current_lp_id, event_input_queue_head);
                     event_set_->startScheduling(current_lp_id);
                     event_set_->releaseInputQueueLock(current_lp_id);
 
@@ -416,13 +421,13 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 }
 
                 // process event and get new events
-                auto new_events = current_lp->receiveEvent(*event);
+                auto new_events = current_lp->receiveEvent(*event_input_queue_head);
                 tw_stats_->upCount(EVENTS_PROCESSED, thread_id);
 
                 // Save state
-                state_manager_->saveState(event, current_lp_id, current_lp);
+                state_manager_->saveState(event_input_queue_head, current_lp_id, current_lp);
                 // Send new events
-                sendEvents(event, new_events, current_lp_id, current_lp);
+                sendEvents(event_input_queue_head, new_events, current_lp_id, current_lp);
 #ifdef TIMEWARP_EVENT_LOG
                 // Event stats - event processing time
                 auto end_event = std::chrono::steady_clock::now();
