@@ -28,6 +28,8 @@ public:
 
     virtual void progressGVT() = 0;
 
+    //virtual void progressGVT(int &workers, std::mutex &worker_threads_done_lock_);
+
     virtual void receiveEventUpdate(std::shared_ptr<Event>& event, Color color) = 0;
 
     virtual Color sendEventUpdate(std::shared_ptr<Event>& event) = 0;

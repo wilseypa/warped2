@@ -53,6 +53,8 @@ public:
     
     void getReportGVTFlagUnlockShared() override;
 
+    //void progressGVT(int &workers, std::mutex &worker_threads_done_lock_) override;
+
 protected:
     unsigned int next_gvt_ = 0;
 

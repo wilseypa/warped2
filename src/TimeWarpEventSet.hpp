@@ -49,6 +49,8 @@ public:
 
     std::shared_ptr<Event> getEvent (unsigned int thread_id, bool input_queue_check);
 
+    void getInputQueueHead (unsigned int lp_id, std::shared_ptr<Event>& head, std::shared_ptr<Event> &head_next);
+
 #ifdef PARTIALLY_SORTED_LADDER_QUEUE
     unsigned int lowestTimestamp (unsigned int thread_id);
 #endif
@@ -64,7 +66,7 @@ public:
 
     void startScheduling (unsigned int lp_id);
 
-    void replenishScheduler (unsigned int lp_id);
+    void replenishScheduler (unsigned int lp_id, std::shared_ptr<Event> next_event);
 
     bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 

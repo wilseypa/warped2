@@ -241,12 +241,13 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     auto epoch = std::chrono::steady_clock::now();
 #endif
 
+    std::shared_ptr<Event> event_input_queue_next;
+    std::shared_ptr<Event> event_input_queue_head;
+    //std::shared_ptr<Event> event_next;
     std::shared_ptr<Event> event = event_set_->getEvent(thread_id, with_input_queue_check);
     
-    while(1){
-        
+    while(1){      
         report_gvt = gvt_manager_->getGVTFlag();
-
         // Don't need to grab an event twice if we are reporting gvt
         if (!report_gvt) event = event_set_->getEvent(thread_id, with_input_queue_check);  
         
@@ -279,22 +280,15 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             }
 
             event_set_->refreshScheduleQueue(thread_id, without_read_lock);
-            event = event_set_->getEvent(thread_id, without_input_queue_check);
-
-            // Go through each input queue and get the min timestamp
-            unsigned int gvt_current_lp_id;
-            for (unsigned int t = 0; t < worker_thread_input_queue_map_[thread_id].size(); t++){
-                gvt_current_lp_id = worker_thread_input_queue_map_[thread_id][t];
-                min_timestamp = std::min(min_timestamp, event_set_->returnLowestTimestamp(gvt_current_lp_id));
-            }
-
-            gvt_manager_->reportThreadMin(min_timestamp, thread_id);
+            event = event_set_->getEvent(thread_id, without_input_queue_check);            
             if (event != nullptr) {
                 min_timestamp = event->timestamp();
             }
             else {
                 min_timestamp = std::numeric_limits<unsigned int>::max();
             }
+            gvt_manager_->reportThreadMin(min_timestamp, thread_id);
+
             gvt_manager_->workerThreadGVTBarrierSync();
             if (gvt == std::numeric_limits<unsigned int>::max()){
                 if (!termination_manager_->threadPassive(thread_id)) {
@@ -329,6 +323,24 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                 // Get the last processed event so we can check for a rollback
                 auto last_processed_event = event_set_->lastProcessedEvent(current_lp_id);
+
+                // Try to get the most recent event, instead of processing the wrong event
+                //event_set_->acquireInputQueueLock(current_lp_id);
+                //event_next = 
+                //event_set_->getInputQueueHead(current_lp_id, event_input_queue_head, event_input_queue_next); 
+                //event_set_->releaseInputQueueLock(current_lp_id);
+
+                //if (event_input_queue_head != nullptr){
+                //    if (event->timestamp() > event_input_queue_head->timestamp()){
+                //        rollback(event_input_queue_head);
+                //    }
+                //    else {
+                //        event_input_queue_head = event;
+                //    }
+                //}
+                //else {
+                    event_input_queue_head = event;
+                //}
 
                 // The rules with event processing
                 //      1. Negative events are given priority over positive events if they both exist
@@ -388,7 +400,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
        
                     // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_events_per_refresh
                     if (j < num_events_per_refresh_-1){
-                        event = event_set_->getEvent(thread_id, with_input_queue_check);
+                        event = event_set_->getEvent(thread_id, without_input_queue_check);
 
                         if (event == nullptr) {
                             break;
@@ -424,7 +436,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 // Move the next event from lp into the schedule queue
                 // Also transfer old event to processed queue
                 event_set_->acquireInputQueueLock(current_lp_id);
-                event_set_->replenishScheduler(current_lp_id);
+                event_set_->replenishScheduler(current_lp_id, event_input_queue_next);
                 event_set_->releaseInputQueueLock(current_lp_id);
 
 #ifdef TIMEWARP_EVENT_LOG
@@ -439,7 +451,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 #endif
                 // Grab the next event, make sure to not grab another event from the scedule queue if this is the last iteration of num_events_per_refresh
                 if (j < num_events_per_refresh_-1){
-                    event = event_set_->getEvent(thread_id, with_input_queue_check);
+                    event = event_set_->getEvent(thread_id, without_input_queue_check);
                     if (event == nullptr) {
                         break;
                     }

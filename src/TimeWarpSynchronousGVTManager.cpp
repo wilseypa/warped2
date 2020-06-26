@@ -41,7 +41,7 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
 
     pthread_barrier_wait(&min_report_barrier_);
     pthread_barrier_wait(&min_report_barrier_);
-
+// if (worker_threads_dumped) {}
     report_gvt_lock_.lock();
     report_gvt_ = false;
     report_gvt_lock_.unlock();
@@ -61,6 +61,8 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
     access_gvt_lock_.unlock();
 
     gvt_updated_ = true; 
+// worker_threads_dumped = false
+// }
 }
 
 Color TimeWarpSynchronousGVTManager::sendEventUpdate(std::shared_ptr<Event>& event) {

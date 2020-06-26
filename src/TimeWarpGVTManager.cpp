@@ -41,4 +41,13 @@ void TimeWarpGVTManager::getReportGVTFlagLockShared(){
 void TimeWarpGVTManager::getReportGVTFlagUnlockShared(){
 }
 
+/*void TimeWarpGVTManager::progressGVT(int &workers, std::mutex &worker_threads_done_lock_){
+    int i = workers;
+    worker_threads_done_lock_.lock();
+    worker_threads_done_lock_.unlock();
+    if (i){
+        i =2;
+    }
+}*/
+
 } // namespace warped

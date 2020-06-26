@@ -147,6 +147,20 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id, bool 
     return event;
 }
 
+void TimeWarpEventSet::getInputQueueHead (unsigned int lp_id, std::shared_ptr<Event> &head , std::shared_ptr<Event> &head_next){
+    auto event_iterator = (input_queue_[lp_id]->begin());
+    head = (event_iterator != (input_queue_[lp_id]->end())) ?
+                    *event_iterator : nullptr;
+//std::cout << "FUNC 1 " << head->timestamp() << " " << head->receiverName() << std::endl;
+    if (head != nullptr) scheduled_event_pointer_[lp_id] = head;
+//std::cout << "FUNC 2 " << scheduled_event_pointer_[lp_id]->timestamp() << " " << scheduled_event_pointer_[lp_id]->receiverName() << std::endl;
+
+
+    event_iterator++;
+    head_next = (event_iterator != (input_queue_[lp_id]->end())) ?
+                    *event_iterator : nullptr;
+}
+
 void TimeWarpEventSet::refreshScheduleQueue(unsigned int thread_id, bool read_lock){
     unsigned int scheduler_id = worker_thread_scheduler_map_[thread_id];
     unsigned int current_lp_id;
@@ -301,9 +315,10 @@ void TimeWarpEventSet::test(unsigned int lp_id){
  *
  *  NOTE: the scheduled_event_pointer is also protected by input queue lock
  */
-void TimeWarpEventSet::replenishScheduler (unsigned int lp_id) {
+void TimeWarpEventSet::replenishScheduler (unsigned int lp_id, std::shared_ptr<Event> next_event) {
     // Something is completely wrong if there is no scheduled event because we obviously just
     // processed an event that was scheduled.
+    next_event = nullptr;
     assert(scheduled_event_pointer_[lp_id]);
 
     // Move the just processed event to the processed queue
@@ -324,6 +339,8 @@ void TimeWarpEventSet::replenishScheduler (unsigned int lp_id) {
     }
     // Update scheduler with new event for the lp the previous event was executed for
     // NOTE: A pointer to the scheduled event will remain in the input queue
+    //scheduled_event_pointer_[lp_id] = next_event;
+    //if (scheduled_event_pointer_[lp_id] != nullptr) schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[lp_id]);
     if (!input_queue_[lp_id]->empty()) {
         scheduled_event_pointer_[lp_id] = *input_queue_[lp_id]->begin();
         //schedule_queue_lock_[scheduler_id].lock();
