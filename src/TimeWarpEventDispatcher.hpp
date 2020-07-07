@@ -95,11 +95,15 @@ private:
 
     void receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
+    void gvtTimer();
+
     void onGVT(unsigned int gvt);
 
     void GVTManagerThread();
 
-    void CommunicationManagerThread();
+    void CommunicationManagerThreadPar();
+
+    void CommunicationManagerThreadDist();
 
 /* ============================================================================ */
 

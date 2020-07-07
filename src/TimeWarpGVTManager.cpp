@@ -41,6 +41,20 @@ void TimeWarpGVTManager::getReportGVTFlagLockShared(){
 void TimeWarpGVTManager::getReportGVTFlagUnlockShared(){
 }
 
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::getReportGVTFlagLock(){
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::getReportGVTFlagUnlock(){
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::setReportGVT(bool report_GVT){
+    if(report_GVT){
+    }
+}
+
 /*void TimeWarpGVTManager::progressGVT(int &workers, std::mutex &worker_threads_done_lock_){
     int i = workers;
     worker_threads_done_lock_.lock();

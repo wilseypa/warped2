@@ -61,6 +61,12 @@ public:
     
     virtual void getReportGVTFlagUnlockShared();
 
+    virtual void getReportGVTFlagLock();
+    
+    virtual void getReportGVTFlagUnlock();
+
+    virtual void setReportGVT(bool report_GVT);
+
 protected:
     std::shared_mutex access_gvt_lock_;
 

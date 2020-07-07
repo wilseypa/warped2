@@ -101,12 +101,29 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     // Create manager threads
     // GVT manager
     auto sim_start = std::chrono::steady_clock::now();
-    auto gvt_thread(std::thread {&TimeWarpEventDispatcher::GVTManagerThread, this});
-    threads.push_back(std::move(gvt_thread));
+    //auto gvt_thread(std::thread {&TimeWarpEventDispatcher::GVTManagerThread, this});
+    //threads.push_back(std::move(gvt_thread));
 
     // Communication manager
-    auto comm_thread(std::thread {&TimeWarpEventDispatcher::CommunicationManagerThread, this});
-    threads.push_back(std::move(comm_thread));
+    if (comm_manager_->getNumProcesses() > 1){
+        // Distributed CommMgr - multiple nodes
+        auto dist_comm_thread(std::thread {&TimeWarpEventDispatcher::CommunicationManagerThreadDist, this});
+        threads.push_back(std::move(dist_comm_thread));
+
+        if (comm_manager_->getID() == 0) {
+            auto gvt_timer_thread(std::thread {&TimeWarpEventDispatcher::gvtTimer, this});
+            threads.push_back(std::move(gvt_timer_thread));
+        }
+    }
+    else {
+        // Parallel CommMgr - only 1 node
+        auto par_comm_thread(std::thread {&TimeWarpEventDispatcher::CommunicationManagerThreadPar, this});
+        threads.push_back(std::move(par_comm_thread));
+    }
+
+    
+    //auto comm_thread(std::thread {&TimeWarpEventDispatcher::CommunicationManagerThread, this});
+    //threads.push_back(std::move(comm_thread));
 
     bool termination = false;
 
@@ -170,7 +187,20 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
     // Only 1 node
     if (comm_manager_->getNumProcesses() == 1) {
         while(1){
-            gvt_manager_->progressGVT();
+            std::this_thread::sleep_for(std::chrono::nanoseconds(1000));
+            
+            gvt_manager_->getReportGVTFlagLock();
+            gvt_manager_->setReportGVT(true);
+            gvt_manager_->getReportGVTFlagUnlock();
+
+            gvt_manager_->workerThreadGVTBarrierSync();
+            gvt_manager_->workerThreadGVTBarrierSync();
+
+            //gvt_manager_->getReportGVTFlagLock();
+            gvt_manager_->setReportGVT(false);
+            //gvt_manager_->getReportGVTFlagUnlock();
+
+            gvt_manager_->progressGVT(); // Calculate min gvt
 
             if (gvt == std::numeric_limits<unsigned int>::max()) break;
             if (gvt_manager_->gvtUpdated() && !termination_manager_->terminationStatus()) {
@@ -180,7 +210,6 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
                 onGVT(gvt);
             }
 
-            std::this_thread::sleep_for(std::chrono::nanoseconds(1000));
             
         }
     } 
@@ -200,6 +229,13 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
     }*/
 }
 
+void TimeWarpEventDispatcher::gvtTimer(){
+    int i = 0;
+    while(1){
+        i++;
+    }
+}
+
 void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
     auto malloc_info = mallinfo();
     int m = malloc_info.uordblks;
@@ -217,16 +253,41 @@ void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
     tw_stats_->updateAverage(AVERAGE_MAX_MEMORY, mem, c);
 }
 
-void TimeWarpEventDispatcher::CommunicationManagerThread(){
+void TimeWarpEventDispatcher::CommunicationManagerThreadPar(){
+std::cout << "1 Node Comm Mgr" << std::endl;
+    unsigned int gvt = 0;
+    while(1){
+        std::this_thread::sleep_for(std::chrono::nanoseconds(100000));
+
+        gvt_manager_->getReportGVTFlagLock();
+        gvt_manager_->setReportGVT(true);
+        gvt_manager_->getReportGVTFlagUnlock();
+        gvt_manager_->workerThreadGVTBarrierSync();
+
+
+        //gvt_manager_->getReportGVTFlagLock();
+        gvt_manager_->setReportGVT(false);
+        //gvt_manager_->getReportGVTFlagUnlock();
+        gvt_manager_->workerThreadGVTBarrierSync();
+
+        gvt_manager_->progressGVT();
+
+        if (gvt == std::numeric_limits<unsigned int>::max()) break;
+        if (gvt_manager_->gvtUpdated() && !termination_manager_->terminationStatus()) {
+            gvt = gvt_manager_->getGVT();
+            onGVT(gvt);
+        }
+    }
+}
+
+void TimeWarpEventDispatcher::CommunicationManagerThreadDist(){
+std::cout << "Many Node Comm Mgr" << std::endl;
     // Will run until this thread is destroyed
     while(!termination_manager_->terminationStatus()){
 
         comm_manager_->handleMessages();
         
-        if (comm_manager_->barrierHoldStatus()){
-            pthread_barrier_wait(&termination_barrier_sync_2);
-            pthread_barrier_wait(&termination_barrier_sync_2);
-        }
+        
     }
 }
 
@@ -238,6 +299,15 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     bool report_gvt = false;
     bool test = false;
 
+    //auto gvt_start = std::chrono::steady_clock::now();
+    //auto gvt_stop = std::chrono::steady_clock::now();
+    //double gvt_wait = 0;
+
+    //auto gvt_barr_start = std::chrono::steady_clock::now();
+    //auto gvt_barr_stop = std::chrono::steady_clock::now();
+    //double gvt_barr_wait = 0;
+
+
 #ifdef TIMEWARP_EVENT_LOG
     auto epoch = std::chrono::steady_clock::now();
 #endif
@@ -245,15 +315,20 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     std::shared_ptr<Event> event_input_queue_next;
     std::shared_ptr<Event> event_input_queue_head;
     //std::shared_ptr<Event> event_next;
-    std::shared_ptr<Event> event = event_set_->getEvent(thread_id, with_input_queue_check);
-    
+    event_set_->refreshScheduleQueue(thread_id, with_read_lock);
+    std::shared_ptr<Event> event;// = event_set_->getEvent(thread_id, with_input_queue_check);
+
     while(1){      
         report_gvt = gvt_manager_->getGVTFlag();
         // Don't need to grab an event twice if we are reporting gvt
         if (!report_gvt) event = event_set_->getEvent(thread_id, with_input_queue_check);  
         
         if (event == nullptr || report_gvt){
+            //gvt_start = std::chrono::steady_clock::now();
             gvt_manager_->workerThreadGVTBarrierSync();
+            //gvt_stop = std::chrono::steady_clock::now();
+            //gvt_wait = double((gvt_stop - gvt_start).count()) + gvt_wait;
+
             // fossil collection
             unsigned int fossil_current_lp_id;
             LogicalProcess* fossil_current_lp;
@@ -291,10 +366,19 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             gvt_manager_->reportThreadMin(min_timestamp, thread_id);
 
             gvt_manager_->workerThreadGVTBarrierSync();
+            //gvt_barr_stop = std::chrono::steady_clock::now();
+            //gvt_barr_wait = double((gvt_barr_stop - gvt_start).count()) + gvt_barr_wait;
+
             if (gvt == std::numeric_limits<unsigned int>::max()){
                 if (!termination_manager_->threadPassive(thread_id)) {
                     termination_manager_->setThreadPassive(thread_id);
                 }
+//double num_seconds = gvt_wait *
+//                std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
+//double num_barrier_seconds = gvt_barr_wait *
+//                std::chrono::steady_clock::period::num / std::chrono::steady_clock::period::den;
+//std::cout << "Time Wasted on Barrier = " << num_seconds << std::endl;
+//std::cout << "Time Wasted on GVT = " << num_barrier_seconds << std::endl;
 
                 // One Final Check for events
                 event_set_->refreshScheduleQueue(thread_id, without_read_lock);
@@ -325,11 +409,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
                 // Get the last processed event so we can check for a rollback
                 auto last_processed_event = event_set_->lastProcessedEvent(current_lp_id);
 
-                // Try to get the most recent event, instead of processing the wrong event
-                event_set_->acquireInputQueueLock(current_lp_id);
-                //event_next = 
-                event_set_->getInputQueueHead(current_lp_id, event_input_queue_head, event_input_queue_next); 
-                event_set_->releaseInputQueueLock(current_lp_id);
+                event_set_->getInputQueueHead(current_lp_id, event_input_queue_head, event_input_queue_next); // Input Queue Read Lock
 
                 if (event_input_queue_head != nullptr){
                     if (event->timestamp() > event_input_queue_head->timestamp()){
@@ -440,6 +520,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
 
                 // Move the next event from lp into the schedule queue
                 // Also transfer old event to processed queue
+//std::cout << "Main 3 " << event_input_queue_next->timestamp() << " " << event_input_queue_next->receiverName() << std::endl;
+
                 event_set_->acquireInputQueueLock(current_lp_id);
                 event_set_->replenishScheduler(current_lp_id, event_input_queue_next);
                 event_set_->releaseInputQueueLock(current_lp_id);

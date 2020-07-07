@@ -35,16 +35,16 @@ bool TimeWarpSynchronousGVTManager::readyToStart() {
 
 void TimeWarpSynchronousGVTManager::progressGVT() {
     
-    report_gvt_lock_.lock();
-    report_gvt_ = true;
-    report_gvt_lock_.unlock();
+    //report_gvt_lock_.lock();
+    //report_gvt_ = true;
+    //report_gvt_lock_.unlock();
 
-    pthread_barrier_wait(&min_report_barrier_);
-    pthread_barrier_wait(&min_report_barrier_);
+    //pthread_barrier_wait(&min_report_barrier_);
+    //pthread_barrier_wait(&min_report_barrier_);
 // if (worker_threads_dumped) {}
-    report_gvt_lock_.lock();
-    report_gvt_ = false;
-    report_gvt_lock_.unlock();
+    //report_gvt_lock_.lock();
+    //report_gvt_ = false;
+    //report_gvt_lock_.unlock();
 
     // Collect GVT from all of the worker threads 
     unsigned int local_min = recv_min_;
@@ -56,9 +56,9 @@ void TimeWarpSynchronousGVTManager::progressGVT() {
     
     gVT_ = next_gvt_;
     
-    access_gvt_lock_.lock();
+    //access_gvt_lock_.lock();
     comm_manager_->minAllReduceUint(&local_min, &next_gvt_);
-    access_gvt_lock_.unlock();
+    //access_gvt_lock_.unlock();
 
     gvt_updated_ = true; 
 // worker_threads_dumped = false
@@ -138,6 +138,18 @@ void TimeWarpSynchronousGVTManager::getReportGVTFlagLockShared(){
     
 void TimeWarpSynchronousGVTManager::getReportGVTFlagUnlockShared(){ 
     report_gvt_lock_.unlock_shared(); 
+}
+
+void TimeWarpSynchronousGVTManager::getReportGVTFlagLock(){ 
+    report_gvt_lock_.lock(); 
+}
+    
+void TimeWarpSynchronousGVTManager::getReportGVTFlagUnlock(){ 
+    report_gvt_lock_.unlock(); 
+}
+
+void TimeWarpSynchronousGVTManager::setReportGVT(bool report_GVT){ 
+    report_gvt_ = report_GVT;
 }
 
 } // namespace warped

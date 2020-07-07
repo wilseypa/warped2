@@ -148,6 +148,7 @@ std::shared_ptr<Event> TimeWarpEventSet::getEvent (unsigned int thread_id, bool 
 }
 
 void TimeWarpEventSet::getInputQueueHead (unsigned int lp_id, std::shared_ptr<Event> &head , std::shared_ptr<Event> &head_next){
+    input_queue_lock_[lp_id].lock_shared();
     auto event_iterator = (input_queue_[lp_id]->begin());
     head = (event_iterator != (input_queue_[lp_id]->end())) ?
                     *event_iterator : nullptr;
@@ -159,6 +160,7 @@ void TimeWarpEventSet::getInputQueueHead (unsigned int lp_id, std::shared_ptr<Ev
     event_iterator++;
     head_next = (event_iterator != (input_queue_[lp_id]->end())) ?
                     *event_iterator : nullptr;
+    input_queue_lock_[lp_id].unlock_shared();
 }
 
 void TimeWarpEventSet::changedScheduledEventPtr (unsigned int lp_id, std::shared_ptr<Event> &head){
@@ -181,7 +183,7 @@ void TimeWarpEventSet::refreshScheduleQueue(unsigned int thread_id, bool read_lo
                 scheduled_event_pointer_[current_lp_id] = *input_queue_[current_lp_id]->begin();
                 schedule_queue_[scheduler_id]->insert(scheduled_event_pointer_[current_lp_id]);
             }
-            else if (scheduled_event_pointer_[current_lp_id]->timestamp() > (*input_queue_[current_lp_id]->begin())->timestamp()){
+            else if (scheduled_event_pointer_[current_lp_id] != (*input_queue_[current_lp_id]->begin())){
                 // Erase the greater timestamped event from the schedule queue
                 schedule_queue_[scheduler_id]->erase(scheduled_event_pointer_[current_lp_id]);
                 scheduled_event_pointer_[current_lp_id] = *input_queue_[current_lp_id]->begin();
@@ -319,12 +321,11 @@ void TimeWarpEventSet::test(unsigned int lp_id){
  *
  *  NOTE: the scheduled_event_pointer is also protected by input queue lock
  */
-void TimeWarpEventSet::replenishScheduler (unsigned int lp_id, std::shared_ptr<Event> next_event) {
+void TimeWarpEventSet::replenishScheduler (unsigned int lp_id, std::shared_ptr<Event> &next_event) {
     // Something is completely wrong if there is no scheduled event because we obviously just
     // processed an event that was scheduled.
     next_event = nullptr;
     assert(scheduled_event_pointer_[lp_id]);
-
     // Move the just processed event to the processed queue
     auto num_erased = input_queue_[lp_id]->erase(scheduled_event_pointer_[lp_id]);
 
