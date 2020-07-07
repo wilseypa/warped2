@@ -200,7 +200,7 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
             gvt_manager_->setReportGVT(false);
             //gvt_manager_->getReportGVTFlagUnlock();
 
-            gvt_manager_->progressGVT(); // Calculate min gvt
+            //gvt_manager_->progressGVT(); // Calculate min gvt
 
             if (gvt == std::numeric_limits<unsigned int>::max()) break;
             if (gvt_manager_->gvtUpdated() && !termination_manager_->terminationStatus()) {
@@ -229,13 +229,6 @@ void TimeWarpEventDispatcher::GVTManagerThread(){
     }*/
 }
 
-void TimeWarpEventDispatcher::gvtTimer(){
-    int i = 0;
-    while(1){
-        i++;
-    }
-}
-
 void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
     auto malloc_info = mallinfo();
     int m = malloc_info.uordblks;
@@ -253,41 +246,77 @@ void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
     tw_stats_->updateAverage(AVERAGE_MAX_MEMORY, mem, c);
 }
 
+
+
 void TimeWarpEventDispatcher::CommunicationManagerThreadPar(){
 std::cout << "1 Node Comm Mgr" << std::endl;
     unsigned int gvt = 0;
+    unsigned int temp_local_min;
+    unsigned int next_gvt;
     while(1){
-        std::this_thread::sleep_for(std::chrono::nanoseconds(100000));
+        std::this_thread::sleep_for(std::chrono::nanoseconds(10000));
 
         gvt_manager_->getReportGVTFlagLock();
         gvt_manager_->setReportGVT(true);
         gvt_manager_->getReportGVTFlagUnlock();
         gvt_manager_->workerThreadGVTBarrierSync();
 
-
-        //gvt_manager_->getReportGVTFlagLock();
-        gvt_manager_->setReportGVT(false);
-        //gvt_manager_->getReportGVTFlagUnlock();
-        gvt_manager_->workerThreadGVTBarrierSync();
-
-        gvt_manager_->progressGVT();
+        gvt_manager_->progressGVT(temp_local_min);
+        next_gvt = gvt_manager_->getNextGVT();
+        comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
+        gvt_manager_->setNextGVT(next_gvt);
 
         if (gvt == std::numeric_limits<unsigned int>::max()) break;
-        if (gvt_manager_->gvtUpdated() && !termination_manager_->terminationStatus()) {
+        if (gvt_manager_->gvtUpdated()) {
             gvt = gvt_manager_->getGVT();
             onGVT(gvt);
         }
     }
 }
 
+void TimeWarpEventDispatcher::gvtTimer(){
+    while(1){
+        std::this_thread::sleep_for(std::chrono::nanoseconds(100000));
+
+        gvt_manager_->getReportGVTFlagLock();
+        gvt_manager_->setReportGVT(true);
+//Broadcast reportGVT
+        gvt_manager_->getReportGVTFlagUnlock();
+    }
+}
+
 void TimeWarpEventDispatcher::CommunicationManagerThreadDist(){
 std::cout << "Many Node Comm Mgr" << std::endl;
+    unsigned int gvt = 0;
+    unsigned int temp_local_min;
+    unsigned int next_gvt;
+
     // Will run until this thread is destroyed
     while(!termination_manager_->terminationStatus()){
 
-        comm_manager_->handleMessages();
-        
-        
+        while(1){
+            if (gvt_manager_->getGVTFlag()) break;
+            
+            comm_manager_->handleMessages();
+            //if(message == reportGVT){
+                gvt_manager_->getReportGVTFlagLock();
+                gvt_manager_->setReportGVT(true);
+                gvt_manager_->getReportGVTFlagUnlock();
+            //}
+        }
+
+        gvt_manager_->progressGVT(temp_local_min);
+        MPI_Barrier(MPI_COMM_WORLD);
+
+        next_gvt = gvt_manager_->getNextGVT();
+        comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
+        gvt_manager_->setNextGVT(next_gvt);
+
+        if (gvt == std::numeric_limits<unsigned int>::max()) break;
+        if (gvt_manager_->gvtUpdated()) {
+            gvt = gvt_manager_->getGVT();
+            onGVT(gvt);
+        }
     }
 }
 

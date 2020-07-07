@@ -24,7 +24,7 @@ public:
 
     bool readyToStart()  override;
 
-    void progressGVT() override;
+    void progressGVT(unsigned int &next_gvt_passed_in) override;
 
     void receiveEventUpdate(std::shared_ptr<Event>& event, Color color) override;
 
@@ -58,6 +58,10 @@ public:
     void getReportGVTFlagUnlock() override;
 
     void setReportGVT(bool report_GVT) override;
+
+    void setNextGVT(unsigned int new_GVT) override;
+
+    unsigned int getNextGVT() override;
 
     //void progressGVT(int &workers, std::mutex &worker_threads_done_lock_) override;
 

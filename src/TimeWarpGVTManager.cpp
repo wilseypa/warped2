@@ -16,7 +16,7 @@ void TimeWarpGVTManager::checkProgressGVT() {
         gvt_start = std::chrono::steady_clock::now();
     }
 
-    progressGVT();
+    //progressGVT();
 }
 
 //Dummy Function - Look at the function in TWSynchronousGVTManager
@@ -51,8 +51,17 @@ void TimeWarpGVTManager::getReportGVTFlagUnlock(){
 
 //Dummy Function - Look at the function in TWSynchronousGVTManager
 void TimeWarpGVTManager::setReportGVT(bool report_GVT){
-    if(report_GVT){
-    }
+    if(report_GVT){}
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::setNextGVT(unsigned int new_GVT){ 
+    if(new_GVT){}
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+unsigned int TimeWarpGVTManager::getNextGVT(){ 
+    return 0;
 }
 
 /*void TimeWarpGVTManager::progressGVT(int &workers, std::mutex &worker_threads_done_lock_){

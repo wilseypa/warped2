@@ -26,7 +26,7 @@ public:
 
     virtual bool readyToStart() = 0;
 
-    virtual void progressGVT() = 0;
+    virtual void progressGVT(unsigned int &next_gvt_passed_in) = 0;
 
     //virtual void progressGVT(int &workers, std::mutex &worker_threads_done_lock_);
 
@@ -66,6 +66,10 @@ public:
     virtual void getReportGVTFlagUnlock();
 
     virtual void setReportGVT(bool report_GVT);
+
+    virtual void setNextGVT(unsigned int new_GVT);
+
+    virtual unsigned int getNextGVT();
 
 protected:
     std::shared_mutex access_gvt_lock_;
