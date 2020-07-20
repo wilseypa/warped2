@@ -40,8 +40,8 @@ void TimeWarpSynchronousGVTManager::receiveGVTSynchTrigger(std::unique_ptr<TimeW
 }
 
 void TimeWarpSynchronousGVTManager::triggerSynchGVTCalculation(){
-    // Start a GVT calculation cycle
-    for (unsigned int i = 0; i < comm_manager_->getNumProcesses(); i++) {
+    // Start a GVT calculation cycle, only node 0 can trigger a GVT calculation
+    for (unsigned int i = 1; i < comm_manager_->getNumProcesses(); i++) {
         auto gvt_trigger_msg = make_unique<GVTSynchTrigger>(0, i);
         comm_manager_->insertMessage(std::move(gvt_trigger_msg));
     }
