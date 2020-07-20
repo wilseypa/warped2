@@ -64,8 +64,8 @@ const static std::string DEFAULT_CONFIG = R"x({
     "gvt-calculation": {
         // GVT calculation period
         "period": 1000,
-        // "synchronous" or "asynchronous"
-        "method": "asynchronous"
+        // "synchronous"
+        "method": "synchronous"
     },
 
     "state-saving": {
@@ -311,10 +311,10 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
         if (gvt_method == "synchronous") {
             gvt_manager =
                 make_unique<TimeWarpSynchronousGVTManager>(comm_manager, gvt_period, num_worker_threads);
-        } else if (gvt_method == "asynchronous") {
+        } /*else if (gvt_method == "asynchronous") {
             gvt_manager =
                 make_unique<TimeWarpAsynchronousGVTManager>(comm_manager, gvt_period, num_worker_threads);
-        } else {
+        } */else {
             invalid_string += std::string("\tInvalid GVT Method\n");
         }
 

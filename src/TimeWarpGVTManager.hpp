@@ -71,6 +71,12 @@ public:
 
     virtual unsigned int getNextGVT();
 
+    virtual void receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg);
+
+    virtual void triggerSynchGVTCalculation();
+
+
+
 protected:
     std::shared_mutex access_gvt_lock_;
 

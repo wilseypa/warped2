@@ -22,6 +22,11 @@ public:
 
     void initialize() override;
 
+    // Message handler for Synchronous GVT Trigger
+    void receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg) override;
+
+    void triggerSynchGVTCalculation() override;
+
     bool readyToStart()  override;
 
     void progressGVT(unsigned int &next_gvt_passed_in) override;
@@ -88,6 +93,16 @@ protected:
 
     pthread_barrier_t min_report_barrier_;
 
+};
+
+struct GVTSynchTrigger : public TimeWarpKernelMessage {
+    GVTSynchTrigger() = default;
+    GVTSynchTrigger(unsigned int sender_id, unsigned int receiver_id) :
+        TimeWarpKernelMessage(sender_id, receiver_id) {}
+
+    MessageType get_type() { return MessageType::GVTSynchTrigger; }
+
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<TimeWarpKernelMessage>(this))
 };
 
 } // warped namespace

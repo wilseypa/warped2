@@ -254,34 +254,38 @@ std::cout << "1 Node Comm Mgr" << std::endl;
     unsigned int temp_local_min;
     unsigned int next_gvt;
     while(1){
-        std::this_thread::sleep_for(std::chrono::nanoseconds(10000));
+        //std::this_thread::sleep_for(std::chrono::nanoseconds(100));
+        if (gvt_manager_->readyToStart()){
+            gvt_manager_->getReportGVTFlagLock();
+            gvt_manager_->setReportGVT(true);
+            gvt_manager_->getReportGVTFlagUnlock();
+            gvt_manager_->workerThreadGVTBarrierSync();
 
-        gvt_manager_->getReportGVTFlagLock();
-        gvt_manager_->setReportGVT(true);
-        gvt_manager_->getReportGVTFlagUnlock();
-        gvt_manager_->workerThreadGVTBarrierSync();
+            gvt_manager_->progressGVT(temp_local_min);
+            next_gvt = gvt_manager_->getNextGVT();
+            comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
+            gvt_manager_->setNextGVT(next_gvt);
 
-        gvt_manager_->progressGVT(temp_local_min);
-        next_gvt = gvt_manager_->getNextGVT();
-        comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
-        gvt_manager_->setNextGVT(next_gvt);
-
-        if (gvt == std::numeric_limits<unsigned int>::max()) break;
-        if (gvt_manager_->gvtUpdated()) {
-            gvt = gvt_manager_->getGVT();
-            onGVT(gvt);
+            if (gvt == std::numeric_limits<unsigned int>::max()) break;
+            if (gvt_manager_->gvtUpdated()) {
+                gvt = gvt_manager_->getGVT();
+                onGVT(gvt);
+            }
         }
     }
 }
 
 void TimeWarpEventDispatcher::gvtTimer(){
     while(1){
-        std::this_thread::sleep_for(std::chrono::nanoseconds(100000));
+        //std::this_thread::sleep_for(std::chrono::nanoseconds(100000));
+        if (gvt_manager_->readyToStart()){
+            gvt_manager_->getReportGVTFlagLock();
+            gvt_manager_->setReportGVT(true);
 
-        gvt_manager_->getReportGVTFlagLock();
-        gvt_manager_->setReportGVT(true);
-//Broadcast reportGVT
-        gvt_manager_->getReportGVTFlagUnlock();
+            gvt_manager_->triggerSynchGVTCalculation();
+
+            gvt_manager_->getReportGVTFlagUnlock();
+        }
     }
 }
 
@@ -298,11 +302,8 @@ std::cout << "Many Node Comm Mgr" << std::endl;
             if (gvt_manager_->getGVTFlag()) break;
             
             comm_manager_->handleMessages();
-            //if(message == reportGVT){
-                gvt_manager_->getReportGVTFlagLock();
-                gvt_manager_->setReportGVT(true);
-                gvt_manager_->getReportGVTFlagUnlock();
-            //}
+            
+            // Report GVT Flag is updated whenever a message is recieved. Look at receiveGVTSynchTrigger() in TWSynchronousGVTManager
         }
 
         gvt_manager_->progressGVT(temp_local_min);

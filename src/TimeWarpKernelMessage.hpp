@@ -13,6 +13,7 @@ enum class MessageType {
     EventMessage,
     MatternGVTToken,
     GVTUpdateMessage,
+    GVTSynchTrigger,
     TerminationToken,
     Terminator
 };

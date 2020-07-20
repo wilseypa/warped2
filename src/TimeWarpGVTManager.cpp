@@ -64,6 +64,16 @@ unsigned int TimeWarpGVTManager::getNextGVT(){
     return 0;
 }
 
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg){ 
+   if (kmsg->receiver_id == 0){}
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::triggerSynchGVTCalculation(){ 
+    if(true){}
+}
+
 /*void TimeWarpGVTManager::progressGVT(int &workers, std::mutex &worker_threads_done_lock_){
     int i = workers;
     worker_threads_done_lock_.lock();

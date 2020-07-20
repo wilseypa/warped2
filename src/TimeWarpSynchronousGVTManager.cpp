@@ -5,6 +5,8 @@
 #include "utility/warnings.hpp"
 #include "utility/memory.hpp"           // for make_unique
 
+WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::GVTSynchTrigger)
+
 namespace warped {
 
 enum class Color;
@@ -24,7 +26,25 @@ void TimeWarpSynchronousGVTManager::initialize() {
 
     report_gvt_ = false;
 
+    WARPED_REGISTER_MSG_HANDLER(TimeWarpSynchronousGVTManager, receiveGVTSynchTrigger, GVTSynchTrigger)
+
     TimeWarpGVTManager::initialize();
+}
+
+void TimeWarpSynchronousGVTManager::receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg){
+    auto msg = unique_cast<TimeWarpKernelMessage, GVTSynchTrigger>(std::move(kmsg));
+    
+    report_gvt_lock_.lock();
+    report_gvt_ = true;
+    report_gvt_lock_.unlock();
+}
+
+void TimeWarpSynchronousGVTManager::triggerSynchGVTCalculation(){
+    // Start a GVT calculation cycle
+    for (unsigned int i = 0; i < comm_manager_->getNumProcesses(); i++) {
+        auto gvt_trigger_msg = make_unique<GVTSynchTrigger>(0, i);
+        comm_manager_->insertMessage(std::move(gvt_trigger_msg));
+    }
 }
 
 bool TimeWarpSynchronousGVTManager::readyToStart() {
@@ -58,6 +78,7 @@ void TimeWarpSynchronousGVTManager::progressGVT(unsigned int &local_gvt_passed_i
     
     local_gvt_passed_in = local_min;
 
+    gvt_stop = std::chrono::steady_clock::now();
     //access_gvt_lock_.lock();
     //comm_manager_->minAllReduceUint(&local_min, &next_gvt_);
     //access_gvt_lock_.unlock();
