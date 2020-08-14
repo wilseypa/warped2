@@ -45,8 +45,6 @@ public:
 
     virtual bool getGVTFlag();
 
-    virtual bool getTokenSendConfirmation();
-
     virtual bool gvtUpdated() = 0;
 
     virtual void workerThreadGVTBarrierSync();
@@ -66,6 +64,9 @@ public:
     virtual void getReportGVTFlagLock();
     
     virtual void getReportGVTFlagUnlock();
+
+    virtual bool getTokenSendConfirmation();
+    virtual void setTokenSendConfirmation(bool input);
 
     virtual void setReportGVT(bool report_GVT);
 

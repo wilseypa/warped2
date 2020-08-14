@@ -30,6 +30,11 @@ bool TimeWarpGVTManager::getTokenSendConfirmation(){
 }
 
 //Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::setTokenSendConfirmation(bool input){
+    if (input){}
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
 void TimeWarpGVTManager::workerThreadGVTBarrierSync(){
 }
 
@@ -78,14 +83,5 @@ void TimeWarpGVTManager::receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMe
 void TimeWarpGVTManager::triggerSynchGVTCalculation(){ 
     if(true){}
 }
-
-/*void TimeWarpGVTManager::progressGVT(int &workers, std::mutex &worker_threads_done_lock_){
-    int i = workers;
-    worker_threads_done_lock_.lock();
-    worker_threads_done_lock_.unlock();
-    if (i){
-        i =2;
-    }
-}*/
 
 } // namespace warped

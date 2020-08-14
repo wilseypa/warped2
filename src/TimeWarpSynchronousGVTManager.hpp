@@ -69,6 +69,7 @@ public:
     unsigned int getNextGVT() override;
 
     bool getTokenSendConfirmation() override;
+    void setTokenSendConfirmation(bool input) override;
     //void progressGVT(int &workers, std::mutex &worker_threads_done_lock_) override;
 
 protected:
@@ -86,6 +87,7 @@ protected:
 
     bool report_gvt_;
 
+    std::mutex gvt_token_send_confirmation_lock_;
     bool gvt_token_send_confirmation_;
 
     std::unique_ptr<unsigned int []> local_min_;

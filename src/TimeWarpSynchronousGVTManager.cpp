@@ -192,6 +192,19 @@ void TimeWarpSynchronousGVTManager::setNextGVT(unsigned int new_GVT){
 }
 
 bool TimeWarpSynchronousGVTManager::getTokenSendConfirmation(){ 
-    return gvt_token_send_confirmation_;
+    bool temp;
+    
+    gvt_token_send_confirmation_lock_.lock();
+    temp = gvt_token_send_confirmation_;
+    gvt_token_send_confirmation_lock_.unlock();
+    
+    return temp;
 }
+
+void TimeWarpSynchronousGVTManager::setTokenSendConfirmation(bool input){ 
+    gvt_token_send_confirmation_lock_.lock();
+    gvt_token_send_confirmation_ = input;
+    gvt_token_send_confirmation_lock_.unlock();
+}
+
 } // namespace warped

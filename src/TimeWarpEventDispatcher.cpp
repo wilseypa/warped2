@@ -283,13 +283,13 @@ bool test = false;
     int skip_gvt_cycle = 5;
 
     while(1){
-	if (!test) {
-	//	std::cout << "GVT TIMER WHILE LOOP" << std::endl;
-		test = true;
-	}
-	for (int loop = 0; loop < skip_gvt_cycle; loop++){
-            std::this_thread::sleep_for(std::chrono::seconds(2));
-	}
+	    if (!test) {
+	    //	std::cout << "GVT TIMER WHILE LOOP" << std::endl;
+		    test = true;
+	    }
+        for (int loop = 0; loop < skip_gvt_cycle; loop++){
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+        }
         if (gvt_manager_->readyToStart() && temp_lock){
 	    if (test) {
 	//	    std::cout << "GVT TIMER READY TO START" << std::endl;
@@ -322,27 +322,28 @@ bool test = false;
     while(!termination_manager_->terminationStatus()){
 std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() << std::endl;	 
         while(1){
-	    if (!test) {
-		    test = true;
-		    std::cout << "WHILE LOOP NODE = " << comm_manager_->getID() << std::endl;            
-	    }
-	    
-	    comm_manager_->handleMessages();
+            if (!test) {
+                test = true;
+                std::cout << "WHILE LOOP NODE = " << comm_manager_->getID() << std::endl;            
+            }
+            
+            comm_manager_->handleMessages();
     	    
 	    // Report GVT Flag is updated whenever a message is recieved. Look at receiveGVTSynchTrigger() in TWSynchronousGVTManager
             
-	    if (gvt_manager_->getGVTFlag()){
-		while (gvt_manager_->getTokenSendConfirmation()){
-			comm_manager_->handleMessages();
-		}
-	        break;
-	    }
+            if (gvt_manager_->getGVTFlag()){
+                while (gvt_manager_->getTokenSendConfirmation()){
+                    comm_manager_->handleMessages();
+                }
+                gvt_manager_->setTokenSendConfirmation(false);
+	            break;
+	        }
         }
 
 		std::cout << "PROGRESSGVT 0 NODE = " << comm_manager_->getID() << std::endl;
         host_node_done_lock_.lock();
-	host_node_done_ = false;
-	host_node_done_lock_.unlock();
+	    host_node_done_ = false;
+	    host_node_done_lock_.unlock();
 
 		std::cout << "PROGRESSGVT 1 NODE = " << comm_manager_->getID() << std::endl;
         gvt_manager_->progressGVT(temp_local_min);
@@ -361,8 +362,8 @@ std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() 
 		test = false;
 		std::cout << "PROGRESSGVT 5 NODE = " << comm_manager_->getID() << std::endl;
         host_node_done_lock_.lock();
-	host_node_done_ = true;
-	host_node_done_lock_.unlock();
+	    host_node_done_ = true;
+	    host_node_done_lock_.unlock();
     }	   
 
     std::cout << "COMM TERMINATED NODE = " << comm_manager_->getID() << std::endl;
