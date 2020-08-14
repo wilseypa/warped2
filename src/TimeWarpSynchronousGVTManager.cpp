@@ -33,7 +33,7 @@ void TimeWarpSynchronousGVTManager::initialize() {
 
 void TimeWarpSynchronousGVTManager::receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg){
     auto msg = unique_cast<TimeWarpKernelMessage, GVTSynchTrigger>(std::move(kmsg));
-    
+std::cout << "RECEIVE GVT TOKEN NODE = " << comm_manager_->getID() << std::endl; 
     report_gvt_lock_.lock();
     report_gvt_ = true;
     report_gvt_lock_.unlock();
@@ -62,9 +62,9 @@ void TimeWarpSynchronousGVTManager::progressGVT(unsigned int &local_gvt_passed_i
     //pthread_barrier_wait(&min_report_barrier_);
 
 // if (worker_threads_dumped) {}
-    //report_gvt_lock_.lock();
+    report_gvt_lock_.lock();
     report_gvt_ = false;
-    //report_gvt_lock_.unlock();
+    report_gvt_lock_.unlock();
     pthread_barrier_wait(&min_report_barrier_);
 
     // Collect GVT from all of the worker threads 
