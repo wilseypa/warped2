@@ -332,12 +332,16 @@ std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() 
 	    // Report GVT Flag is updated whenever a message is recieved. Look at receiveGVTSynchTrigger() in TWSynchronousGVTManager
             
             if (gvt_manager_->getGVTFlag()){
-                while (gvt_manager_->getTokenSendConfirmation()){
-                    comm_manager_->handleMessages();
-                }
-                gvt_manager_->setTokenSendConfirmation(false);
-	            break;
-	        }
+                if (comm_manager_->getID() == 0){
+		    while (!gvt_manager_->getTokenSendConfirmation()){
+                        comm_manager_->handleMessages();
+                    }
+                    gvt_manager_->setTokenSendConfirmation(false);
+	                break;
+	            }
+	        } else {
+		    break;
+		}
         }
 
 		std::cout << "PROGRESSGVT 0 NODE = " << comm_manager_->getID() << std::endl;
@@ -400,10 +404,11 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
         report_gvt = gvt_manager_->getGVTFlag();
         // Don't need to grab an event twice if we are reporting gvt
         if (!report_gvt) event = event_set_->getEvent(thread_id, with_input_queue_check);  
-        
+std::cout << "Report GVT = " << report_gvt << " NODE = " << comm_manager_->getID() << std::endl;       
         if (event == nullptr || report_gvt){
             //gvt_start = std::chrono::steady_clock::now();
-            gvt_manager_->workerThreadGVTBarrierSync();
+std::cout << "+++++ BARRIER 1 Node = " << comm_manager_->getID() << std::endl;
+	    gvt_manager_->workerThreadGVTBarrierSync();
             //gvt_stop = std::chrono::steady_clock::now();
             //gvt_wait = double((gvt_stop - gvt_start).count()) + gvt_wait;
 

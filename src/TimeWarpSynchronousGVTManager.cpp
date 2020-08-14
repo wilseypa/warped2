@@ -45,7 +45,9 @@ void TimeWarpSynchronousGVTManager::triggerSynchGVTCalculation(){
         auto gvt_trigger_msg = make_unique<GVTSynchTrigger>(0, i);
         comm_manager_->insertMessage(std::move(gvt_trigger_msg));
     }
+    gvt_token_send_confirmation_lock_.lock();
     gvt_token_send_confirmation_ = true;
+    gvt_token_send_confirmation_lock_.unlock();
 }
 
 bool TimeWarpSynchronousGVTManager::readyToStart() {
