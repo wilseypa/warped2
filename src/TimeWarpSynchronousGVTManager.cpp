@@ -45,6 +45,7 @@ void TimeWarpSynchronousGVTManager::triggerSynchGVTCalculation(){
         auto gvt_trigger_msg = make_unique<GVTSynchTrigger>(0, i);
         comm_manager_->insertMessage(std::move(gvt_trigger_msg));
     }
+    gvt_token_send_confirmation_ = true;
 }
 
 bool TimeWarpSynchronousGVTManager::readyToStart() {
@@ -62,19 +63,24 @@ void TimeWarpSynchronousGVTManager::progressGVT(unsigned int &local_gvt_passed_i
     //pthread_barrier_wait(&min_report_barrier_);
 
 // if (worker_threads_dumped) {}
+std::cout << "====== IN GVT 0 NODE = " << comm_manager_->getID() << std::endl;
     report_gvt_lock_.lock();
     report_gvt_ = false;
     report_gvt_lock_.unlock();
+std::cout << "====== IN GVT 1 NODE = " << comm_manager_->getID() << std::endl;
     pthread_barrier_wait(&min_report_barrier_);
 
+std::cout << "====== IN GVT 2 NODE = " << comm_manager_->getID() << std::endl;
     // Collect GVT from all of the worker threads 
     unsigned int local_min = recv_min_;
+std::cout << "====== IN Recieve Min = " << recv_min_ << " NODE = " << comm_manager_->getID() << std::endl;
     recv_min_ = std::numeric_limits<unsigned int>::max();
     for (unsigned int i = 0; i <= num_worker_threads_; i++) {
         local_min = std::min(local_min, local_min_[i]);
         local_min_[i] = std::numeric_limits<unsigned int>::max();
     }
     
+std::cout << "====== IN GVT 3 Local Min = " << local_min << " NODE = " << comm_manager_->getID() << std::endl;
     
     local_gvt_passed_in = local_min;
 
@@ -104,9 +110,9 @@ void TimeWarpSynchronousGVTManager::receiveEventUpdate(std::shared_ptr<Event>& e
 
     if (color == Color::WHITE) {
         white_msg_count_--;
-    } else {
+    }// else {
         recv_min_ = std::min(recv_min_, event->timestamp());
-    }
+//    }
 }
 
 bool TimeWarpSynchronousGVTManager::gvtUpdated() {
@@ -185,4 +191,7 @@ void TimeWarpSynchronousGVTManager::setNextGVT(unsigned int new_GVT){
     gvt_updated_ = true;
 }
 
+bool TimeWarpSynchronousGVTManager::getTokenSendConfirmation(){ 
+    return gvt_token_send_confirmation_;
+}
 } // namespace warped

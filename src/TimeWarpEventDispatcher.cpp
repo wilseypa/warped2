@@ -288,9 +288,9 @@ bool test = false;
 		test = true;
 	}
 	for (int loop = 0; loop < skip_gvt_cycle; loop++){
-            std::this_thread::sleep_for(std::chrono::nanoseconds(900000000));
+            std::this_thread::sleep_for(std::chrono::seconds(2));
 	}
-        if (gvt_manager_->readyToStart()){
+        if (gvt_manager_->readyToStart() && temp_lock){
 	    if (test) {
 	//	    std::cout << "GVT TIMER READY TO START" << std::endl;
 		    test = false;
@@ -301,14 +301,14 @@ bool test = false;
             
 	    gvt_manager_->triggerSynchGVTCalculation();
         }
-	while(1){
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+//	while(1){
+  //          std::this_thread::sleep_for(std::chrono::seconds(1));
 	    
 	    host_node_done_lock_.lock();
 	    temp_lock = host_node_done_;
 	    host_node_done_lock_.unlock();
-    	    if (temp_lock) break;
-	}
+  //  	    if (temp_lock) break;
+//	}
     }
 }
 
@@ -322,13 +322,21 @@ bool test = false;
     while(!termination_manager_->terminationStatus()){
 std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() << std::endl;	 
         while(1){
-            if (gvt_manager_->getGVTFlag()) break;
 	    if (!test) {
 		    test = true;
 		    std::cout << "WHILE LOOP NODE = " << comm_manager_->getID() << std::endl;            
 	    }
+	    
 	    comm_manager_->handleMessages();
-            // Report GVT Flag is updated whenever a message is recieved. Look at receiveGVTSynchTrigger() in TWSynchronousGVTManager
+    	    
+	    // Report GVT Flag is updated whenever a message is recieved. Look at receiveGVTSynchTrigger() in TWSynchronousGVTManager
+            
+	    if (gvt_manager_->getGVTFlag()){
+		while (gvt_manager_->getTokenSendConfirmation()){
+			comm_manager_->handleMessages();
+		}
+	        break;
+	    }
         }
 
 		std::cout << "PROGRESSGVT 0 NODE = " << comm_manager_->getID() << std::endl;
@@ -338,19 +346,20 @@ std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() 
 
 		std::cout << "PROGRESSGVT 1 NODE = " << comm_manager_->getID() << std::endl;
         gvt_manager_->progressGVT(temp_local_min);
-        MPI_Barrier(MPI_COMM_WORLD);
 		std::cout << "PROGRESSGVT 2 NODE = " << comm_manager_->getID() << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
+		std::cout << "PROGRESSGVT 3 NODE = " << comm_manager_->getID() << std::endl;
         next_gvt = gvt_manager_->getNextGVT();
         comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
         gvt_manager_->setNextGVT(next_gvt);
-		std::cout << "PROGRESSGVT 3 NODE = " << comm_manager_->getID() << std::endl;
+		std::cout << "PROGRESSGVT 4 NODE = " << comm_manager_->getID() << std::endl;
         if (gvt == std::numeric_limits<unsigned int>::max()) break;
         if (gvt_manager_->gvtUpdated()) {
             gvt = gvt_manager_->getGVT();
             onGVT(gvt);
         }
 		test = false;
-		std::cout << "PROGRESSGVT 4 NODE = " << comm_manager_->getID() << std::endl;
+		std::cout << "PROGRESSGVT 5 NODE = " << comm_manager_->getID() << std::endl;
         host_node_done_lock_.lock();
 	host_node_done_ = true;
 	host_node_done_lock_.unlock();
@@ -431,6 +440,7 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
             else {
                 min_timestamp = std::numeric_limits<unsigned int>::max();
             }
+	    std::cout << " MIN TIME STAMP = " << min_timestamp << " NODE = " << comm_manager_->getID() << " Thread = " << thread_id << std::endl;
             gvt_manager_->reportThreadMin(min_timestamp, thread_id);
 
             gvt_manager_->workerThreadGVTBarrierSync();
