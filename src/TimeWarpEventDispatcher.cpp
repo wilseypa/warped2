@@ -333,19 +333,19 @@ std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() 
             
             if (gvt_manager_->getGVTFlag()){
                 if (comm_manager_->getID() == 0){
-		    while (!gvt_manager_->getTokenSendConfirmation()){
+		            while (!comm_manager_->getTokenSendConfirmation()){
                         comm_manager_->handleMessages();
                     }
-                    gvt_manager_->setTokenSendConfirmation(false);
-	            break;
-	        } else {
+                    comm_manager_->setTokenSendConfirmation(false);
+	                break;
+	            } else {
                     break;
-		}
+		        }
             }
         }
 
 		std::cout << "PROGRESSGVT 0 NODE = " << comm_manager_->getID() << std::endl;
-	gvt_manager_->workerThreadGVTBarrierSync();
+	    gvt_manager_->workerThreadGVTBarrierSync();
 		std::cout << "PROGRESSGVT 1 NODE = " << comm_manager_->getID() << std::endl;
         host_node_done_lock_.lock();
 	    host_node_done_ = false;

@@ -25,16 +25,6 @@ bool TimeWarpGVTManager::getGVTFlag(){
 }
 
 //Dummy Function - Look at the function in TWSynchronousGVTManager
-bool TimeWarpGVTManager::getTokenSendConfirmation(){
-    return false;
-}
-
-//Dummy Function - Look at the function in TWSynchronousGVTManager
-void TimeWarpGVTManager::setTokenSendConfirmation(bool input){
-    if (input){}
-}
-
-//Dummy Function - Look at the function in TWSynchronousGVTManager
 void TimeWarpGVTManager::workerThreadGVTBarrierSync(){
 }
 

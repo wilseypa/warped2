@@ -43,6 +43,9 @@ public:
     void barrierPause();
     void barrierResume();
 
+    bool getTokenSendConfirmation();
+    void setTokenSendConfirmation(bool input);
+
 protected:
     void packAndSend(unsigned int receiver_id);
 
@@ -68,6 +71,9 @@ private:
 
     bool barrier_hold_;
     std::shared_mutex barrier_hold_lock_;
+
+    std::mutex gvt_token_send_confirmation_lock_;
+    bool gvt_token_send_confirmation_;
 };
 
 struct PendingRequest {

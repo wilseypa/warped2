@@ -45,10 +45,6 @@ void TimeWarpSynchronousGVTManager::triggerSynchGVTCalculation(){
         auto gvt_trigger_msg = make_unique<GVTSynchTrigger>(0, i);
         comm_manager_->insertMessage(std::move(gvt_trigger_msg));
     }
-std::cout << "SENT GVT TOKEN FROM NODE = 0" << std::endl;
-    gvt_token_send_confirmation_lock_.lock();
-    gvt_token_send_confirmation_ = true;
-    gvt_token_send_confirmation_lock_.unlock();
 }
 
 bool TimeWarpSynchronousGVTManager::readyToStart() {
@@ -193,21 +189,4 @@ void TimeWarpSynchronousGVTManager::setNextGVT(unsigned int new_GVT){
     next_gvt_ = new_GVT;
     gvt_updated_ = true;
 }
-
-bool TimeWarpSynchronousGVTManager::getTokenSendConfirmation(){ 
-    bool temp;
-    
-    gvt_token_send_confirmation_lock_.lock();
-    temp = gvt_token_send_confirmation_;
-    gvt_token_send_confirmation_lock_.unlock();
-    
-    return temp;
-}
-
-void TimeWarpSynchronousGVTManager::setTokenSendConfirmation(bool input){ 
-    gvt_token_send_confirmation_lock_.lock();
-    gvt_token_send_confirmation_ = input;
-    gvt_token_send_confirmation_lock_.unlock();
-}
-
 } // namespace warped

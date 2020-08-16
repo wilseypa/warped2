@@ -65,9 +65,6 @@ public:
     
     virtual void getReportGVTFlagUnlock();
 
-    virtual bool getTokenSendConfirmation();
-    virtual void setTokenSendConfirmation(bool input);
-
     virtual void setReportGVT(bool report_GVT);
 
     virtual void setNextGVT(unsigned int new_GVT);
