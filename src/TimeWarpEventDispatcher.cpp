@@ -343,7 +343,6 @@ std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() 
 		        }
             }
         }
-
 		std::cout << "PROGRESSGVT 0 NODE = " << comm_manager_->getID() << std::endl;
 	    gvt_manager_->workerThreadGVTBarrierSync();
 		std::cout << "PROGRESSGVT 1 NODE = " << comm_manager_->getID() << std::endl;
