@@ -337,34 +337,36 @@ std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() 
                         comm_manager_->handleMessages();
                     }
                     gvt_manager_->setTokenSendConfirmation(false);
-	                break;
-	            }
+	            break;
 	        } else {
-		    break;
+                    break;
 		}
+            }
         }
 
 		std::cout << "PROGRESSGVT 0 NODE = " << comm_manager_->getID() << std::endl;
+	gvt_manager_->workerThreadGVTBarrierSync();
+		std::cout << "PROGRESSGVT 1 NODE = " << comm_manager_->getID() << std::endl;
         host_node_done_lock_.lock();
 	    host_node_done_ = false;
 	    host_node_done_lock_.unlock();
 
-		std::cout << "PROGRESSGVT 1 NODE = " << comm_manager_->getID() << std::endl;
-        gvt_manager_->progressGVT(temp_local_min);
 		std::cout << "PROGRESSGVT 2 NODE = " << comm_manager_->getID() << std::endl;
-        MPI_Barrier(MPI_COMM_WORLD);
+        gvt_manager_->progressGVT(temp_local_min);
 		std::cout << "PROGRESSGVT 3 NODE = " << comm_manager_->getID() << std::endl;
+        MPI_Barrier(MPI_COMM_WORLD);
+		std::cout << "PROGRESSGVT 4 NODE = " << comm_manager_->getID() << std::endl;
         next_gvt = gvt_manager_->getNextGVT();
         comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
         gvt_manager_->setNextGVT(next_gvt);
-		std::cout << "PROGRESSGVT 4 NODE = " << comm_manager_->getID() << std::endl;
+		std::cout << "PROGRESSGVT 5 NODE = " << comm_manager_->getID() << std::endl;
         if (gvt == std::numeric_limits<unsigned int>::max()) break;
         if (gvt_manager_->gvtUpdated()) {
             gvt = gvt_manager_->getGVT();
             onGVT(gvt);
         }
 		test = false;
-		std::cout << "PROGRESSGVT 5 NODE = " << comm_manager_->getID() << std::endl;
+		std::cout << "PROGRESSGVT 6 NODE = " << comm_manager_->getID() << std::endl;
         host_node_done_lock_.lock();
 	    host_node_done_ = true;
 	    host_node_done_lock_.unlock();
@@ -400,11 +402,17 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     event_set_->refreshScheduleQueue(thread_id, with_read_lock);
     std::shared_ptr<Event> event;// = event_set_->getEvent(thread_id, with_input_queue_check);
 
+bool test1 = true; bool first_print = true;
+
     while(1){      
-        report_gvt = gvt_manager_->getGVTFlag();
+test1 = report_gvt;        
+	report_gvt = gvt_manager_->getGVTFlag();
         // Don't need to grab an event twice if we are reporting gvt
         if (!report_gvt) event = event_set_->getEvent(thread_id, with_input_queue_check);  
-std::cout << "Report GVT = " << report_gvt << " NODE = " << comm_manager_->getID() << std::endl;       
+if (test1 != report_gvt || first_print) {
+	std::cout << "Report GVT = " << report_gvt << " NODE = " << comm_manager_->getID() << std::endl;       
+	first_print = false;
+}
         if (event == nullptr || report_gvt){
             //gvt_start = std::chrono::steady_clock::now();
 std::cout << "+++++ BARRIER 1 Node = " << comm_manager_->getID() << std::endl;

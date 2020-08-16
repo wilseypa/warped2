@@ -117,6 +117,7 @@ unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
     while (!send_queue_->msg_list_.empty()) {
 
         auto msg = std::move(send_queue_->msg_list_.front());
+	msg->get_type() == MessageType::GVTSynchTrigger;
         send_queue_->msg_list_.pop_front();
 
         unsigned int receiver_id = msg->receiver_id;
