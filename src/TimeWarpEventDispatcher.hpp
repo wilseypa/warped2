@@ -146,6 +146,9 @@ private:
     std::mutex worker_threads_done_lock_;
     bool worker_threads_done_;
     
+    std::shared_mutex terminate_GVT_timer_lock_;
+    bool terminate_GVT_timer_ = false;
+
     std::mutex host_node_done_lock_;
     bool host_node_done_ = true;
 

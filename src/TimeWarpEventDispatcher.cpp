@@ -277,39 +277,34 @@ std::cout << "1 Node Comm Mgr" << std::endl;
 
 void TimeWarpEventDispatcher::gvtTimer(){
 std::cout << "GVT TIMER NODE = " << comm_manager_->getID() << std::endl;
-bool test = false;
-   
+  
+    bool termination_lock = false;
     bool temp_lock = false;
     int skip_gvt_cycle = 5;
 
     while(1){
-	    if (!test) {
-	    //	std::cout << "GVT TIMER WHILE LOOP" << std::endl;
-		    test = true;
-	    }
         for (int loop = 0; loop < skip_gvt_cycle; loop++){
                 std::this_thread::sleep_for(std::chrono::seconds(2));
         }
+
+	terminate_GVT_timer_lock_.lock_shared();
+        termination_lock = terminate_GVT_timer_;
+	terminate_GVT_timer_lock_.unlock_shared();
+        if (termination_lock) break; 
+
         if (gvt_manager_->readyToStart() && temp_lock){
-	    if (test) {
-	//	    std::cout << "GVT TIMER READY TO START" << std::endl;
-		    test = false;
-	    }
             gvt_manager_->getReportGVTFlagLock();
             gvt_manager_->setReportGVT(true);
             gvt_manager_->getReportGVTFlagUnlock();
             
 	    gvt_manager_->triggerSynchGVTCalculation();
         }
-//	while(1){
-  //          std::this_thread::sleep_for(std::chrono::seconds(1));
 	    
 	    host_node_done_lock_.lock();
 	    temp_lock = host_node_done_;
 	    host_node_done_lock_.unlock();
-  //  	    if (temp_lock) break;
-//	}
     }
+std::cout << "GVT TIMER END" << std::endl;
 }
 
 void TimeWarpEventDispatcher::CommunicationManagerThreadDist(){
@@ -320,11 +315,11 @@ std::cout << "Many Node Comm Mgr NODE = " << comm_manager_->getID() << std::endl
 bool test = false;
     // Will run until this thread is destroyed
     while(!termination_manager_->terminationStatus()){
-std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() << std::endl;	 
+//std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() << std::endl;	 
         while(1){
             if (!test) {
                 test = true;
-                std::cout << "WHILE LOOP NODE = " << comm_manager_->getID() << std::endl;            
+//                std::cout << "WHILE LOOP NODE = " << comm_manager_->getID() << std::endl;            
             }
             
             comm_manager_->handleMessages();
@@ -343,29 +338,34 @@ std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() 
 		        }
             }
         }
-		std::cout << "PROGRESSGVT 0 NODE = " << comm_manager_->getID() << std::endl;
+//		std::cout << "PROGRESSGVT 0 NODE = " << comm_manager_->getID() << std::endl;
 	    gvt_manager_->workerThreadGVTBarrierSync();
-		std::cout << "PROGRESSGVT 1 NODE = " << comm_manager_->getID() << std::endl;
+//		std::cout << "PROGRESSGVT 1 NODE = " << comm_manager_->getID() << std::endl;
         host_node_done_lock_.lock();
 	    host_node_done_ = false;
 	    host_node_done_lock_.unlock();
 
-		std::cout << "PROGRESSGVT 2 NODE = " << comm_manager_->getID() << std::endl;
+//		std::cout << "PROGRESSGVT 2 NODE = " << comm_manager_->getID() << std::endl;
         gvt_manager_->progressGVT(temp_local_min);
-		std::cout << "PROGRESSGVT 3 NODE = " << comm_manager_->getID() << std::endl;
+//		std::cout << "PROGRESSGVT 3 NODE = " << comm_manager_->getID() << std::endl;
         MPI_Barrier(MPI_COMM_WORLD);
-		std::cout << "PROGRESSGVT 4 NODE = " << comm_manager_->getID() << std::endl;
+//		std::cout << "PROGRESSGVT 4 NODE = " << comm_manager_->getID() << std::endl;
         next_gvt = gvt_manager_->getNextGVT();
         comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
         gvt_manager_->setNextGVT(next_gvt);
-		std::cout << "PROGRESSGVT 5 NODE = " << comm_manager_->getID() << std::endl;
-        if (gvt == std::numeric_limits<unsigned int>::max()) break;
+//		std::cout << "PROGRESSGVT 5 NODE = " << comm_manager_->getID() << std::endl;
+        if (gvt == std::numeric_limits<unsigned int>::max()){
+	    terminate_GVT_timer_lock_.lock();
+            terminate_GVT_timer_ = true;
+	    terminate_GVT_timer_lock_.unlock();
+	    break;
+	}
         if (gvt_manager_->gvtUpdated()) {
             gvt = gvt_manager_->getGVT();
             onGVT(gvt);
         }
 		test = false;
-		std::cout << "PROGRESSGVT 6 NODE = " << comm_manager_->getID() << std::endl;
+//		std::cout << "PROGRESSGVT 6 NODE = " << comm_manager_->getID() << std::endl;
         host_node_done_lock_.lock();
 	    host_node_done_ = true;
 	    host_node_done_lock_.unlock();
@@ -409,12 +409,12 @@ test1 = report_gvt;
         // Don't need to grab an event twice if we are reporting gvt
         if (!report_gvt) event = event_set_->getEvent(thread_id, with_input_queue_check);  
 if (test1 != report_gvt || first_print) {
-	std::cout << "Report GVT = " << report_gvt << " NODE = " << comm_manager_->getID() << std::endl;       
+//	std::cout << "Report GVT = " << report_gvt << " NODE = " << comm_manager_->getID() << std::endl;       
 	first_print = false;
 }
         if (event == nullptr || report_gvt){
             //gvt_start = std::chrono::steady_clock::now();
-std::cout << "+++++ BARRIER 1 Node = " << comm_manager_->getID() << std::endl;
+//std::cout << "+++++ BARRIER 1 Node = " << comm_manager_->getID() << std::endl;
 	    gvt_manager_->workerThreadGVTBarrierSync();
             //gvt_stop = std::chrono::steady_clock::now();
             //gvt_wait = double((gvt_stop - gvt_start).count()) + gvt_wait;
@@ -453,7 +453,7 @@ std::cout << "+++++ BARRIER 1 Node = " << comm_manager_->getID() << std::endl;
             else {
                 min_timestamp = std::numeric_limits<unsigned int>::max();
             }
-	    std::cout << " MIN TIME STAMP = " << min_timestamp << " NODE = " << comm_manager_->getID() << " Thread = " << thread_id << std::endl;
+//	    std::cout << " MIN TIME STAMP = " << min_timestamp << " NODE = " << comm_manager_->getID() << " Thread = " << thread_id << std::endl;
             gvt_manager_->reportThreadMin(min_timestamp, thread_id);
 
             gvt_manager_->workerThreadGVTBarrierSync();
