@@ -249,7 +249,6 @@ void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
 
 
 void TimeWarpEventDispatcher::CommunicationManagerThreadPar(){
-std::cout << "1 Node Comm Mgr" << std::endl;
     unsigned int gvt = 0;
     unsigned int temp_local_min;
     unsigned int next_gvt;
@@ -275,9 +274,7 @@ std::cout << "1 Node Comm Mgr" << std::endl;
     }
 }
 
-void TimeWarpEventDispatcher::gvtTimer(){
-std::cout << "GVT TIMER NODE = " << comm_manager_->getID() << std::endl;
-  
+void TimeWarpEventDispatcher::gvtTimer(){ 
     bool termination_lock = false;
     bool temp_lock = false;
     int skip_gvt_cycle = 5;
@@ -287,9 +284,9 @@ std::cout << "GVT TIMER NODE = " << comm_manager_->getID() << std::endl;
                 std::this_thread::sleep_for(std::chrono::seconds(2));
         }
 
-	terminate_GVT_timer_lock_.lock_shared();
+	    terminate_GVT_timer_lock_.lock_shared();
         termination_lock = terminate_GVT_timer_;
-	terminate_GVT_timer_lock_.unlock_shared();
+	    terminate_GVT_timer_lock_.unlock_shared();
         if (termination_lock) break; 
 
         if (gvt_manager_->readyToStart() && temp_lock){
@@ -297,31 +294,23 @@ std::cout << "GVT TIMER NODE = " << comm_manager_->getID() << std::endl;
             gvt_manager_->setReportGVT(true);
             gvt_manager_->getReportGVTFlagUnlock();
             
-	    gvt_manager_->triggerSynchGVTCalculation();
+	        gvt_manager_->triggerSynchGVTCalculation();
         }
 	    
 	    host_node_done_lock_.lock();
 	    temp_lock = host_node_done_;
 	    host_node_done_lock_.unlock();
     }
-std::cout << "GVT TIMER END" << std::endl;
 }
 
 void TimeWarpEventDispatcher::CommunicationManagerThreadDist(){
-std::cout << "Many Node Comm Mgr NODE = " << comm_manager_->getID() << std::endl;
     unsigned int gvt = 0;
     unsigned int temp_local_min;
     unsigned int next_gvt;
-bool test = false;
+
     // Will run until this thread is destroyed
     while(!termination_manager_->terminationStatus()){
-//std::cout << "Comm Top Test = " << test << " Node = " << comm_manager_->getID() << std::endl;	 
-        while(1){
-            if (!test) {
-                test = true;
-//                std::cout << "WHILE LOOP NODE = " << comm_manager_->getID() << std::endl;            
-            }
-            
+        while(1){           
             comm_manager_->handleMessages();
     	    
 	    // Report GVT Flag is updated whenever a message is recieved. Look at receiveGVTSynchTrigger() in TWSynchronousGVTManager
@@ -338,22 +327,20 @@ bool test = false;
 		        }
             }
         }
-//		std::cout << "PROGRESSGVT 0 NODE = " << comm_manager_->getID() << std::endl;
 	    gvt_manager_->workerThreadGVTBarrierSync();
-//		std::cout << "PROGRESSGVT 1 NODE = " << comm_manager_->getID() << std::endl;
+
         host_node_done_lock_.lock();
 	    host_node_done_ = false;
 	    host_node_done_lock_.unlock();
 
-//		std::cout << "PROGRESSGVT 2 NODE = " << comm_manager_->getID() << std::endl;
         gvt_manager_->progressGVT(temp_local_min);
-//		std::cout << "PROGRESSGVT 3 NODE = " << comm_manager_->getID() << std::endl;
+
         MPI_Barrier(MPI_COMM_WORLD);
-//		std::cout << "PROGRESSGVT 4 NODE = " << comm_manager_->getID() << std::endl;
+
         next_gvt = gvt_manager_->getNextGVT();
         comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
         gvt_manager_->setNextGVT(next_gvt);
-//		std::cout << "PROGRESSGVT 5 NODE = " << comm_manager_->getID() << std::endl;
+
         if (gvt == std::numeric_limits<unsigned int>::max()){
 	    terminate_GVT_timer_lock_.lock();
             terminate_GVT_timer_ = true;
@@ -364,14 +351,11 @@ bool test = false;
             gvt = gvt_manager_->getGVT();
             onGVT(gvt);
         }
-		test = false;
-//		std::cout << "PROGRESSGVT 6 NODE = " << comm_manager_->getID() << std::endl;
+
         host_node_done_lock_.lock();
 	    host_node_done_ = true;
 	    host_node_done_lock_.unlock();
     }	   
-
-    std::cout << "COMM TERMINATED NODE = " << comm_manager_->getID() << std::endl;
 }
 
 
@@ -401,21 +385,14 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     event_set_->refreshScheduleQueue(thread_id, with_read_lock);
     std::shared_ptr<Event> event;// = event_set_->getEvent(thread_id, with_input_queue_check);
 
-bool test1 = true; bool first_print = true;
-
     while(1){      
-test1 = report_gvt;        
-	report_gvt = gvt_manager_->getGVTFlag();
+	    report_gvt = gvt_manager_->getGVTFlag();
         // Don't need to grab an event twice if we are reporting gvt
         if (!report_gvt) event = event_set_->getEvent(thread_id, with_input_queue_check);  
-if (test1 != report_gvt || first_print) {
-//	std::cout << "Report GVT = " << report_gvt << " NODE = " << comm_manager_->getID() << std::endl;       
-	first_print = false;
-}
+
         if (event == nullptr || report_gvt){
             //gvt_start = std::chrono::steady_clock::now();
-//std::cout << "+++++ BARRIER 1 Node = " << comm_manager_->getID() << std::endl;
-	    gvt_manager_->workerThreadGVTBarrierSync();
+	        gvt_manager_->workerThreadGVTBarrierSync();
             //gvt_stop = std::chrono::steady_clock::now();
             //gvt_wait = double((gvt_stop - gvt_start).count()) + gvt_wait;
 
@@ -453,7 +430,7 @@ if (test1 != report_gvt || first_print) {
             else {
                 min_timestamp = std::numeric_limits<unsigned int>::max();
             }
-//	    std::cout << " MIN TIME STAMP = " << min_timestamp << " NODE = " << comm_manager_->getID() << " Thread = " << thread_id << std::endl;
+
             gvt_manager_->reportThreadMin(min_timestamp, thread_id);
 
             gvt_manager_->workerThreadGVTBarrierSync();
@@ -474,7 +451,7 @@ if (test1 != report_gvt || first_print) {
                 // One Final Check for events
                 event_set_->refreshScheduleQueue(thread_id, without_read_lock);
                 event = event_set_->getEvent(thread_id, without_input_queue_check); 
-//if (event != nullptr)  std::cout << event->timestamp() << " 2 " << event->receiverName() << std::endl;     
+
                 if (event != nullptr) {
                     std::cout << "UNPROCESSED EVENT" << std::endl;
                 }
@@ -611,8 +588,6 @@ if (test1 != report_gvt || first_print) {
 
                 // Move the next event from lp into the schedule queue
                 // Also transfer old event to processed queue
-//std::cout << "Main 3 " << event_input_queue_next->timestamp() << " " << event_input_queue_next->receiverName() << std::endl;
-
                 event_set_->acquireInputQueueLock(current_lp_id);
                 event_set_->replenishScheduler(current_lp_id, event_input_queue_next);
                 event_set_->releaseInputQueueLock(current_lp_id);
@@ -649,7 +624,6 @@ if (test1 != report_gvt || first_print) {
        
     }
     }
-std::cout << "Work - End" << std::endl;
 }
 
 void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {

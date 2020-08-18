@@ -118,7 +118,6 @@ unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
 
         auto msg = std::move(send_queue_->msg_list_.front());
 	    if (msg->get_type() == MessageType::GVTSynchTrigger){
-            std::cout << "SENT GVT TOKEN FROM NODE = 0" << std::endl;
             gvt_token_send_confirmation_lock_.lock();
             gvt_token_send_confirmation_ = true;
             gvt_token_send_confirmation_lock_.unlock();

@@ -152,10 +152,6 @@ void TimeWarpEventSet::getInputQueueHead (unsigned int lp_id, std::shared_ptr<Ev
     auto event_iterator = (input_queue_[lp_id]->begin());
     head = (event_iterator != (input_queue_[lp_id]->end())) ?
                     *event_iterator : nullptr;
-//std::cout << "FUNC 1 " << head->timestamp() << " " << head->receiverName() << std::endl;
-    //if (head != nullptr) scheduled_event_pointer_[lp_id] = head;
-//std::cout << "FUNC 2 " << scheduled_event_pointer_[lp_id]->timestamp() << " " << scheduled_event_pointer_[lp_id]->receiverName() << std::endl;
-
 
     event_iterator++;
     head_next = (event_iterator != (input_queue_[lp_id]->end())) ?
