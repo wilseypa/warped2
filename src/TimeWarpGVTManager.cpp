@@ -16,7 +16,7 @@ void TimeWarpGVTManager::checkProgressGVT() {
         gvt_start = std::chrono::steady_clock::now();
     }
 
-    progressGVT();
+    //progressGVT();
 }
 
 //Dummy Function - Look at the function in TWSynchronousGVTManager
@@ -39,6 +39,39 @@ void TimeWarpGVTManager::getReportGVTFlagLockShared(){
 
 //Dummy Function - Look at the function in TWSynchronousGVTManager
 void TimeWarpGVTManager::getReportGVTFlagUnlockShared(){
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::getReportGVTFlagLock(){
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::getReportGVTFlagUnlock(){
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::setReportGVT(bool report_GVT){
+    if(report_GVT){}
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::setNextGVT(unsigned int new_GVT){ 
+    if(new_GVT){}
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+unsigned int TimeWarpGVTManager::getNextGVT(){ 
+    return 0;
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg){ 
+   if (kmsg->receiver_id == 0){}
+}
+
+//Dummy Function - Look at the function in TWSynchronousGVTManager
+void TimeWarpGVTManager::triggerSynchGVTCalculation(){ 
+    if(true){}
 }
 
 } // namespace warped

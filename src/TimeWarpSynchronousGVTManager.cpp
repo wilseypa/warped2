@@ -5,6 +5,8 @@
 #include "utility/warnings.hpp"
 #include "utility/memory.hpp"           // for make_unique
 
+WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::GVTSynchTrigger)
+
 namespace warped {
 
 enum class Color;
@@ -24,7 +26,25 @@ void TimeWarpSynchronousGVTManager::initialize() {
 
     report_gvt_ = false;
 
+    WARPED_REGISTER_MSG_HANDLER(TimeWarpSynchronousGVTManager, receiveGVTSynchTrigger, GVTSynchTrigger)
+
     TimeWarpGVTManager::initialize();
+}
+
+void TimeWarpSynchronousGVTManager::receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg){
+    auto msg = unique_cast<TimeWarpKernelMessage, GVTSynchTrigger>(std::move(kmsg));
+
+    report_gvt_lock_.lock();
+    report_gvt_ = true;
+    report_gvt_lock_.unlock();
+}
+
+void TimeWarpSynchronousGVTManager::triggerSynchGVTCalculation(){
+    // Start a GVT calculation cycle, only node 0 can trigger a GVT calculation
+    for (unsigned int i = 1; i < comm_manager_->getNumProcesses(); i++) {
+        auto gvt_trigger_msg = make_unique<GVTSynchTrigger>(0, i);
+        comm_manager_->insertMessage(std::move(gvt_trigger_msg));
+    }
 }
 
 bool TimeWarpSynchronousGVTManager::readyToStart() {
@@ -33,32 +53,42 @@ bool TimeWarpSynchronousGVTManager::readyToStart() {
     return  (elapsed >= gvt_period_);
 }
 
-void TimeWarpSynchronousGVTManager::progressGVT() {
+void TimeWarpSynchronousGVTManager::progressGVT(unsigned int &local_gvt_passed_in) {
     
-    report_gvt_lock_.lock();
-    report_gvt_ = true;
-    report_gvt_lock_.unlock();
+    //report_gvt_lock_.lock();
+    //report_gvt_ = true;
+    //report_gvt_lock_.unlock();
 
-    pthread_barrier_wait(&min_report_barrier_);
-    pthread_barrier_wait(&min_report_barrier_);
+    //pthread_barrier_wait(&min_report_barrier_);
 
+// if (worker_threads_dumped) {}
     report_gvt_lock_.lock();
     report_gvt_ = false;
     report_gvt_lock_.unlock();
 
+    pthread_barrier_wait(&min_report_barrier_);
+
     // Collect GVT from all of the worker threads 
     unsigned int local_min = recv_min_;
+
     recv_min_ = std::numeric_limits<unsigned int>::max();
     for (unsigned int i = 0; i <= num_worker_threads_; i++) {
         local_min = std::min(local_min, local_min_[i]);
         local_min_[i] = std::numeric_limits<unsigned int>::max();
     }
+    
 
-    access_gvt_lock_.lock();
-    comm_manager_->minAllReduceUint(&local_min, &gVT_);
-    access_gvt_lock_.unlock();
+    
+    local_gvt_passed_in = local_min;
 
-    gvt_updated_ = true; 
+    gvt_stop = std::chrono::steady_clock::now();
+    //access_gvt_lock_.lock();
+    //comm_manager_->minAllReduceUint(&local_min, &next_gvt_);
+    //access_gvt_lock_.unlock();
+
+     
+// worker_threads_dumped = false
+// }
 }
 
 Color TimeWarpSynchronousGVTManager::sendEventUpdate(std::shared_ptr<Event>& event) {
@@ -77,9 +107,9 @@ void TimeWarpSynchronousGVTManager::receiveEventUpdate(std::shared_ptr<Event>& e
 
     if (color == Color::WHITE) {
         white_msg_count_--;
-    } else {
+    }// else {
         recv_min_ = std::min(recv_min_, event->timestamp());
-    }
+//    }
 }
 
 bool TimeWarpSynchronousGVTManager::gvtUpdated() {
@@ -136,4 +166,25 @@ void TimeWarpSynchronousGVTManager::getReportGVTFlagUnlockShared(){
     report_gvt_lock_.unlock_shared(); 
 }
 
+void TimeWarpSynchronousGVTManager::getReportGVTFlagLock(){ 
+    report_gvt_lock_.lock(); 
+}
+    
+void TimeWarpSynchronousGVTManager::getReportGVTFlagUnlock(){ 
+    report_gvt_lock_.unlock(); 
+}
+
+void TimeWarpSynchronousGVTManager::setReportGVT(bool report_GVT){ 
+    report_gvt_ = report_GVT;
+}
+
+unsigned int TimeWarpSynchronousGVTManager::getNextGVT(){ 
+    return next_gvt_;
+}
+
+void TimeWarpSynchronousGVTManager::setNextGVT(unsigned int new_GVT){ 
+    gVT_ = next_gvt_;
+    next_gvt_ = new_GVT;
+    gvt_updated_ = true;
+}
 } // namespace warped

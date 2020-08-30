@@ -22,9 +22,14 @@ public:
 
     void initialize() override;
 
+    // Message handler for Synchronous GVT Trigger
+    void receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg) override;
+
+    void triggerSynchGVTCalculation() override;
+
     bool readyToStart()  override;
 
-    void progressGVT() override;
+    void progressGVT(unsigned int &next_gvt_passed_in) override;
 
     void receiveEventUpdate(std::shared_ptr<Event>& event, Color color) override;
 
@@ -53,7 +58,23 @@ public:
     
     void getReportGVTFlagUnlockShared() override;
 
+    void getReportGVTFlagLock() override;
+    
+    void getReportGVTFlagUnlock() override;
+
+    void setReportGVT(bool report_GVT) override;
+
+    void setNextGVT(unsigned int new_GVT) override;
+
+    unsigned int getNextGVT() override;
+
+    //bool getTokenSendConfirmation() override;
+    //void setTokenSendConfirmation(bool input) override;
+    //void progressGVT(int &workers, std::mutex &worker_threads_done_lock_) override;
+
 protected:
+    unsigned int next_gvt_ = 0;
+
     bool gvt_updated_ = false;
 
     std::atomic<int64_t> white_msg_count_ = ATOMIC_VAR_INIT(0);
@@ -74,6 +95,16 @@ protected:
 
     pthread_barrier_t min_report_barrier_;
 
+};
+
+struct GVTSynchTrigger : public TimeWarpKernelMessage {
+    GVTSynchTrigger() = default;
+    GVTSynchTrigger(unsigned int sender_id, unsigned int receiver_id) :
+        TimeWarpKernelMessage(sender_id, receiver_id) {}
+
+    MessageType get_type() { return MessageType::GVTSynchTrigger; }
+
+    WARPED_REGISTER_SERIALIZABLE_MEMBERS(cereal::base_class<TimeWarpKernelMessage>(this))
 };
 
 } // warped namespace

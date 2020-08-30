@@ -117,6 +117,11 @@ unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
     while (!send_queue_->msg_list_.empty()) {
 
         auto msg = std::move(send_queue_->msg_list_.front());
+	    if (msg->get_type() == MessageType::GVTSynchTrigger){
+            gvt_token_send_confirmation_lock_.lock();
+            gvt_token_send_confirmation_ = true;
+            gvt_token_send_confirmation_lock_.unlock();
+        }
         send_queue_->msg_list_.pop_front();
 
         unsigned int receiver_id = msg->receiver_id;
@@ -306,6 +311,22 @@ void TimeWarpMPICommunicationManager::barrierPause(){
 // Don't need to lock here since the communication manager will be waiting at a barrier sync operation
 void TimeWarpMPICommunicationManager::barrierResume(){
     barrier_hold_ = false;
+}
+
+bool TimeWarpMPICommunicationManager::getTokenSendConfirmation(){ 
+    bool temp;
+    
+    gvt_token_send_confirmation_lock_.lock();
+    temp = gvt_token_send_confirmation_;
+    gvt_token_send_confirmation_lock_.unlock();
+    
+    return temp;
+}
+
+void TimeWarpMPICommunicationManager::setTokenSendConfirmation(bool input){ 
+    gvt_token_send_confirmation_lock_.lock();
+    gvt_token_send_confirmation_ = input;
+    gvt_token_send_confirmation_lock_.unlock();
 }
 
 } // namespace warped
