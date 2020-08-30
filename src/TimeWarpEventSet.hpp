@@ -10,6 +10,7 @@
 #include <set>
 #include <unordered_map>
 #include <mutex>
+#include <shared_mutex>
 #include <memory>
 #include <atomic>
 
@@ -46,7 +47,11 @@ public:
 
     InsertStatus insertEvent (unsigned int lp_id, std::shared_ptr<Event> event);
 
-    std::shared_ptr<Event> getEvent (unsigned int thread_id);
+    std::shared_ptr<Event> getEvent (unsigned int thread_id, bool input_queue_check);
+
+    void getInputQueueHead (unsigned int lp_id, std::shared_ptr<Event>& head, std::shared_ptr<Event> &head_next);
+
+    void changedScheduledEventPtr (unsigned int lp_id, std::shared_ptr<Event> &head);
 
 #ifdef PARTIALLY_SORTED_LADDER_QUEUE
     unsigned int lowestTimestamp (unsigned int thread_id);
@@ -63,7 +68,7 @@ public:
 
     void startScheduling (unsigned int lp_id);
 
-    void replenishScheduler (unsigned int lp_id);
+    void replenishScheduler (unsigned int lp_id, std::shared_ptr<Event> &next_event);
 
     bool cancelEvent (unsigned int lp_id, std::shared_ptr<Event> cancel_event);
 
@@ -71,12 +76,22 @@ public:
 
     unsigned int fossilCollect (unsigned int fossil_collect_time, unsigned int lp_id);
 
+    void refreshScheduleQueue(unsigned int thread_id, bool read_lock);
+
+    void setWorkerThreadInputQueueMap(std::vector<std::vector<unsigned int>> map);
+
+    void setLocalLPIdByName(std::unordered_map<std::string, unsigned int> map_input);
+
+    unsigned int returnLowestTimestamp(unsigned int lp_id);
+
+    void test(unsigned int lp_id);
+
 private:
     // Number of lps
     unsigned int num_of_lps_ = 0;
 
     // Lock to protect the unprocessed queues
-    std::unique_ptr<std::mutex []> input_queue_lock_;
+    std::unique_ptr<std::shared_mutex []> input_queue_lock_;
 
     // Queues to hold the unprocessed events for each lp
     std::vector<std::unique_ptr<std::multiset<std::shared_ptr<Event>, 
@@ -93,7 +108,7 @@ private:
 #ifdef SCHEDULE_QUEUE_SPINLOCKS
     std::unique_ptr<TicketLock []> schedule_queue_lock_;
 #else
-    std::unique_ptr<std::mutex []> schedule_queue_lock_;
+    std::unique_ptr<std::shared_mutex []> schedule_queue_lock_;
 #endif
 
     // Queues to hold the scheduled events
@@ -109,16 +124,21 @@ private:
 #endif
 
     // Map unprocessed queue to a schedule queue
-    std::vector<unsigned int> input_queue_scheduler_map_;
+    std::vector<unsigned int> input_queue_scheduler_map_; // Get scheduler id from lp_id
+
+    std::vector<std::vector<unsigned int>> worker_thread_input_queue_map_;
 
     // LP Migration flag
     bool is_lp_migration_on_;
 
     // Map worker thread to a schedule queue
-    std::vector<unsigned int> worker_thread_scheduler_map_;
+    std::vector<unsigned int> worker_thread_scheduler_map_; // Get scheduler id from from thread_id
 
     // Event scheduled from all lps
     std::vector<std::shared_ptr<Event>> scheduled_event_pointer_;
+
+    // Map from lp_name to lp_id
+    std::unordered_map<std::string, unsigned int> lp_id_by_name_;
 };
 
 } // warped namespace

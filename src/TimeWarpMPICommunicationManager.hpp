@@ -5,6 +5,7 @@
 #include <vector>
 #include <cstdint>
 #include <mutex>
+#include <shared_mutex>
 
 #include "TimeWarpCommunicationManager.hpp"
 #include "TimeWarpKernelMessage.hpp"
@@ -38,6 +39,13 @@ public:
     int sumAllReduceInt64(int64_t* send_local, int64_t* recv_global);
     int minAllReduceUint(unsigned int* send_local, unsigned int* recv_global);
 
+    bool barrierHoldStatus();
+    void barrierPause();
+    void barrierResume();
+
+    bool getTokenSendConfirmation();
+    void setTokenSendConfirmation(bool input);
+
 protected:
     void packAndSend(unsigned int receiver_id);
 
@@ -60,6 +68,12 @@ private:
 
     std::shared_ptr<MessageQueue> send_queue_;
     std::shared_ptr<MessageQueue> recv_queue_;
+
+    bool barrier_hold_;
+    std::shared_mutex barrier_hold_lock_;
+
+    std::mutex gvt_token_send_confirmation_lock_;
+    bool gvt_token_send_confirmation_;
 };
 
 struct PendingRequest {

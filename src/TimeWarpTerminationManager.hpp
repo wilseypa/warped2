@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <mutex>
+#include <shared_mutex>
 
 #include "TimeWarpCommunicationManager.hpp"
 
@@ -47,6 +48,8 @@ public:
 
     void updateMsgCount(int delta);
 
+    void setTerminate(bool termination_value);
+
 private:
 
     State state_ = State::ACTIVE;
@@ -62,7 +65,10 @@ private:
 
     bool is_master_ = false;
 
+    std::shared_mutex termination_lock_;
     bool terminate_ = false;
+
+    bool termination = false;
 };
 
 struct TerminationToken : public TimeWarpKernelMessage {

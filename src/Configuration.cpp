@@ -40,6 +40,12 @@
 namespace {
 const static std::string DEFAULT_CONFIG = R"x({
 
+// num-refresh-per-gvt, number of schedule queue refreshes before calculating GVT
+"num-refresh-per-gvt":1,
+
+// num-events-per-refresh, number of events processed before refreshing the schedule queue
+"num-events-per-refresh":1,
+
 // If max-sim-time > 0, the simulation will halt once the time has been reached
 "max-sim-time": 0,
 
@@ -58,8 +64,8 @@ const static std::string DEFAULT_CONFIG = R"x({
     "gvt-calculation": {
         // GVT calculation period
         "period": 1000,
-        // "synchronous" or "asynchronous"
-        "method": "asynchronous"
+        // "synchronous"
+        "method": "synchronous"
     },
 
     "state-saving": {
@@ -224,12 +230,20 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
         invalid_string += std::string("\tMaximum simulation time\n");
     }
 
+    
+
     auto simulation_type = (*root_)["simulation-type"].asString();
     if (simulation_type == "time-warp") {
         local_config_id = 1;
         if(!checkTimeWarpConfigs(local_config_id, all_config_ids, comm_manager)) {
             invalid_string += std::string("\tSimulation type\n");
         }
+
+        // SCHEDULE QUEUE REFRESHES PER GVT CALCULATION
+        int num_refresh_per_gvt = (*root_)["num-refresh-per-gvt"].asUInt();
+
+        // NUM OF EVENTS PROCCESSED PER REFRESH
+        int num_events_per_refresh = (*root_)["num-events-per-refresh"].asUInt();
 
         std::unique_ptr<TimeWarpEventSet> event_set = make_unique<TimeWarpEventSet>();
 
@@ -297,10 +311,10 @@ Configuration::makeDispatcher(std::shared_ptr<TimeWarpCommunicationManager> comm
         if (gvt_method == "synchronous") {
             gvt_manager =
                 make_unique<TimeWarpSynchronousGVTManager>(comm_manager, gvt_period, num_worker_threads);
-        } else if (gvt_method == "asynchronous") {
+        } /*else if (gvt_method == "asynchronous") {
             gvt_manager =
                 make_unique<TimeWarpAsynchronousGVTManager>(comm_manager, gvt_period, num_worker_threads);
-        } else {
+        } */else {
             invalid_string += std::string("\tInvalid GVT Method\n");
         }
 
@@ -375,7 +389,7 @@ check the following configurations:\n") + invalid_string);
         }
 
         return make_unique<TimeWarpEventDispatcher>(max_sim_time_,
-            num_worker_threads, is_lp_migration_on, comm_manager,
+            num_worker_threads, is_lp_migration_on, num_refresh_per_gvt, num_events_per_refresh, comm_manager,
             std::move(event_set), std::move(gvt_manager), std::move(state_manager),
             std::move(output_manager), std::move(twfs_manager),
             std::move(termination_manager), std::move(tw_stats));

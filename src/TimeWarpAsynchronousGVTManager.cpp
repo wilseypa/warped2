@@ -30,8 +30,8 @@ bool TimeWarpAsynchronousGVTManager::readyToStart() {
     return ((elapsed >= gvt_period_) && (comm_manager_->getID() == 0));
 }
 
-void TimeWarpAsynchronousGVTManager::progressGVT() {
-
+void TimeWarpAsynchronousGVTManager::progressGVT(unsigned int &next_gvt_passed_in) {
+    if (next_gvt_passed_in){}
     if (gvt_state_ == GVTState::LOCAL) {
 
         // If we need a local gvt calculation and haven't started yet

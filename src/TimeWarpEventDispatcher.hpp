@@ -17,6 +17,9 @@
 #include <vector>
 #include <deque>
 #include <thread>
+#include <shared_mutex>
+
+#include <pthread.h>
 
 #include "config.h"
 #include "EventDispatcher.hpp"
@@ -38,6 +41,8 @@ class TimeWarpGVTManager;
 class TimeWarpTerminationManager;
 enum class Color;
 
+
+
 // This is the EventDispatcher that will run a Time Warp synchronized parallel simulation.
 
 class TimeWarpEventDispatcher : public EventDispatcher {
@@ -45,6 +50,8 @@ public:
     TimeWarpEventDispatcher(unsigned int max_sim_time,
         unsigned int num_worker_threads,
         bool is_lp_migration_on,
+        unsigned int num_refresh_per_gvt,
+        unsigned int num_events_per_refresh,
         std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
         std::unique_ptr<TimeWarpEventSet> event_set,
         std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -88,16 +95,31 @@ private:
 
     void receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
+    void gvtTimer();
+
     void onGVT(unsigned int gvt);
+
+    void GVTManagerThread();
+
+    void CommunicationManagerThreadPar();
+
+    void CommunicationManagerThreadDist();
 
 /* ============================================================================ */
 
+    pthread_barrier_t termination_barrier_sync_1;
+    pthread_barrier_t termination_barrier_sync_2;
+    pthread_barrier_t worker_thread_barrier_sync;
+
     unsigned int num_worker_threads_;
     bool is_lp_migration_on_;
+    unsigned int num_refresh_per_gvt_;
+    unsigned int num_events_per_refresh_;
     unsigned int num_local_lps_;
 
     std::unordered_map<std::string, LogicalProcess*> lps_by_name_;
     std::unordered_map<std::string, unsigned int> local_lp_id_by_name_;
+    std::unordered_map<unsigned int, std::string> local_lp_name_by_id_;
 
 #ifdef TIMEWARP_EVENT_LOG
     // Event log for each worker thread
@@ -114,6 +136,27 @@ private:
     const std::unique_ptr<TimeWarpStatistics> tw_stats_;
 
     static THREAD_LOCAL_SPECIFIER unsigned int thread_id;
+
+    // Double check to make sure this is implemented correctly in the TWEventDispatcher initialize function
+    std::vector<std::vector<unsigned int>> worker_thread_input_queue_map_; // Get input queue ids from thread_id
+    unsigned int worker_thread_empty_schedule_queue_count_;
+    std::vector<bool> worker_thread_empty_schedule_;
+    std::shared_mutex worker_thread_empty_schedule_queue_lock_;
+
+    std::mutex worker_threads_done_lock_;
+    bool worker_threads_done_;
+    
+    std::shared_mutex terminate_GVT_timer_lock_;
+    bool terminate_GVT_timer_ = false;
+
+    std::mutex host_node_done_lock_;
+    bool host_node_done_ = true;
+
+    const bool with_read_lock = true;
+    const bool without_read_lock = false;
+
+    const bool with_input_queue_check = true;
+    const bool without_input_queue_check = false;
 };
 
 struct EventMessage : public TimeWarpKernelMessage {

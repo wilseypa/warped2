@@ -58,6 +58,16 @@ public:
 
     unsigned int getNodeID(std::string lp_name);
 
+    virtual bool barrierHoldStatus() = 0;
+
+    virtual void barrierPause() = 0;
+
+    virtual void barrierResume() = 0;
+
+    virtual bool getTokenSendConfirmation() = 0;
+
+    virtual void setTokenSendConfirmation(bool input) = 0;
+
 protected:
     // Map to lookup message handler given a message type
     std::unordered_map<int, std::function<void(std::unique_ptr<TimeWarpKernelMessage>)>>
@@ -66,6 +76,7 @@ protected:
 private:
     std::unordered_map<std::string, unsigned int> node_id_by_lp_name_;
 
+    bool sent_GVT_trigger_ = false;
 };
 
 } // namespace warped
