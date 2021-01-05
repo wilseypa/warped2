@@ -8,6 +8,7 @@
 
 #include "FileStream.hpp"
 #include "RandomNumberGenerator.hpp"
+#include "STLLTSFQueue.hpp"
 
 namespace warped {
 
@@ -62,6 +63,20 @@ public:
     void registerRNG(std::shared_ptr<RNGType>);
 
     std::list<std::shared_ptr<RandomNumberGenerator>> rng_list_;
+
+    // The LTSF queues below hold all of the events associated with the LP
+    // Holds Unprocessed input events.
+    STLLTSFQueue inQ_;
+
+    // Holds processed input events.
+    STLLTSFQueue procInQ_;
+
+    // Holds anti-messages created by processed input events.
+    STLLTSFQueue outQ_;
+
+    // Holds past states for rollbacks.
+    STLLTSFQueue stateQ_;
+
 
 };
 
