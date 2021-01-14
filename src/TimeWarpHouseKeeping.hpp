@@ -6,12 +6,15 @@ Splitting three main tasks into seperate threads, this class will hold the stuff
 
 Class houseKeeping() {
     gvt.barrier() <- # of worker threads + 2 (Coordinate the worker threads w/ gCollect and receiveEvent) 
-    gvtCntrl.barrier() <- 2 (Sync gvtCntrl w/ fCollect) ==> Figure 3
+    update removed this --> gvtCntrl.barrier() <- 2 (Sync gvtCntrl w/ fCollect) ==> Figure 3
 
     gvt.gvtEstCycle <- false
-    gvt.gvtCycleInterval <- delay (delay > 0: Time between gvt estimation cycles)
     gvt.gvt <- 0
-    gvt.nextGvt <- 0
+
+    gvtContrib <- 0
+    fcGvt <- 0
+    gvtCycleInterval <- delay (delay > 0: Time between gvt estimation cycles)
+    update removed this (moved into gvtCntrl) --> gvt.nextGvt <- 0
 
     gvtCntrl **thread** (GVT Estimation Task)
     receiveEvent **thread**
@@ -53,7 +56,6 @@ public:
 
     virtual int getGVT() { return gVT_; }
 
-    virtual void getNextGVT();
 protected:
     unsigned int gVT_ = 0;
 
