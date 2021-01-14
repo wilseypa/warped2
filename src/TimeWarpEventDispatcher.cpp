@@ -342,11 +342,11 @@ void TimeWarpEventDispatcher::CommunicationManagerThreadDist(){
         gvt_manager_->setNextGVT(next_gvt);
 
         if (gvt == std::numeric_limits<unsigned int>::max()){
-	    terminate_GVT_timer_lock_.lock();
+	        terminate_GVT_timer_lock_.lock();
             terminate_GVT_timer_ = true;
-	    terminate_GVT_timer_lock_.unlock();
-	    break;
-	}
+	        terminate_GVT_timer_lock_.unlock();
+	        break;
+	    }
         if (gvt_manager_->gvtUpdated()) {
             gvt = gvt_manager_->getGVT();
             onGVT(gvt);
