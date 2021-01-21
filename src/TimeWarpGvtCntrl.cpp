@@ -68,6 +68,9 @@ namespace warped
                 unsigned int gvt = 0;
                 unsigned int temp_local_min;
                 unsigned int next_gvt;
+                MPI_Comm GVT = MPI_Comm();
+                MPI_Comm MSGS_PROC = MPI_Comm();
+                
 
                 // Will run until this thread is destroyed
                 while(!termination_manager_->terminationStatus()){
@@ -88,34 +91,53 @@ namespace warped
                             }
                         }
                     }
-                    gvt_manager_->workerThreadGVTBarrierSync();
 
-                    host_node_done_lock_.lock();
-                    host_node_done_ = false;
-                    host_node_done_lock_.unlock();
-
-                    gvt_manager_->progressGVT(temp_local_min);
-
-                    MPI_Barrier(MPI_COMM_WORLD);
-
-                    next_gvt = gvt_manager_->getNextGVT();
-                    comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
-                    gvt_manager_->setNextGVT(next_gvt);
-
-                    if (gvt == std::numeric_limits<unsigned int>::max()){
-                    terminate_GVT_timer_lock_.lock();
-                        terminate_GVT_timer_ = true;
-                    terminate_GVT_timer_lock_.unlock();
-                    break;
-                }
-                    if (gvt_manager_->gvtUpdated()) {
-                        gvt = gvt_manager_->getGVT();
-                        onGVT(gvt);
+                    if(comm_manager_->getID() == 0){
+                        sleep(gvt);
+                    }
+                    
+                    if(comm_manager_->getNumProcesses() > 1){
+                        MPI_Barrier(GVT);
                     }
 
-                    host_node_done_lock_.lock();
-                    host_node_done_ = true;
-                    host_node_done_lock_.unlock();
+                    // This aligns with line 9 of the algorithm loop.
+                    gvt_manager_->workerThreadGVTBarrierSync();
+                    if(comm_manager_->getNumProcesses() > 1){
+                        if(comm_manager_->getID() == 0){
+                            char* message = "Verify_Idle";
+                            MPI_Bcast(message, strlen(message)+1, MPI_CHAR, 0, MPI_COMM_WORLD);
+                        }
+                        MPI_Barrier(MSGS_PROC);
+                    }
+
+                    // Not sure what this is used for yet.
+                    /*host_node_done_lock_.lock();
+                    host_node_done_ = false;
+                    host_node_done_lock_.unlock();*/
+                    
+                    // Line 16-19
+                    gvt_manager_->progressGVT(temp_local_min);
+
+                    if(comm_manager_->getNumProcesses() > 1){
+                        next_gvt = gvt_manager_->getNextGVT();
+                        comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
+                        gvt_manager_->setNextGVT(next_gvt);
+                    }
+
+                    if (gvt == std::numeric_limits<unsigned int>::max()){
+                        /*terminate_GVT_timer_lock_.lock();
+                        terminate_GVT_timer_ = true;
+                        terminate_GVT_timer_lock_.unlock();*/
+                        // Still need to add line 25.
+
+                        // Line 26.
+                        MPI_Finalize();
+                        exit(EXIT_SUCCESS);
+                        break;
+                    }
+                    if (gvt_manager_->gvtUpdated()) {
+                        gvt = gvt_manager_->getGVT();
+                    }
                 }	   
 
             }

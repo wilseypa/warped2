@@ -61,17 +61,16 @@ void TimeWarpSynchronousGVTManager::progressGVT(unsigned int &local_gvt_passed_i
 
     //pthread_barrier_wait(&min_report_barrier_);
 
-// if (worker_threads_dumped) {}
-    report_gvt_lock_.lock();
+    // Line 16
+    pthread_barrier_wait(&min_report_barrier_);
     report_gvt_ = false;
-    report_gvt_lock_.unlock();
-
     pthread_barrier_wait(&min_report_barrier_);
 
     // Collect GVT from all of the worker threads 
     unsigned int local_min = recv_min_;
 
     recv_min_ = std::numeric_limits<unsigned int>::max();
+    // Line 19
     for (unsigned int i = 0; i <= num_worker_threads_; i++) {
         local_min = std::min(local_min, local_min_[i]);
         local_min_[i] = std::numeric_limits<unsigned int>::max();
