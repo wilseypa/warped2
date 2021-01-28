@@ -68,7 +68,9 @@ namespace warped
                 unsigned int gvt = 0;
                 unsigned int temp_local_min;
                 unsigned int next_gvt;
-                MPI_Comm GVT = MPI_Comm();
+
+                // These will need passed to the housekeeping class and passed into the constructor so they can be shapred by the threads.
+                MPI_Comm GVT = MPI_Comm(); 
                 MPI_Comm MSGS_PROC = MPI_Comm();
                 
 

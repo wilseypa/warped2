@@ -36,11 +36,11 @@
 namespace warped
 {
     
-    class GvtCntrl
+    class RecieveEvent
     {
         public:
 
-            GvtCntrl::GvtCntrl(
+            RecieveEvent::RecieveEvent(
             unsigned int num_worker_threads,
             bool is_lp_migration_on,
             unsigned int num_refresh_per_gvt,
@@ -56,9 +56,11 @@ namespace warped
             std::unique_ptr<TimeWarpStatistics> tw_stats);
 
             
-            void GvtCntrl::thread();
-            void GvtCntrl::initialize();
-            
+            void RecieveEvent::thread();
+            void RecieveEvent::initialize();
+
+
+
             pthread_barrier_t termination_barrier_sync_1;
             pthread_barrier_t termination_barrier_sync_2;
             pthread_barrier_t worker_thread_barrier_sync;
@@ -89,6 +91,5 @@ namespace warped
             const std::unique_ptr<TimeWarpStatistics> tw_stats_;
 
             static THREAD_LOCAL_SPECIFIER unsigned int thread_id;
-
     };
 }
