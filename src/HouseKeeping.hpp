@@ -55,6 +55,10 @@ namespace warped {
             virtual unsigned int gvtCycleInterval() = 0; // <- delay goes here
 
             virtual int getGVT() { return gVT_; }
+            
+            virtual void gvtCntrl(); //making it void, do the threads return?
+            virtual void receiveEvent();
+            virutal void fCollect();
 
         protected:
             unsigned int gVT_ = 0;
