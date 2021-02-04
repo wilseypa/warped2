@@ -52,7 +52,7 @@ namespace warped {
             // are these values being held in a class somewhere else?
             virtual bool gvtEstCycle() = 0;
 
-            virtual unsigned int gvtCycleInterval() = 0; // <- delay goes here
+            virtual unsigned int gvtCycleInterval(/* delay */) = 0;
 
             virtual int getGVT() { return gVT_; }
             
