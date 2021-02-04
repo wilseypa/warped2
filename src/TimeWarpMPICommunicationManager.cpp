@@ -143,6 +143,20 @@ unsigned int TimeWarpMPICommunicationManager::startSendRequests() {
     return requests;
 }
 
+std::unique_ptr<PendingRequest> TimeWarpMPICommunicationManager::recieveEvent()
+{
+    auto new_request = make_unique<PendingRequest>(make_unique<uint8_t[]>(max_buffer_size_), max_buffer_size_);
+    int status = MPI_Recv(new_request->buffer_.get(), 
+                    new_request->count_, 
+                    MPI_PACKED,
+                    MPI_ANY_SOURCE,
+                    MPI_DATA_TAG,
+                    MPI_COMM_WORLD,
+                    &new_request->status_);
+    // There might need to be some error checking when recieving the message.
+    return new_request;
+}
+
 void TimeWarpMPICommunicationManager::packAndSend(unsigned int receiver_id) {
 
     int position = 0;

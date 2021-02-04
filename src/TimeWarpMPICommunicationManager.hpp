@@ -46,6 +46,8 @@ public:
     bool getTokenSendConfirmation();
     void setTokenSendConfirmation(bool input);
 
+    std::unique_ptr<PendingRequest> TimeWarpMPICommunicationManager::recieveEvent();
+
 protected:
     void packAndSend(unsigned int receiver_id);
 
