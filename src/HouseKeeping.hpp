@@ -41,29 +41,29 @@ namespace warped {
     //enum class GVTState { IDLE, LOCAL, GLOBAL };
     //enum class Color { WHITE, RED };
 
-class HouseKeeping {
-public:
-    HouseKeeping();
+    class HouseKeeping {
+        public:
+            HouseKeeping();
 
-    virtual void initialize();
-    virtual ~HouseKeeping() = default;
+            virtual void initialize();
+            virtual ~HouseKeeping() = default;
 
-    // in the doc these are gvt.value
-    // are these values being held in a class somewhere else?
-    virtual bool gvtEstCycle() = 0;
+            // in the doc these are gvt.value
+            // are these values being held in a class somewhere else?
+            virtual bool gvtEstCycle() = 0;
 
-    virtual unsigned int gvtCycleInterval() = 0; // <- delay goes here
+            virtual unsigned int gvtCycleInterval() = 0; // <- delay goes here
 
-    virtual int getGVT() { return gVT_; }
+            virtual int getGVT() { return gVT_; }
 
-protected:
-    unsigned int gVT_ = 0;
+        protected:
+            unsigned int gVT_ = 0;
 
-    unsigned int gvt_period_;
+            unsigned int gvt_period_;
 
-    unsigned int num_worker_threads_;
+            unsigned int num_worker_threads_;
 
-};
+    };
 
 }
 
