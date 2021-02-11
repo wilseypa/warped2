@@ -29,7 +29,7 @@ fCollect() {
 namespace warped {
     
         fCollect::fCollect() {
-    
+
         }
         
         void fCollect::initialize() {
@@ -40,9 +40,10 @@ namespace warped {
             while(!termination_manager_->terminationStatus()){
                 bool fossilFound = false;
                 foreach lp in LPs do {
-//                     s <- lp.stateQ.head()
-//                     q <- s
-//                     fcgvt <- gvt.prevGvt
+                    
+                    s <- lp.stateQ.head()
+                    q <- s
+                    fcgvt <- gvt.prevGvt
                     
                     while s.next.rTime < fcGvt do {
                         s <- s.next()
@@ -58,4 +59,5 @@ namespace warped {
                 }
             }
         }
+    
 }
