@@ -3,6 +3,7 @@
 
 #include <memory> // for shared_ptr
 #include <atomic>
+#include <mutex>
 
 #include <pthread.h>
 
@@ -23,7 +24,7 @@ public:
 
     bool readyToStart()  override;
 
-    void progressGVT() override;
+    void progressGVT(unsigned int &local_gvt_passed_in) override;
 
     void receiveEventUpdate(std::shared_ptr<Event>& event, Color color) override;
 
@@ -42,6 +43,16 @@ public:
 
     unsigned int getLocalGVTFlag() override;
 
+    void setGVTEstCycle(bool cycleStatus) override;
+
+    void workerThreadGVTBarrierSync() override;
+
+    unsigned int getPrevGVT() override;
+
+    void setPrevGVT(unsigned int prev_GVT) override;
+
+    void setGVT(unsigned int new_GVT) override;
+
 protected:
     bool gvt_updated_ = false;
 
@@ -58,6 +69,12 @@ protected:
     unsigned int recv_min_;
 
     pthread_barrier_t min_report_barrier_;
+
+    std::mutex gvt_est_cycle_lock_;
+
+    std::mutex prev_gvt_lock_;
+
+    std::mutex gvt_lock_;
 
 };
 

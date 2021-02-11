@@ -45,15 +45,21 @@ public:
 
     unsigned int getGVT() { return gVT_; }
 
+    virtual void setGVTEstCycle(bool cycleStatus);
+
+    bool getGvtEstCycle(){ return gvt_est_cycle_; }
+
     virtual void workerThreadGVTBarrierSync();
 
     virtual void reportThreadMin(unsigned int timestamp, unsigned int thread_id);
 
     virtual bool getGVTFlag();
 
-    virtual void setNextGVT(unsigned int new_GVT);
+    virtual void setGVT(unsigned int new_GVT);
 
-    virtual unsigned int getNextGVT();
+    virtual void setPrevGVT(unsigned int prev_GVT);
+
+    virtual unsigned int getPrevGVT();
 
     virtual void receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg);
 
@@ -71,6 +77,10 @@ protected:
     unsigned int gvt_period_;
 
     GVTState gvt_state_;
+
+    bool gvt_est_cycle_;
+
+    unsigned int prev_gvt_;
 
     unsigned int num_worker_threads_;
 

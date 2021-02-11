@@ -37,10 +37,6 @@ namespace warped
 {
 
         GvtCntrl::GvtCntrl(
-            unsigned int num_worker_threads,
-            bool is_lp_migration_on,
-            unsigned int num_refresh_per_gvt,
-            unsigned int num_events_per_refresh,
             std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
             std::unique_ptr<TimeWarpEventSet> event_set,
             std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -50,9 +46,6 @@ namespace warped
             std::unique_ptr<TimeWarpTerminationManager> termination_manager,
             std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher,
             std::unique_ptr<TimeWarpStatistics> tw_stats) :
-                num_worker_threads_(num_worker_threads),
-                is_lp_migration_on_(is_lp_migration_on),
-                num_refresh_per_gvt_(num_refresh_per_gvt), num_events_per_refresh_(num_events_per_refresh), 
                 comm_manager_(comm_manager), event_set_(std::move(event_set)), 
                 gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
                 output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
@@ -65,9 +58,7 @@ namespace warped
 
             void GvtCntrl::thread()
             {                
-                unsigned int gvt = 0;
-                unsigned int temp_local_min;
-                unsigned int next_gvt;
+                gvt = gvt_manager_->getGVT();
 
                 // These will need passed to the housekeeping class and passed into the constructor so they can be shared by the threads.
                 MPI_Comm GVT = MPI_Comm(); 
@@ -75,50 +66,48 @@ namespace warped
                 
 
                 // Will run until this thread is destroyed
-                while(!termination_manager_->terminationStatus()){
+                while(!termination_manager_->terminationStatus()) {
 
-                    if(comm_manager_->getID() == 0){
+                    if(comm_manager_->getID() == 0) {
                         sleep(gvt_manager_->getGVTPeriod());
                     }
                     
-                    if(comm_manager_->getNumProcesses() > 1){
+                    if(comm_manager_->getNumProcesses() > 1) {
                         MPI_Barrier(GVT);
                     }
+                    
+                    gvt_manager_->setGVTEstCycle(true);
 
                     // This aligns with line 9 of the algorithm loop.
                     gvt_manager_->workerThreadGVTBarrierSync();
                     if(comm_manager_->getNumProcesses() > 1){
                         if(comm_manager_->getID() == 0){
+                            // Move to comm manager.
                             char* message = "Verify_Idle";
                             MPI_Bcast(message, strlen(message)+1, MPI_CHAR, 0, MPI_COMM_WORLD);
                         }
                         MPI_Barrier(MSGS_PROC);
                     }
+                    gvt_manager_->workerThreadGVTBarrierSync();
+                    prev_gvt = gvt;
 
-                    // Not sure what this is used for yet.
-                    /*host_node_done_lock_.lock();
-                    host_node_done_ = false;
-                    host_node_done_lock_.unlock();*/
-                    
-                    // Line 16-19
+                    // Line 18-20
                     gvt_manager_->progressGVT(temp_local_min);
 
-                    if(comm_manager_->getNumProcesses() > 1){
-                        next_gvt = gvt_manager_->getNextGVT();
+                    if(comm_manager_->getNumProcesses() > 1) {                       
                         comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
-                        gvt_manager_->setNextGVT(next_gvt);
+                        if(prev_gvt < temp_local_min) {
+                            gvt_manager_->setPrevGVT(prev_gvt);
+                        }
+                        
+                        gvt_manager_->setGVT(next_gvt);
                     }
 
-                    if (gvt == std::numeric_limits<unsigned int>::max()){
-                        /*terminate_GVT_timer_lock_.lock();
-                        terminate_GVT_timer_ = true;
-                        terminate_GVT_timer_lock_.unlock();*/
-                        // Still need to add line 25.
+                    if (gvt == std::numeric_limits<unsigned int>::max()) {
 
                         // Line 26.
                         MPI_Finalize();
                         exit(EXIT_SUCCESS);
-                        break;
                     }
                     if (gvt_manager_->gvtUpdated()) {
                         gvt = gvt_manager_->getGVT();

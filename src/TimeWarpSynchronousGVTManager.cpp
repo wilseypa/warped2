@@ -1,5 +1,6 @@
 #include <algorithm>    // for std::min()
 #include <cassert>
+#include <mutex>
 
 #include "TimeWarpSynchronousGVTManager.hpp"
 #include "utility/warnings.hpp"
@@ -31,45 +32,25 @@ bool TimeWarpSynchronousGVTManager::readyToStart() {
     return  (elapsed >= gvt_period_);
 }
 
-void TimeWarpSynchronousGVTManager::progressGVT() {
-    if (gvt_state_ == GVTState::LOCAL) {
+void TimeWarpSynchronousGVTManager::progressGVT(unsigned int &local_gvt_passed_in) {
+    
+    setGVTEstCycle(false);
+    workerThreadGVTBarrierSync();
 
-        color_.store(Color::RED);
-        local_gvt_flag_.store(1);
-        pthread_barrier_wait(&min_report_barrier_);
+    // Collect GVT from all of the worker threads 
+    unsigned int local_min = recv_min_;
 
-        gvt_state_ = GVTState::GLOBAL;
-
-        int64_t total_msg_count;
-        while (true) {
-            comm_manager_->flushMessages();
-            comm_manager_->handleMessages();
-            int64_t local_msg_count = white_msg_count_.load();
-            comm_manager_->sumAllReduceInt64(&local_msg_count, &total_msg_count);
-            if(total_msg_count == 0)
-                break;
-        }
-
-        unsigned int local_min = recv_min_;
-        recv_min_ = std::numeric_limits<unsigned int>::max();
-        for (unsigned int i = 0; i <= num_worker_threads_; i++) {
-            local_min = std::min(local_min, std::min(local_min_[i], send_min_[i]));
-            local_min_[i] = std::numeric_limits<unsigned int>::max();
-            send_min_[i] = std::numeric_limits<unsigned int>::max();
-        }
-
-        comm_manager_->minAllReduceUint(&local_min, &gVT_);
-
-        gvt_updated_ = true;
-
-        color_.store(Color::WHITE);
-        local_gvt_flag_.store(0);
-        pthread_barrier_wait(&min_report_barrier_);
-
-        gvt_stop = std::chrono::steady_clock::now();
-        gvt_state_ = GVTState::IDLE;
+    recv_min_ = std::numeric_limits<unsigned int>::max();
+    for (unsigned int i = 0; i <= num_worker_threads_; i++) {
+        local_min = std::min(local_min, local_min_[i]);
+        local_min_[i] = std::numeric_limits<unsigned int>::max();
     }
+
+    local_gvt_passed_in = local_min;
+
+    gvt_stop = std::chrono::steady_clock::now();
 }
+
 
 Color TimeWarpSynchronousGVTManager::sendEventUpdate(std::shared_ptr<Event>& event) {
     unused(event);
@@ -105,8 +86,8 @@ void TimeWarpSynchronousGVTManager::reportThreadMin(unsigned int timestamp, unsi
     if (local_gvt_flag > 0) {
         local_min_[thread_id] = timestamp;
 
-        pthread_barrier_wait(&min_report_barrier_);
-        pthread_barrier_wait(&min_report_barrier_);
+        workerThreadGVTBarrierSync();
+        workerThreadGVTBarrierSync();
     }
 }
 
@@ -118,6 +99,32 @@ void TimeWarpSynchronousGVTManager::reportThreadSendMin(unsigned int timestamp, 
 
 unsigned int TimeWarpSynchronousGVTManager::getLocalGVTFlag() {
     return local_gvt_flag_.load();
+}
+
+void TimeWarpSynchronousGVTManager::setGVTEstCycle(bool status) {
+    gvt_est_cycle_lock_.lock();
+    gvt_est_cycle_ = status;
+    gvt_est_cycle_lock_.unlock();
+}
+
+void TimeWarpSynchronousGVTManager::workerThreadGVTBarrierSync() {
+    pthread_barrier_wait(&min_report_barrier_);
+}
+
+unsigned int TimeWarpSynchronousGVTManager::getPrevGVT() {
+    return prev_gvt_;
+}
+
+void TimeWarpSynchronousGVTManager::setPrevGVT(unsigned int prev_gvt) {
+    prev_gvt_lock_.lock();
+    prev_gvt_ = prev_gvt;
+    prev_gvt_lock_.unlock();
+}
+
+void TimeWarpSynchronousGVTManager::setGVT(unsigned int new_gvt) {
+    gvt_lock_.lock();
+    gVT_ = new_gvt;
+    gvt_lock_.unlock();
 }
 
 } // namespace warped

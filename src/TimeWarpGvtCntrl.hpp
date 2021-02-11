@@ -41,10 +41,6 @@ namespace warped
         public:
 
             GvtCntrl::GvtCntrl(
-            unsigned int num_worker_threads,
-            bool is_lp_migration_on,
-            unsigned int num_refresh_per_gvt,
-            unsigned int num_events_per_refresh,
             std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
             std::unique_ptr<TimeWarpEventSet> event_set,
             std::unique_ptr<TimeWarpGVTManager> gvt_manager,
@@ -58,25 +54,12 @@ namespace warped
             
             void GvtCntrl::thread();
             void GvtCntrl::initialize();
-            
-            pthread_barrier_t termination_barrier_sync_1;
-            pthread_barrier_t termination_barrier_sync_2;
-            pthread_barrier_t worker_thread_barrier_sync;
-
-            unsigned int num_worker_threads_;
-            bool is_lp_migration_on_;
-            unsigned int num_refresh_per_gvt_;
-            unsigned int num_events_per_refresh_;
-            unsigned int num_local_lps_;
-
-            std::unordered_map<std::string, LogicalProcess*> lps_by_name_;
-            std::unordered_map<std::string, unsigned int> local_lp_id_by_name_;
-            std::unordered_map<unsigned int, std::string> local_lp_name_by_id_;
 
         #ifdef TIMEWARP_EVENT_LOG
             // Event log for each worker thread
             std::vector<std::unique_ptr<CircularList<std::string>>> event_log_;
         #endif
+        private:
 
             const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
             const std::unique_ptr<TimeWarpEventSet> event_set_;
@@ -88,7 +71,11 @@ namespace warped
             const std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher_;
             const std::unique_ptr<TimeWarpStatistics> tw_stats_;
 
-            static THREAD_LOCAL_SPECIFIER unsigned int thread_id;
+            unsigned int gvt;
+            unsigned int temp_local_min;
+            unsigned int prev_gvt;
+            unsigned int next_gvt;
+
 
     };
 }
