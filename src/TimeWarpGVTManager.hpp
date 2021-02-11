@@ -25,8 +25,9 @@ public:
 
     virtual bool readyToStart() = 0;
 
-    virtual void progressGVT() = 0;
-
+    virtual void progressGVT(unsigned int &next_gvt_passed_in) = 0;
+    virtual int getGVTPeriod();
+    
     virtual void receiveEventUpdate(std::shared_ptr<Event>& event, Color color) = 0;
 
     virtual Color sendEventUpdate(std::shared_ptr<Event>& event) = 0;
@@ -43,6 +44,20 @@ public:
     virtual int64_t getMessageCount() = 0;
 
     unsigned int getGVT() { return gVT_; }
+
+    virtual void workerThreadGVTBarrierSync();
+
+    virtual void reportThreadMin(unsigned int timestamp, unsigned int thread_id);
+
+    virtual bool getGVTFlag();
+
+    virtual void setNextGVT(unsigned int new_GVT);
+
+    virtual unsigned int getNextGVT();
+
+    virtual void receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg);
+
+    virtual void triggerSynchGVTCalculation();
 
 protected:
     const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;

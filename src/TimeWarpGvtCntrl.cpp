@@ -69,33 +69,16 @@ namespace warped
                 unsigned int temp_local_min;
                 unsigned int next_gvt;
 
-                // These will need passed to the housekeeping class and passed into the constructor so they can be shapred by the threads.
+                // These will need passed to the housekeeping class and passed into the constructor so they can be shared by the threads.
                 MPI_Comm GVT = MPI_Comm(); 
                 MPI_Comm MSGS_PROC = MPI_Comm();
                 
 
                 // Will run until this thread is destroyed
                 while(!termination_manager_->terminationStatus()){
-                    while(1){           
-                        comm_manager_->handleMessages();
-                        
-                    // Report GVT Flag is updated whenever a message is recieved. Look at receiveGVTSynchTrigger() in TWSynchronousGVTManager
-                        
-                        if (gvt_manager_->getGVTFlag()){
-                            if (comm_manager_->getID() == 0){
-                                while (!comm_manager_->getTokenSendConfirmation()){
-                                    comm_manager_->handleMessages();
-                                }
-                                comm_manager_->setTokenSendConfirmation(false);
-                                break;
-                            } else {
-                                break;
-                            }
-                        }
-                    }
 
                     if(comm_manager_->getID() == 0){
-                        sleep(gvt);
+                        sleep(gvt_manager_->getGVTPeriod());
                     }
                     
                     if(comm_manager_->getNumProcesses() > 1){
