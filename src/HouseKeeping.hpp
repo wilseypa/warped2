@@ -4,9 +4,10 @@ Splitting three main tasks into seperate threads, this class will hold the stuff
 
 *gvtCntrl will handle estimation and termination
 
+condintional instantiation of receiveEvent during parallel sim
+
 Class houseKeeping() {
-    gvt.barrier() <- # of worker threads + 2 (Coordinate the worker threads w/ gCollect and receiveEvent) 
-    update removed this --> gvtCntrl.barrier() <- 2 (Sync gvtCntrl w/ fCollect) ==> Figure 3
+    gvt.barrier() <- # of worker threads + 1? (Coordinate the worker threads w/ gCollect and receiveEvent) 
 
     gvt.gvtEstCycle <- false
     gvt.gvt <- 0
@@ -14,7 +15,6 @@ Class houseKeeping() {
     gvtContrib <- 0
     fcGvt <- 0
     gvtCycleInterval <- delay (delay > 0: Time between gvt estimation cycles)
-    update removed this (moved into gvtCntrl) --> gvt.nextGvt <- 0
 
     gvtCntrl **thread** (GVT Estimation Task)
     receiveEvent **thread**
@@ -28,14 +28,31 @@ Class houseKeeping() {
 #ifndef HOUSE_KEEPING_HPP
 #define HOUSE_KEEPING_HPP
 
-//which of these are needed, I believe all?
 #include <memory>
 #include <mutex>
+
+#include "Event.hpp"
+#include "EventDispatcher.hpp"
+#include "LTSFQueue.hpp"
+#include "Partitioner.hpp"
+#include "LogicalProcess.hpp"
+#include "TimeWarpMPICommunicationManager.hpp"
+#include "TimeWarpGVTManager.hpp"
+#include "TimeWarpStateManager.hpp"
+#include "TimeWarpOutputManager.hpp"
+#include "TimeWarpFileStreamManager.hpp"
+#include "TimeWarpTerminationManager.hpp"
+#include "TimeWarpEventSet.hpp"
+#include "utility/memory.hpp"
+#include "utility/warnings.hpp" 
 #include <shared_mutex>
 
 // -- Are these needed here or into the threads? --
 //#include "TimeWarpEventDispatcher.hpp"
 //#include "TimeWarpKernelMessage.hpp"
+
+// need the managers from gvtCntrl
+// 
 
 namespace warped {
     //enum class GVTState { IDLE, LOCAL, GLOBAL };
@@ -43,7 +60,7 @@ namespace warped {
 
     class HouseKeeping {
         public:
-            HouseKeeping();
+            HouseKeeping::HouseKeeping();
 
             virtual void initialize();
             virtual ~HouseKeeping() = default;
@@ -59,6 +76,16 @@ namespace warped {
             virtual void gvtCntrl(); //making it void, do the threads return?
             virtual void receiveEvent();
             virutal void fCollect();
+            
+            // Are these held up here in house keeping or does just the gvtCntrl need the managers?
+            const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
+            const std::unique_ptr<TimeWarpEventSet> event_set_;
+            const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
+            const std::unique_ptr<TimeWarpStateManager> state_manager_;
+            const std::unique_ptr<TimeWarpOutputManager> output_manager_;
+            const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
+            const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
+            const std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher_;
 
         protected:
             unsigned int gVT_ = 0;
@@ -66,6 +93,8 @@ namespace warped {
             unsigned int gvt_period_;
 
             unsigned int num_worker_threads_;
+            
+            unsigned int 
 
     };
 

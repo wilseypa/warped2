@@ -5,7 +5,7 @@ Splitting three main tasks into seperate threads, this class will hold the stuff
 *gvtCntrl will handle estimation and termination
 
 Class houseKeeping() {
-    gvt.barrier() <- # of worker threads + 2 (Coordinate the worker threads w/ gCollect and receiveEvent) 
+    gvt.barrier() <- # of worker threads + 1 (Coordinate the worker threads w/ gCollect and receiveEvent) 
     gvtCntrl.barrier() <- 2 (Sync gvtCntrl w/ fCollect) ==> Figure 3
 
     gvt.gvtEstCycle <- false
@@ -18,3 +18,25 @@ Class houseKeeping() {
     fCollect **thread**
 }
 */
+#include HouseKeeping.hpp
+
+namespace warped 
+{
+        HouseKeeping::HouseKeeping(unsigned int num_worker_threads,
+                                   std::unique_ptr<TimeWarpStatistics> tw_stats) :
+                num_worker_threads_(num_worker_threads)) {}
+        
+        void HouseKeeping::initialize()
+            {
+
+            }
+            
+        gvt.barrier(num_worker_threads + 1) // how to reference the # of worker threads?
+        
+        HouseKeeping::gvtCntrl() {}
+        
+        HouseKeeping::receiveEvent() {}
+        
+        HouseKeeping::fCollect() {}
+        
+}
