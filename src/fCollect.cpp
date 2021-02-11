@@ -24,3 +24,32 @@ fCollect() {
 }
 
 */
+namespace warped {
+    
+        fCollect::fCollect() {
+    
+        }
+        
+        void fCollect::initialize() {
+        
+        }
+        
+        void fCollect::thread() {
+            foreach lp in LPs do {
+                // above
+                
+                while s.next.rTime < fcGvt do {
+                    s <- s.next()
+                }
+                
+                if (s != q) {
+                    //clear lp.stateQ, lp.procQ, lp.outQ that are at or before s.rTime
+                    //set fossilFound = true;
+                }
+                
+                if (fossilFound) {
+                    sleep(HouseKeeping::gvtCycleInterval/2);
+                }
+            }
+        }
+}
