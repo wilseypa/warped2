@@ -24,6 +24,8 @@ fCollect() {
 }
 
 */
+#include fcollect.hpp
+
 namespace warped {
     
         fCollect::fCollect() {
@@ -35,20 +37,24 @@ namespace warped {
         }
         
         void fCollect::thread() {
-            foreach lp in LPs do {
-                // above
-                
-                while s.next.rTime < fcGvt do {
-                    s <- s.next()
+            while(!termination_manager_->terminationStatus()){
+                bool fossilFound = false;
+                foreach lp in LPs do {
+//                     s <- lp.stateQ.head()
+//                     q <- s
+//                     fcgvt <- gvt.prevGvt
+                    
+                    while s.next.rTime < fcGvt do {
+                        s <- s.next()
+                    }
+                    
+                    if (s != q) {
+                        //clear lp.stateQ, lp.procQ, lp.outQ that are at or before s.rTime
+                        fossilFound = true;
+                    }
                 }
-                
-                if (s != q) {
-                    //clear lp.stateQ, lp.procQ, lp.outQ that are at or before s.rTime
-                    //set fossilFound = true;
-                }
-                
                 if (fossilFound) {
-                    sleep(HouseKeeping::gvtCycleInterval/2);
+                        sleep(HouseKeeping::gvtCycleInterval/2);
                 }
             }
         }
