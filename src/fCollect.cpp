@@ -43,11 +43,11 @@ namespace warped {
             
             while(!termination_manager_->terminationStatus()){
                 bool fossilFound = false;
-                foreach lp in LPs do {
+                foreach lp in LPs do { // go through each lp in a list of active lps to check for fossils
                     
                     s <- lp.stateQ.head();
                     q <- s;
-                    Housekeeping::fcgvt = gvt.prevGvt;
+                    //Housekeeping::fcgvt = gvt.prevGvt;
                     
                     while s.next.rTime < fcGvt do {
                         s <- s.next();
