@@ -27,7 +27,11 @@ public:
     void finalize();
     unsigned int getNumProcesses();
     unsigned int getID();
+    unsigned int initalizeGVTCommunication();
+    unsigned int initalizeMSGCommunication();
     int waitForAllProcesses();
+    int waitForGVT();
+    int waitForMessageProcesses();
 
     void insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
     void handleMessages();
@@ -54,6 +58,12 @@ private:
 
     int num_processes_;
     int my_rank_;
+    MPI_Comm gvt_;
+    int gvt_num_processes_;
+    int gvt_my_rank_;
+    MPI_Comm msg_proc_;
+    int msg_proc_num_processes_;
+    int msg_proc_my_rank_;
 
     std::unique_ptr<std::list<std::unique_ptr<TimeWarpKernelMessage>>[]> aggregate_messages_;
     std::unique_ptr<unsigned int[]> aggregate_message_count_by_receiver_ = 0;

@@ -61,8 +61,7 @@ namespace warped
                 gvt = gvt_manager_->getGVT();
 
                 // These will need passed to the housekeeping class and passed into the constructor so they can be shared by the threads.
-                MPI_Comm GVT = MPI_Comm(); 
-                MPI_Comm MSGS_PROC = MPI_Comm();
+                
                 
 
                 // Will run until this thread is destroyed
@@ -73,7 +72,7 @@ namespace warped
                     }
                     
                     if(comm_manager_->getNumProcesses() > 1) {
-                        MPI_Barrier(GVT);
+                        comm_manager_->waitForGVT();
                     }
                     
                     gvt_manager_->setGVTEstCycle(true);
@@ -86,7 +85,7 @@ namespace warped
                             char* message = "Verify_Idle";
                             MPI_Bcast(message, strlen(message)+1, MPI_CHAR, 0, MPI_COMM_WORLD);
                         }
-                        MPI_Barrier(MSGS_PROC);
+                        comm_manager_->waitForMessageProcesses();
                     }
                     gvt_manager_->workerThreadGVTBarrierSync();
                     prev_gvt = gvt;

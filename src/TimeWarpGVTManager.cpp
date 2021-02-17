@@ -36,16 +36,6 @@ void TimeWarpGVTManager::reportThreadMin(unsigned int timestamp, unsigned int th
 }
 
 //Dummy Function - Look at the function in TWSynchronousGVTManager
-void TimeWarpGVTManager::setNextGVT(unsigned int new_GVT){ 
-    if(new_GVT){}
-}
-
-//Dummy Function - Look at the function in TWSynchronousGVTManager
-unsigned int TimeWarpGVTManager::getNextGVT(){ 
-    return 0;
-}
-
-//Dummy Function - Look at the function in TWSynchronousGVTManager
 void TimeWarpGVTManager::receiveGVTSynchTrigger(std::unique_ptr<TimeWarpKernelMessage> kmsg){ 
    if (kmsg->receiver_id == 0){}
 }

@@ -35,6 +35,10 @@ public:
 
     virtual int waitForAllProcesses() = 0;
 
+    virtual int waitForGVT() = 0;
+
+    virtual int waitForMessageProcesses() = 0;
+
     virtual int sumReduceUint64(uint64_t* send_local, uint64_t* recv_global) = 0;
 
     virtual int gatherUint64(uint64_t* send_local, uint64_t* recv_root) = 0;
