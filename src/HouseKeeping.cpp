@@ -20,8 +20,7 @@ Class houseKeeping() {
 
 namespace warped 
 {
-        HouseKeeping::HouseKeeping(unsigned int num_worker_threads,
-                                   std::unique_ptr<TimeWarpStatistics> tw_stats) :
+        HouseKeeping::HouseKeeping(unsigned int num_worker_threads :
                 num_worker_threads_(num_worker_threads)) {}
         
         void HouseKeeping::initialize()
@@ -29,7 +28,7 @@ namespace warped
 
             }
             
-        gvt.barrier(num_worker_threads + 1) // how to reference the # of worker threads?
+        gvt.barrier(num_worker_threads_ + 1)
         
         HouseKeeping::gvtCntrl() {}
         

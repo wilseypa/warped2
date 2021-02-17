@@ -29,7 +29,7 @@ fCollect() {
 
 namespace warped {
     
-        fCollect::fCollect(std::unique_ptr<TimeWarpStatistics> tw_stats) :
+        fCollect::fCollect(std::unique_ptr<TimeWarpGVTManager> gvt_manager :
                 gvt_manager_(std::move(gvt_manager))) {
 
         }

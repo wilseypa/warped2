@@ -30,13 +30,11 @@ fCollect() {
 namespace warped {
     class fCollect() {
     public:
-        fCollect::fCollect(std::unique_ptr<TimeWarpGVTManager> gvt_manager,
-            std::unique_ptr<TimeWarpStatistics> tw_stats);
+        fCollect::fCollect(std::unique_ptr<TimeWarpGVTManager> gvt_manager);
         
         // what does fCollect need to function?
         
     private:
         const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
-        const std::unique_ptr<TimeWarpStatistics> tw_stats_;
     }
 }

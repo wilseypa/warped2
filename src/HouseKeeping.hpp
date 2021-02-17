@@ -31,6 +31,8 @@ Class houseKeeping() {
 #include <memory>
 #include <mutex>
 
+#include fCollect.hpp
+
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
 #include "LTSFQueue.hpp"
@@ -76,7 +78,7 @@ namespace warped {
             
             virtual void gvtCntrl(); //making it void, do the threads return?
             virtual void receiveEvent();
-            virutal void fCollect();
+            virutal void fCollect::fCollect();
             
             // Are these held up here in house keeping or does just the gvtCntrl need the managers?
             const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
@@ -94,9 +96,6 @@ namespace warped {
             unsigned int gvt_period_;
 
             unsigned int num_worker_threads_;
-            
-            unsigned int 
-
     };
 
 }
