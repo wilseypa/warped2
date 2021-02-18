@@ -59,6 +59,10 @@ unsigned int TimeWarpMPICommunicationManager::initalizeMSGCommunication() {
 
 void TimeWarpMPICommunicationManager::finalize() {
     assert(isInitiatingThread());
+    // Not sure if this is needed but adding to be safe.
+    MPI_Comm_free(&gvt_);
+    MPI_Comm_free(&msg_proc_);
+
     MPI_Finalize();
 }
 
