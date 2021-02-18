@@ -41,7 +41,7 @@ namespace warped
         public:
 
             GvtCntrl::GvtCntrl(
-            std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
+            std::shared_ptr<TimeWarpMPICommunicationManager> comm_manager,
             std::unique_ptr<TimeWarpEventSet> event_set,
             std::unique_ptr<TimeWarpGVTManager> gvt_manager,
             std::unique_ptr<TimeWarpStateManager> state_manager,
@@ -61,7 +61,7 @@ namespace warped
         #endif
         private:
 
-            const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
+            const std::shared_ptr<TimeWarpMPICommunicationManager> comm_manager_;
             const std::unique_ptr<TimeWarpEventSet> event_set_;
             const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
             const std::unique_ptr<TimeWarpStateManager> state_manager_;

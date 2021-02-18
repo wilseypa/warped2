@@ -27,6 +27,10 @@ public:
     void finalize();
     unsigned int getNumProcesses();
     unsigned int getID();
+    unsigned int getNumProcessesGVT();
+    unsigned int getIDGVT();
+    unsigned int getNumProcessesMSG();
+    unsigned int getIDMSG();
     unsigned int initalizeGVTCommunication();
     unsigned int initalizeMSGCommunication();
     int waitForAllProcesses();

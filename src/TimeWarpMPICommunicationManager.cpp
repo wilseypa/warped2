@@ -49,6 +49,14 @@ unsigned int TimeWarpMPICommunicationManager::initalizeGVTCommunication() {
     return status;
 }
 
+unsigned int TimeWarpMPICommunicationManager::initalizeMSGCommunication() {
+    int status = MPI_Comm_split(MPI_COMM_WORLD, 1,my_rank_,&msg_proc_);
+    MPI_Comm_size(msg_proc_, &msg_proc_num_processes_);
+    MPI_Comm_rank(msg_proc_, &msg_proc_my_rank_);
+    return status;
+}
+
+
 void TimeWarpMPICommunicationManager::finalize() {
     assert(isInitiatingThread());
     MPI_Finalize();
@@ -60,6 +68,22 @@ unsigned int TimeWarpMPICommunicationManager::getNumProcesses() {
 
 unsigned int TimeWarpMPICommunicationManager::getID() {
     return my_rank_;
+}
+
+unsigned int TimeWarpMPICommunicationManager::getNumProcessesGVT() {
+    return gvt_num_processes_;
+}
+
+unsigned int TimeWarpMPICommunicationManager::getIDGVT() {
+    return gvt_my_rank_;
+}
+
+unsigned int TimeWarpMPICommunicationManager::getNumProcessesMSG() {
+    return msg_proc_num_processes_;
+}
+
+unsigned int TimeWarpMPICommunicationManager::getIDMSG() {
+    return msg_proc_num_processes_;
 }
 
 int TimeWarpMPICommunicationManager::waitForAllProcesses() {

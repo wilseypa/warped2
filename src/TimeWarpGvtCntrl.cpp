@@ -37,7 +37,7 @@ namespace warped
 {
 
         GvtCntrl::GvtCntrl(
-            std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
+            std::shared_ptr<TimeWarpMPICommunicationManager> comm_manager,
             std::unique_ptr<TimeWarpEventSet> event_set,
             std::unique_ptr<TimeWarpGVTManager> gvt_manager,
             std::unique_ptr<TimeWarpStateManager> state_manager,
@@ -46,32 +46,28 @@ namespace warped
             std::unique_ptr<TimeWarpTerminationManager> termination_manager,
             std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher,
             std::unique_ptr<TimeWarpStatistics> tw_stats) :
-                comm_manager_(comm_manager), event_set_(std::move(event_set)), 
+                comm_manager_(std::move(comm_manager)), event_set_(std::move(event_set)), 
                 gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
                 output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
                 termination_manager_(std::move(termination_manager)), tw_stats_(std::move(tw_stats)) {}
 
             void GvtCntrl::initialize()
             {
-
+                
             }
 
             void GvtCntrl::thread()
             {                
                 gvt = gvt_manager_->getGVT();
-
-                // These will need passed to the housekeeping class and passed into the constructor so they can be shared by the threads.
                 
-                
-
                 // Will run until this thread is destroyed
                 while(!termination_manager_->terminationStatus()) {
 
-                    if(comm_manager_->getID() == 0) {
+                    if(comm_manager_->getIDGVT() == 0) {
                         sleep(gvt_manager_->getGVTPeriod());
                     }
                     
-                    if(comm_manager_->getNumProcesses() > 1) {
+                    if(comm_manager_->getNumProcessesGVT() > 1) {
                         comm_manager_->waitForGVT();
                     }
                     
@@ -79,7 +75,7 @@ namespace warped
 
                     // This aligns with line 9 of the algorithm loop.
                     gvt_manager_->workerThreadGVTBarrierSync();
-                    if(comm_manager_->getNumProcesses() > 1){
+                    if(comm_manager_->getNumProcessesGVT() > 1){
                         if(comm_manager_->getID() == 0){
                             // Move to comm manager.
                             char* message = "Verify_Idle";
@@ -93,7 +89,7 @@ namespace warped
                     // Line 18-20
                     gvt_manager_->progressGVT(temp_local_min);
 
-                    if(comm_manager_->getNumProcesses() > 1) {                       
+                    if(comm_manager_->getNumProcessesGVT() > 1) {                       
                         comm_manager_->minAllReduceUint(&temp_local_min, &next_gvt);
                         if(prev_gvt < temp_local_min) {
                             gvt_manager_->setPrevGVT(prev_gvt);
@@ -105,7 +101,7 @@ namespace warped
                     if (gvt == std::numeric_limits<unsigned int>::max()) {
 
                         // Line 26.
-                        MPI_Finalize();
+                        comm_manager_->finalize();
                         exit(EXIT_SUCCESS);
                     }
                     if (gvt_manager_->gvtUpdated()) {
