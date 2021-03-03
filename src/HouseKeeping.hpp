@@ -68,7 +68,7 @@ namespace warped {
             virtual void initialize();
             virtual ~HouseKeeping() = default;
 
-            virtual bool gvtEstCycle() = 0;
+            virtual bool gvtEstCycle() = false;
 
             virtual unsigned int gvtCycleInterval(/* delay */) = 0;
 
