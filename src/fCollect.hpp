@@ -25,7 +25,7 @@ fCollect() {
 
 */
 
-#include HouseKeeping.hpp
+#include "HouseKeeping.hpp"
 
 namespace warped {
     class fCollect() {
@@ -33,6 +33,7 @@ namespace warped {
         fCollect::fCollect(std::unique_ptr<TimeWarpGVTManager> gvt_manager);
         
         // what does fCollect need to function?
+        // need the queue stuff, did Jack add the old functionality back?
         
     private:
         const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
