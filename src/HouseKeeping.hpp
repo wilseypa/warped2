@@ -63,7 +63,7 @@ namespace warped {
 
     class HouseKeeping {
         public:
-            HouseKeeping::HouseKeeping();
+            HouseKeeping();
 
             virtual void initialize();
             virtual ~HouseKeeping() = default;
