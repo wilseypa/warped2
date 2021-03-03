@@ -68,16 +68,14 @@ namespace warped {
             virtual void initialize();
             virtual ~HouseKeeping() = default;
 
-            // in the doc these are gvt.value
-            // are these values being held in a class somewhere else?
             virtual bool gvtEstCycle() = 0;
 
             virtual unsigned int gvtCycleInterval(/* delay */) = 0;
 
             virtual int getGVT() { return gVT_; }
             
-            virtual void gvtCntrl(); //making it void, do the threads return?
-            virtual void receiveEvent();
+            virtual void gvtCntrl::GvtCntrl();
+            virtual void receiveEvent::receiveEvent();
             virutal void fCollect::fCollect();
             
             // Are these held up here in house keeping or does just the gvtCntrl need the managers?
