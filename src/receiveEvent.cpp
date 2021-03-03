@@ -18,5 +18,15 @@ end while
 
 end thread loop
 
-
 */
+#include "receiveEvent.hpp"
+
+namespace warped {
+    receiveEvent::receiveEvent() {}
+
+    void receiveEvent::initialize() {}
+
+    void receiveEvent::thread() {
+
+    }
+}
