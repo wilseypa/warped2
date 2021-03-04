@@ -122,6 +122,8 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
 
     for (auto& t: threads) {
         t.join();
+        pthread_t pthread = t.native_handle();
+        pthread_cancel(pthread);
     }
 
     gvt = (unsigned int)-1;

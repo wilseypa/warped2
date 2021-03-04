@@ -78,8 +78,7 @@ namespace warped
                     if(comm_manager_->getNumProcessesGVT() > 1){
                         if(comm_manager_->getID() == 0){
                             // Move to comm manager.
-                            char* message = "Verify_Idle";
-                            MPI_Bcast(message, strlen(message)+1, MPI_CHAR, 0, MPI_COMM_WORLD);
+                            comm_manager_->broadcastMessageProc();
                         }
                         comm_manager_->waitForMessageProcesses();
                     }
@@ -101,6 +100,7 @@ namespace warped
                     if (gvt == std::numeric_limits<unsigned int>::max()) {
 
                         // Line 26.
+                        // this if statment might go best into the main thread.
                         comm_manager_->finalize();
                         exit(EXIT_SUCCESS);
                     }
