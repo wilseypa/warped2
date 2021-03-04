@@ -57,9 +57,8 @@ unsigned int TimeWarpMPICommunicationManager::initalizeMSGCommunication() {
 }
 
 
+
 void TimeWarpMPICommunicationManager::finalize() {
-    assert(isInitiatingThread());
-    // Not sure if this is needed but adding to be safe.
     MPI_Comm_free(&gvt_);
     MPI_Comm_free(&msg_proc_);
 
@@ -137,6 +136,39 @@ void TimeWarpMPICommunicationManager::insertMessage(std::unique_ptr<TimeWarpKern
     send_queue_->msg_list_lock_.lock();
     send_queue_->msg_list_.push_back(std::move(msg));
     send_queue_->msg_list_lock_.unlock();
+}
+void TimeWarpMPICommunicationManager::broadcastMessageProc()
+{
+    auto msg = new EventMessage();
+    msg->tag_ = "Verify_Idle";
+
+    int position = 0;
+    uint8_t* message_buffer = new uint8_t[max_buffer_size_];
+    int num_messages = 1;
+    int header_size = sizeof(int)*(num_messages+1);
+    int message_position = header_size;
+
+    MPI_Pack(&num_messages, 1, MPI_INT, message_buffer, max_buffer_size_, &position, MPI_COMM_WORLD);
+    std::ostringstream oss;
+    cereal::PortableBinaryOutputArchive oarchive(oss);
+    oarchive(msg);
+
+    int length = oss.str().length();
+    MPI_Pack(&length, 1, MPI_INT, message_buffer, max_buffer_size_, &position, MPI_COMM_WORLD);
+    MPI_Pack(const_cast<char*>(oss.str().c_str()), length, MPI_BYTE, message_buffer,
+            max_buffer_size_, &message_position, MPI_COMM_WORLD);
+    
+
+    if (MPI_Bcast(
+        message_buffer,
+        message_position,
+        MPI_PACKED,
+        MPI_ROOT,
+        MPI_COMM_WORLD) != MPI_SUCCESS) {
+        throw std::runtime_error("MPI_Isend failed");
+    }
+
+    //MPI_Bcast(message, strlen(message)+1, MPI_CHAR, 0, MPI_COMM_WORLD);
 }
 
 void TimeWarpMPICommunicationManager::handleMessages() {

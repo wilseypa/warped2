@@ -126,6 +126,7 @@ struct EventMessage : public TimeWarpKernelMessage {
 
     std::shared_ptr<Event> event;
     Color color_;
+    std::string tag_ = "";
 
     MessageType get_type() { return MessageType::EventMessage; }
 
