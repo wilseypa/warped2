@@ -28,5 +28,17 @@ namespace warped {
 
     void receiveEvent::thread() {
 
+        while (true) {
+            m = MPI_Recv(EVENT, MPI_ANY_SOURCE)
+
+            if (m.tag = "Verify_Idle") {
+                MPI_Barrier(MSGs_Proc) //where is MSGs defined
+            }
+            else {
+                lp = findLpPtr(m.lp) // lp needs to be instantiated from LP class
+                lp.inQ.insert(m.e)
+            }
+        }
+
     }
 }
