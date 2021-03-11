@@ -28,12 +28,12 @@ namespace warped
 
             }
             
-        gvt.barrier(num_worker_threads_ + 1)
+        HouseKeeping::barrier(num_worker_threads_ + 1)) {}
         
-        HouseKeeping::gvtCntrl() {}
+        gvtCntrl::gvtCntrl() {}
         
-        HouseKeeping::receiveEvent() {}
+        receiveEvent::receiveEvent() {}
         
-        HouseKeeping::fCollect() {}
+        fCollect::fCollect() {}
         
 }

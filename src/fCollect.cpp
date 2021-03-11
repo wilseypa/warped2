@@ -45,16 +45,18 @@ namespace warped {
                 bool fossilFound = false;
                 foreach lp in LPs do { // go through each lp in a list of active lps to check for fossils
                     
-                    s <- lp.stateQ.head();
-                    q <- s;
-                    //Housekeeping::fcgvt = gvt.prevGvt;
+                    s = lp.stateQ.head();
+                    q = s;
+                    Housekeeping::fcgvt = gvt.prevGvt;
                     
                     while s.next.rTime < fcGvt do {
-                        s <- s.next();
+                        s = s.next();
                     }
                     
                     if (s != q) {
                         //clear lp.stateQ, lp.procQ, lp.outQ that are at or before s.rTime
+                        // these will be linked lists? need to clear out all the items before s.rTime
+                        // while (start != end) {go through each from the most recent back? and clear out the q with .pop()?}
                         fossilFound = true;
                     }
                 }
