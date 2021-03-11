@@ -50,8 +50,6 @@ Class houseKeeping() {
 #include "utility/warnings.hpp" 
 #include <shared_mutex>
 
-
-// -- Are these needed here or into the threads? --
 //#include "TimeWarpEventDispatcher.hpp"
 //#include "TimeWarpKernelMessage.hpp"
 
@@ -59,8 +57,6 @@ Class houseKeeping() {
 // 
 
 namespace warped {
-    //enum class GVTState { IDLE, LOCAL, GLOBAL };
-    //enum class Color { WHITE, RED };
 
     class HouseKeeping {
         public:
@@ -79,7 +75,6 @@ namespace warped {
             virtual void receiveEvent::receiveEvent();
             virutal void fCollect::fCollect();
             
-            // Are these held up here in house keeping or does just the gvtCntrl need the managers?
             const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
             const std::unique_ptr<TimeWarpEventSet> event_set_;
             const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
