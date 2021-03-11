@@ -348,6 +348,8 @@ void TimeWarpEventDispatcher::processEvents(unsigned int id) {
     }
 }
 
+
+// This function will need moved into the housekeeper since it is what the receive event function is refering to.
 void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernelMessage> kmsg) {
 
     auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
@@ -356,9 +358,19 @@ void TimeWarpEventDispatcher::receiveEventMessage(std::unique_ptr<TimeWarpKernel
     tw_stats_->upCount(TOTAL_EVENTS_RECEIVED, thread_id);
 
     termination_manager_->updateMsgCount(-1);
-    gvt_manager_->receiveEventUpdate(msg->event, msg->color_);
 
-    sendLocalEvent(msg->event);
+    if(msg->tag_ == "Verify_Idle")
+    {
+        comm_manager_->waitForMessageProcesses();
+    }
+    else
+    {
+        // Will try to figure out if this is needed.
+        gvt_manager_->receiveEventUpdate(msg->event, msg->color_);
+
+        // this houses lines 6 and 7.
+        sendLocalEvent(msg->event);
+    }
 }
 
 void TimeWarpEventDispatcher::sendEvents(std::shared_ptr<Event> source_event,

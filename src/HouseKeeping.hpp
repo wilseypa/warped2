@@ -65,6 +65,8 @@ namespace warped {
             virtual void initialize();
             virtual ~HouseKeeping() = default;
 
+            virtual void barrier(num_worker_threads)) {}
+
             virtual bool gvtEstCycle() = false;
 
             virtual unsigned int gvtCycleInterval(/* delay */) = 0;

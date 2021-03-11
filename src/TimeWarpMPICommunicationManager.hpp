@@ -36,6 +36,7 @@ public:
     int waitForAllProcesses();
     int waitForGVT();
     int waitForMessageProcesses();
+    void broadcastMessageProc();
 
     void insertMessage(std::unique_ptr<TimeWarpKernelMessage> msg);
     void handleMessages();
