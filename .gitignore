@@ -40,6 +40,9 @@ missing
 config.*
 stamp-h1
 
+# Vs Code
+.vscode/
+
 # Libtool
 libtool
 ltmain.*
