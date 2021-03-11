@@ -8,6 +8,7 @@
 
 #include "FileStream.hpp"
 #include "RandomNumberGenerator.hpp"
+#include "STLLTSFQueue.hpp"
 
 namespace warped {
 
@@ -63,6 +64,13 @@ public:
 
     std::list<std::shared_ptr<RandomNumberGenerator>> rng_list_;
 
+    STLLTSFQueue inQ_;
+
+    STLLTSFQueue procInQ_;
+
+    STLLTSFQueue outQ_;
+
+    STLLTSFQueue stateQ_;
 };
 
 template<class RNGType>
