@@ -121,7 +121,6 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     }
 
     for (auto& t: threads) {
-        t.join();
         pthread_t pthread = t.native_handle();
         pthread_cancel(pthread);
     }
@@ -138,6 +137,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
         tw_stats_->writeToFile(num_seconds);
         tw_stats_->printStats();
     }
+    comm_manager_->finalize();
 }
 
 void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {

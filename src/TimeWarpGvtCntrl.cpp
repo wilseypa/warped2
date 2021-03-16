@@ -98,11 +98,7 @@ namespace warped
                     }
 
                     if (gvt == std::numeric_limits<unsigned int>::max()) {
-
-                        // Line 26.
-                        // this if statment might go best into the main thread.
-                        comm_manager_->finalize();
-                        exit(EXIT_SUCCESS);
+                        return;
                     }
                     if (gvt_manager_->gvtUpdated()) {
                         gvt = gvt_manager_->getGVT();
