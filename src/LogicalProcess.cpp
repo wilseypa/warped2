@@ -10,7 +10,12 @@
 
 namespace warped {
 
-LogicalProcess::LogicalProcess(const std::string& name) : name_(name) {}
+LogicalProcess::LogicalProcess(const std::string& name) : name_(name) {
+    inQ_ = new STLLTSFQueue();
+    procInQ_ = new STLLTSFQueue();
+    outQ_ = new STLLTSFQueue();
+    stateQ_ = new STLLTSFQueue();
+}
 
 std::vector<std::shared_ptr<Event>> LogicalProcess::initializeLP()  { return {}; }
 
