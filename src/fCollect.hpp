@@ -26,6 +26,7 @@ fCollect() {
 */
 
 #include "HouseKeeping.hpp"
+#include "LogicalProcess.hpp"
 
 namespace warped {
     class fCollect() {

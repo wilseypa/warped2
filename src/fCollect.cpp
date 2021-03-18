@@ -43,7 +43,7 @@ namespace warped {
             
             while(!termination_manager_->terminationStatus()){
                 bool fossilFound = false;
-                foreach lp in LPs do { // go through each lp in a list of active lps to check for fossils
+                foreach lp in LPs do { // go through each lp in a list of active lps to check for fossils (look into creation of lps for for statement)
                     
                     s = lp.stateQ.head();
                     q = s;
