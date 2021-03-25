@@ -28,6 +28,17 @@ for (unsigned int current_lp_id = 0; current_lp_id < num_local_lps_; current_lp_
         tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
     }
 
+while ((next != state_queue_[local_lp_id].end()) && (next->state_event_->timestamp() < gvt)) {
+        state_queue_[local_lp_id].pop_front();
+        min = state_queue_[local_lp_id].begin();
+        next = std::next(min);
+    }
+
+    if (gvt == (unsigned int)-1) {
+        state_queue_[local_lp_id].pop_front();
+        return gvt;
+    }
+
 */
 #include "fCollect.hpp"
 #include "HouseKeeping.hpp"
