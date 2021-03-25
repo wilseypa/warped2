@@ -62,7 +62,7 @@ namespace warped {
                 // foreach lp in LPs do { // go through each lp in a list of active lps to check for fossils (look into creation of lps for for statement)
                 for (unsigned int current_lp_id = 0; current_lp_id < num_local_lps_; current_lp_id++) {
                     
-                    s = current_lp_id.stateQ.head();
+                    s = current_lp_id.stateQ.peek();
                     q = s;
                     Housekeeping::fcgvt = gvt.prevGvt;
                     
