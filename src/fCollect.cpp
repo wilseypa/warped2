@@ -23,6 +23,11 @@ fCollect() {
     }
 }
 
+for (unsigned int current_lp_id = 0; current_lp_id < num_local_lps_; current_lp_id++) {
+        unsigned int num_committed = event_set_->fossilCollect(gvt, current_lp_id);
+        tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
+    }
+
 */
 #include "fCollect.hpp"
 #include "HouseKeeping.hpp"
@@ -43,9 +48,10 @@ namespace warped {
             
             while(!termination_manager_->terminationStatus()){
                 bool fossilFound = false;
-                foreach lp in LPs do { // go through each lp in a list of active lps to check for fossils (look into creation of lps for for statement)
+                // foreach lp in LPs do { // go through each lp in a list of active lps to check for fossils (look into creation of lps for for statement)
+                for (unsigned int current_lp_id = 0; current_lp_id < num_local_lps_; current_lp_id++) {
                     
-                    s = lp.stateQ.head();
+                    s = current_lp_id.stateQ.head();
                     q = s;
                     Housekeeping::fcgvt = gvt.prevGvt;
                     

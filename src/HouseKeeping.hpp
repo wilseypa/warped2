@@ -62,7 +62,7 @@ namespace warped {
         public:
             HouseKeeping();
 
-            virtual void initialize();
+            virtual void initialize(unsigned int num_local_lps);
             virtual ~HouseKeeping() = default;
 
             virtual void barrier(num_worker_threads)) {}
@@ -92,6 +92,8 @@ namespace warped {
             unsigned int gvt_period_;
 
             unsigned int num_worker_threads_;
+
+            unsigned int num_local_lps_;
     };
 
 }

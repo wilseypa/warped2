@@ -23,9 +23,10 @@ namespace warped
         HouseKeeping::HouseKeeping(unsigned int num_worker_threads :
                 num_worker_threads_(num_worker_threads)) {}
         
-        void HouseKeeping::initialize()
+        void HouseKeeping::initialize(unsigned int num_local_lps)
             {
-
+                //state_queue_ = make_unique<std::deque<SavedState>[]>(num_local_lps);
+                num_local_lps_ = num_local_lps;
             }
             
         HouseKeeping::barrier(num_worker_threads_ + 1)) {}
