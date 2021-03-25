@@ -59,10 +59,10 @@ namespace warped {
                         s = s.next();
                     }
                     
-                    if (s != q) {
+                    if (s != q) { // can I use queue.peek() here? it returns .top() when the queue has a value then i step through
                         //clear lp.stateQ, lp.procQ, lp.outQ that are at or before s.rTime
-                        // these will be linked lists? need to clear out all the items before s.rTime
-                        // while (start != end) {go through each from the most recent back? and clear out the q with .pop()?}
+                        // while (start != end) {go through each from the most recent back? and clear out the q with .pop()?} 
+                        // need to clear the events within the object and then move through
                         fossilFound = true;
                     }
                 }
