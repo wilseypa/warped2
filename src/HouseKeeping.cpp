@@ -27,11 +27,15 @@ namespace warped
             {
                 //state_queue_ = make_unique<std::deque<SavedState>[]>(num_local_lps);
                 num_local_lps_ = num_local_lps;
+                gvt_cntrl_ = make_unique<GvtCntrl>(comm_manager_,event_set_,gvt_manager_,state_manager_,output_manager_,twfs_manager_,termination_manager_,event_dispatcher_);
+                // the barrier parameter will be set when gvt_manager is constructed.
+                gvt_manager_->setGVTEstCycle(false);
+                gvt_manager_->setGVT(0);
+                // Thread call is needed to start gvtCntrl after constructor.
             }
             
         HouseKeeping::barrier(num_worker_threads_ + 1)) {}
         
-        gvtCntrl::gvtCntrl() {}
         
         receiveEvent::receiveEvent() {}
         

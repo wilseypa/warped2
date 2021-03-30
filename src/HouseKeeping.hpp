@@ -33,6 +33,7 @@ Class houseKeeping() {
 
 #include "fCollect.hpp"
 #include "receiveEvent.hpp"
+#include "TimeWarpGvtCntrl.hpp"
 
 #include "Event.hpp"
 #include "EventDispatcher.hpp"
@@ -73,7 +74,7 @@ namespace warped {
 
             virtual int getGVT() { return gVT_; }
             
-            virtual void gvtCntrl::GvtCntrl();
+
             virtual void receiveEvent::receiveEvent();
             virutal void fCollect::fCollect();
             
@@ -85,6 +86,7 @@ namespace warped {
             const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
             const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
             const std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher_;
+            const std::unique_ptr<GvtCntrl> gvt_cntrl_;
 
         protected:
             unsigned int gVT_ = 0;

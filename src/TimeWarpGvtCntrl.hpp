@@ -48,12 +48,10 @@ namespace warped
             std::unique_ptr<TimeWarpOutputManager> output_manager,
             std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
             std::unique_ptr<TimeWarpTerminationManager> termination_manager,
-            std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher,
-            std::unique_ptr<TimeWarpStatistics> tw_stats);
+            std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher);
 
             
             void GvtCntrl::thread();
-            void GvtCntrl::initialize();
 
         #ifdef TIMEWARP_EVENT_LOG
             // Event log for each worker thread
@@ -69,8 +67,6 @@ namespace warped
             const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
             const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
             const std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher_;
-            const std::unique_ptr<TimeWarpStatistics> tw_stats_;
-
             unsigned int gvt;
             unsigned int temp_local_min;
             unsigned int prev_gvt;

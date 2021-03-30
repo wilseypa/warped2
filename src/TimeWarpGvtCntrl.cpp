@@ -44,17 +44,11 @@ namespace warped
             std::unique_ptr<TimeWarpOutputManager> output_manager,
             std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
             std::unique_ptr<TimeWarpTerminationManager> termination_manager,
-            std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher,
-            std::unique_ptr<TimeWarpStatistics> tw_stats) :
+            std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher :
                 comm_manager_(std::move(comm_manager)), event_set_(std::move(event_set)), 
                 gvt_manager_(std::move(gvt_manager)), state_manager_(std::move(state_manager)),
                 output_manager_(std::move(output_manager)), twfs_manager_(std::move(twfs_manager)),
-                termination_manager_(std::move(termination_manager)), tw_stats_(std::move(tw_stats)) {}
-
-            void GvtCntrl::initialize()
-            {
-                
-            }
+                termination_manager_(std::move(termination_manager))) {}
 
             void GvtCntrl::thread()
             {                
