@@ -24,21 +24,34 @@ end thread loop
 namespace warped {
     receiveEvent::receiveEvent() {}
 
-    void receiveEvent::initialize() {}
+    void receiveEvent::initialize() 
+    {
+        WARPED_REGISTER_MSG_HANDLER(receiveEvent, thread, EventMessage);
+    }
 
-    void receiveEvent::thread() {
+    void receiveEvent::thread(std::unique_ptr<TimeWarpKernelMessage> kmsg) 
+    {
 
-        while (true) {
-            m = MPI_Recv(EVENT, MPI_ANY_SOURCE)
+        auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
+        assert(msg->event != nullptr);
 
-            if (m.tag = "Verify_Idle") {
-                MPI_Barrier(MSGs_Proc) //where is MSGs defined
-            }
-            else {
-                lp = findLpPtr(m.lp) // lp needs to be instantiated from LP class
-                lp.inQ.insert(m.e)
-            }
+        tw_stats_->upCount(TOTAL_EVENTS_RECEIVED, thread_id);
+
+        termination_manager_->updateMsgCount(-1);
+
+        if(msg->tag_ == "Verify_Idle")
+        {
+            comm_manager_->waitForMessageProcesses();
         }
+        else
+        {
+            // Will try to figure out if this is needed.
+            gvt_manager_->receiveEventUpdate(msg->event, msg->color_);
+
+            // this houses lines 7 and *
+            event_dispatcher_->sendLocalEvent(msg->event);
+        }
+    
 
     }
 }
