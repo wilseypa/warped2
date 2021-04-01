@@ -54,9 +54,6 @@ Class houseKeeping() {
 //#include "TimeWarpEventDispatcher.hpp"
 //#include "TimeWarpKernelMessage.hpp"
 
-// need the managers from gvtCntrl
-// 
-
 namespace warped {
 
     class HouseKeeping {

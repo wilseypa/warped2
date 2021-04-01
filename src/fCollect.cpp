@@ -68,14 +68,19 @@ namespace warped {
                     
                     while s.next.rTime < fcGvt do {
                         s = s.next();
+                        // is this in the while loop, alg says no but it seems like it has to be...
+                        if (s != q) { // can I use queue.peek() here? it returns .top() when the queue has a value then i step through
+                            //clear lp.stateQ, lp.procQ, lp.outQ that are at or before s.rTime
+                            // while (start != end) {go through each from the most recent back? and clear out the q with .pop()?} 
+                            // need to clear the events within the object and then move through
+                            current_lp_id.stateQ.pop() // not sure if pop() is the right call here
+                            current_lp_id.procQ.pop()
+                            current_lp_id.outQ.pop()
+                            fossilFound = true;
+                        }
                     }
                     
-                    if (s != q) { // can I use queue.peek() here? it returns .top() when the queue has a value then i step through
-                        //clear lp.stateQ, lp.procQ, lp.outQ that are at or before s.rTime
-                        // while (start != end) {go through each from the most recent back? and clear out the q with .pop()?} 
-                        // need to clear the events within the object and then move through
-                        fossilFound = true;
-                    }
+                    
                 }
                 if (fossilFound) {
                         sleep(gvt_manager_->getGVTPeriod()/2); // this will be HouseKeeping::gvtCycleInterval when changing, just a placeholder
