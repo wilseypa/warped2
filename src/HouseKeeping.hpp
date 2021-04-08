@@ -67,7 +67,7 @@ namespace warped {
 
             virtual bool gvtEstCycle() = false;
 
-            virtual unsigned int gvtCycleInterval(/* delay */) = 0;
+            virtual unsigned int gvtCycleInterval(delay) = 0;
 
             virtual int getGVT() { return gVT_; }
             
@@ -93,6 +93,8 @@ namespace warped {
             unsigned int num_worker_threads_;
 
             unsigned int num_local_lps_;
+
+            unsigned int delay_;
     };
 
 }
