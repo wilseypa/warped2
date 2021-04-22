@@ -16,7 +16,6 @@ Class Worker() {
 #ifndef WORKER_HPP
 #define WORKER_HPP
 
-//would the namespace still be warped?
 namespace warped {
     //are these needed?
     //enum class GVTState { IDLE, LOCAL, GLOBAL };
@@ -38,6 +37,8 @@ public:
     virtual void rollback(int e);
     
     virtual void processEvent(int e);
+
+    virtual void thread();
 
 
 

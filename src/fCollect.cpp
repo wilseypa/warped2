@@ -75,7 +75,7 @@ namespace warped {
                             //clear lp.stateQ, lp.procQ, lp.outQ that are at or before s.rTime
                             // while (start != end) {go through each from the most recent back? and clear out the q with .pop()?} 
                             s.clear(); // this isn't correct
-                            s.lp.stateQ.pop();
+                            s.lp.stateQ.pop(); // don't think this is correct either
 
                             fossilFound = true;
                     }                    
