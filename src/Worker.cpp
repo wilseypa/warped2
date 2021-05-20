@@ -56,20 +56,20 @@ namespace warped {
     {
         while(!termination_manager_->terminationStatus()) {
             if (!(e<-ltsf.head()) || gvt.gvtEstCycle) {
-                // if worker.outMessage != NULL then
-                    // worker.outMessage.MPI_Wait()
-                // end if
-                // gvt.barrier()
-                // gvt.barrier()
-                // e<-ltsf.refreshEvents(e)
-                // if e != NULL then
-                    // worker.gvtContrib<-e.timeStamp
-                // else
-                    // worker.gvtContrib<-+inf
-                // end if
-                // gvt.barrier()
+                if (worker.outMessage != NULL) {
+                    worker.outMessage.MPI_Wait()
+                }
+                gvt.barrier()
+                gvt.barrier()
+                e<-ltsf.refreshEvents(e)
+                if (e != NULL) {
+                    worker.gvtContrib<-e.timeStamp
+                } else {
+                    worker.gvtContrib<-+inf // fix 
+                }
+                gvt.barrier()
             }
-            // if e != NULL then
+            if (e != NULL) {
                 // for i <- 1, K0 do
                     // for j <- 1, K1 do
                         // outEventList <- processEvent(e)
@@ -88,7 +88,7 @@ namespace warped {
                         // break
                     // end if
                 // end for
-            // end if
+            }
         }
     }
 }
