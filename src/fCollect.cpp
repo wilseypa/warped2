@@ -41,7 +41,6 @@ while ((next != state_queue_[local_lp_id].end()) && (next->state_event_->timesta
 
 */
 #include "fCollect.hpp"
-#include "HouseKeeping.hpp"
 
 namespace warped {
     
