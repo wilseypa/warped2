@@ -54,8 +54,8 @@ namespace warped {
 
     void Worker::thread() 
     {
-        // thread loop
-            // if !(e<-ltsf.head()) || gvt.gvtEstCycle then
+        while(!termination_manager_->terminationStatus()) {
+            if (!(e<-ltsf.head()) || gvt.gvtEstCycle) {
                 // if worker.outMessage != NULL then
                     // worker.outMessage.MPI_Wait()
                 // end if
@@ -68,7 +68,7 @@ namespace warped {
                     // worker.gvtContrib<-+inf
                 // end if
                 // gvt.barrier()
-            // end if
+            }
             // if e != NULL then
                 // for i <- 1, K0 do
                     // for j <- 1, K1 do
@@ -89,6 +89,6 @@ namespace warped {
                     // end if
                 // end for
             // end if
-        // end thread loop
+        }
     }
 }

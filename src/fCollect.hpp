@@ -31,8 +31,9 @@ fCollect() {
 namespace warped {
     class fCollect() {
     public:
-        fCollect::fCollect(std::unique_ptr<TimeWarpGVTManager> gvt_manager);
-        fCollect::thread();
+        void fCollect::fCollect(std::unique_ptr<TimeWarpGVTManager> gvt_manager);
+        
+        void fCollect::thread();
         
     private:
         const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;

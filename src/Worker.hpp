@@ -16,6 +16,8 @@ Class Worker() {
 #ifndef WORKER_HPP
 #define WORKER_HPP
 
+#include "HouseKeeping.hpp"
+
 namespace warped {
     //are these needed?
     //enum class GVTState { IDLE, LOCAL, GLOBAL };
@@ -23,7 +25,7 @@ namespace warped {
 
 class Worker {
 public:
-    Worker();
+    Worker(std::unique_ptr<TimeWarpTerminationManager> termination_manager);
 
     virtual void initialize();
     virtual ~Worker() = default;
@@ -40,7 +42,8 @@ public:
 
     virtual void thread();
 
-
+private:
+    const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
 
 protected:
     int e = 0; //dummy code, this will be an event e
