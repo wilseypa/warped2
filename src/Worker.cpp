@@ -36,20 +36,20 @@ namespace warped {
         // Lock e.lp.inQ
         // e <- e.lp.inQ.head()
         // UnLock e.lp.inQ
-        // if e.type == ANTIMESSAGE then
+        if (e.type == ANTIMESSAGE) {
             // Find the positive message q that is the target of e
-            // if q is in the processed queue then
-                // rollback(q->prev)
-            // end if
+            if (q is in the processed queue) {
+                rollback(q->prev);
+            }
             // Remove q, e and refresh the LTSF queue for that LP
-            // return NULL, NULL
-        // end if
-        // if e.timestamp <= lvt then
-            // rollback(e)
-        // end if
-        // outEventList <- lp.eventExec(e)
+            return (NULL, NULL);
+        }
+        if (e.timestamp <= lvt) {
+            rollback(e);
+        }
+        outEventList <- lp.eventExec(e)
         // update LTSF entry for e.LP
-        // return e, outEventList
+        return (e, outEventList);
     }
 
     void Worker::thread() 
