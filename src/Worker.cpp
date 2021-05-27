@@ -31,7 +31,7 @@ namespace warped {
         // return
     }
 
-    void Worker::processEvent(int event)
+    void Worker::processEvent(int event) // event here is a type, not an int
     {
         // Lock e.lp.inQ
         // e <- e.lp.inQ.head()
@@ -47,7 +47,7 @@ namespace warped {
         if (e.timestamp <= lvt) {
             rollback(e);
         }
-        outEventList <- lp.eventExec(e)
+        outEventList <- lp.eventExec(e) // should put a console log here to mark when an event is actually executed 
         // update LTSF entry for e.LP
         return (e, outEventList);
     }
