@@ -32,6 +32,9 @@ namespace warped
                 gvt_manager_->setGVTEstCycle(false);
                 gvt_manager_->setGVT(0);
                 // Thread call is needed to start gvtCntrl after constructor.
+                // fCollect Thread call
+                // Receive event Thread call
+                // is worker called here? multiple workers are created for each individual lp
             }
             
         HouseKeeping::barrier(num_worker_threads_ + 1)) {}
