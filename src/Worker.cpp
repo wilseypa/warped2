@@ -70,24 +70,25 @@ namespace warped {
                 gvt.barrier()
             }
             if (e != NULL) {
-                // for i <- 1, K0 do
-                    // for j <- 1, K1 do
-                        // outEventList <- processEvent(e)
-                        // for outE in outEventList do
-                            // if outE.dest.LP is in LocalLPs then
-                                // outE.dest.Lp.inQ.insert(outE)
-                            // else
-                                // worker.outMessage = MPI_Isend(outE.dest.Lp)
-                            // end if
-                        // end for
-                        // if !(e<-ltsf.head()) then
-                            // break
-                        // end if
-                    // end for
-                    // if !(e<- ltsf.refreshEvents(e)) then
-                        // break
-                    // end if
-                // end for
+                for i <- 1, K0 {
+                    for j <- 1, K1 {
+                        outEventList <- processEvent(e)
+                        for (outE in outEventList) {
+                            if (outE.dest.LP is in LocalLPs) {
+                                outE.dest.Lp.inQ.insert(outE)
+                            }
+                            else {
+                                worker.outMessage = MPI_Isend(outE.dest.Lp)
+                            }
+                        }
+                        if (!(e<-ltsf.head())) {
+                            break;
+                        }
+                    }
+                    if (!(e<- ltsf.refreshEvents(e))) {
+                        break;
+                    }
+                }
             }
         }
     }
