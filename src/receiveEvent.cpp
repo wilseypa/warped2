@@ -30,27 +30,27 @@ namespace warped {
 
     void receiveEvent::thread(std::unique_ptr<TimeWarpKernelMessage> kmsg) 
     {
+        // Will run until this thread is destroyed
+        while(!termination_manager_->terminationStatus()) {
+            auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
+            assert(msg->event != nullptr);
 
-        auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
-        assert(msg->event != nullptr);
+            tw_stats_->upCount(TOTAL_EVENTS_RECEIVED, thread_id);
 
-        tw_stats_->upCount(TOTAL_EVENTS_RECEIVED, thread_id);
+            termination_manager_->updateMsgCount(-1);
 
-        termination_manager_->updateMsgCount(-1);
+            if(msg->tag_ == "Verify_Idle")
+            {
+                comm_manager_->waitForMessageProcesses();
+            }
+            else
+            {
+                // Will try to figure out if this is needed.
+                gvt_manager_->receiveEventUpdate(msg->event, msg->color_);
 
-        if(msg->tag_ == "Verify_Idle")
-        {
-            comm_manager_->waitForMessageProcesses();
+                // this houses lines 7 and *
+                event_dispatcher_->sendLocalEvent(msg->event);
+            }
         }
-        else
-        {
-            // Will try to figure out if this is needed.
-            gvt_manager_->receiveEventUpdate(msg->event, msg->color_);
-
-            // this houses lines 7 and *
-            event_dispatcher_->sendLocalEvent(msg->event);
-        }
-    
-
     }
 }
