@@ -28,7 +28,7 @@ namespace warped {
         // find saved state in stateQ with the first timestamp before the timestamp of the straggler
         // coast forward
         // send anti-messages using the records in the outQ and preserve the MPI_Isend pointer to the last message sent in outMessage
-        // return
+        return;
     }
 
     void Worker::processEvent(int event) // event here is a type, not an int
