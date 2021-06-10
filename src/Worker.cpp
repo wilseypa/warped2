@@ -12,6 +12,8 @@ Class Worker() {
     worker **thread**
 }
 
+ROLLBACK --------------
+
 1. remove all evidence of the premature computations that were performed (the events processed with timestamps greater than the timestamp of the straggler).  as part of this step, you need to:
 
     1.	find the last state saved with a timestamp before that of the straggler
