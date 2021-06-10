@@ -34,6 +34,9 @@ namespace warped {
         }
         // coast forward
         // send anti-messages using the records in the outQ and preserve the MPI_Isend pointer to the last message sent in outMessage
+        foreach item in outQ () {
+            
+        }
         return;
     }
 
