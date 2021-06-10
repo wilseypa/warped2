@@ -33,9 +33,11 @@ namespace warped {
             }                
         }
         // coast forward
+        // move pointer forward towards the timestamp before the straggler
         // send anti-messages using the records in the outQ and preserve the MPI_Isend pointer to the last message sent in outMessage
+        //lastMessage = MPI_Isend Pointer
         foreach item in outQ () {
-            
+            // sendAntiMessage()
         }
         return;
     }
