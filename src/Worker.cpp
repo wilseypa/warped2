@@ -25,7 +25,13 @@ namespace warped {
 
     void Worker::rollback(int event)
     {
+        timestamp_straggler = event.timestamp
         // find saved state in stateQ with the first timestamp before the timestamp of the straggler
+        foreach state in stateQ () {
+            if (state.timestamp < timestamp_straggler) {
+                coastToPoint = timestamp
+            }                
+        }
         // coast forward
         // send anti-messages using the records in the outQ and preserve the MPI_Isend pointer to the last message sent in outMessage
         return;
