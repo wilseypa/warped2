@@ -65,11 +65,11 @@ namespace warped {
             virtual void initialize(unsigned int num_local_lps);
             virtual ~HouseKeeping() = default;
 
-            virtual void barrier(num_worker_threads)) {}
+            virtual void barrier(unsigned int num_worker_threads)) {}
 
             virtual bool gvtEstCycle() = false;
 
-            virtual unsigned int gvtCycleInterval(delay) = 0;
+            virtual unsigned int gvtCycleInterval(unsigned int delay) = 0;
 
             virtual int getGVT() { return gVT_; }
             

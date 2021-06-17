@@ -37,7 +37,7 @@ namespace warped
                 // is worker called here? multiple workers are created for each individual lp
             }
             
-        HouseKeeping::barrier(num_worker_threads_ + 1)) {}
+        HouseKeeping::barrier(num_worker_threads_ + 1) {}
         
         
         receiveEvent::receiveEvent() {}
