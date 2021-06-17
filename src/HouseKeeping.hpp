@@ -74,8 +74,11 @@ namespace warped {
             virtual int getGVT() { return gVT_; }
             
 
-            virtual void receiveEvent::receiveEvent();
-            virutal void fCollect::fCollect();
+            // virtual void receiveEvent::receiveEvent();
+            // virutal void fCollect::fCollect();
+
+            // const std::shared_ptr<receiveEvent> receive_event_;
+            // const std::shared_ptr<fCollect> fossil_collect_;
             
             const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
             const std::unique_ptr<TimeWarpEventSet> event_set_;
