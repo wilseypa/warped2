@@ -36,9 +36,9 @@ public:
 
     virtual void outMessage(); // NULL
 
-    virtual void rollback(int e);
+    virtual void rollback(std::shared_ptr<Event> e);
     
-    virtual void processEvent(int e);
+    virtual void processEvent(std::shared_ptr<Event> e);
 
     virtual void thread();
 
@@ -46,7 +46,7 @@ private:
     const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
 
 protected:
-    int e = 0; //dummy code, this will be an event e
+    std::shared_ptr<Event> e; //dummy code, this will be an event e
 };
 
 }
