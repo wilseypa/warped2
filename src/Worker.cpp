@@ -1,17 +1,4 @@
 /*
-----notes----
-
-
-Class Worker() {
-    worker.gvtContrib <- 0
-    worker.outMessage <- NULL
-
-    function rollback(*e) (rollback to event e)
-    function processEvent(*e) (process event from LTSF queue -> check LP -> antimessage -> rollback -> exec)
-
-    worker **thread**
-}
-
 ROLLBACK --------------
 
 1. remove all evidence of the premature computations that were performed (the events processed with timestamps greater than the timestamp of the straggler).  as part of this step, you need to:
