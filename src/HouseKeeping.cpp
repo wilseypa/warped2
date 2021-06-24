@@ -38,10 +38,6 @@ namespace warped
             }
             
         HouseKeeping::barrier(num_worker_threads_ + 1) {}
-        
-        
-        receiveEvent::receiveEvent() {}
-        
-        fCollect::fCollect() {}
+    
         
 }

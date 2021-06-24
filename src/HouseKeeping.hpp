@@ -90,6 +90,9 @@ namespace warped {
             const std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher_;
             const std::unique_ptr<GvtCntrl> gvt_cntrl_;
 
+            const std::unique_ptr<receiveEvent> receive_event_;
+            const std::unique_ptr<fCollect> fossil_collect_;
+
         protected:
             unsigned int gVT_ = 0;
 
