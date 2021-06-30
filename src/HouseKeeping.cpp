@@ -33,7 +33,9 @@ namespace warped
                 gvt_manager_->setGVT(0);
                 // Thread call is needed to start gvtCntrl after constructor.
                 // fCollect Thread call
+                fossil_collect_->thread();
                 // Receive event Thread call
+                receive_event_->thread();
                 // is worker called here? multiple workers are created for each individual lp
             }
             
