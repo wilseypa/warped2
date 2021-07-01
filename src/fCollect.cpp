@@ -53,8 +53,8 @@ namespace warped {
                     if (s != q) { // if the s that the while ended on is not the current head, then it can be cleared backwards 
                             //clear lp.stateQ, lp.procQ, lp.outQ that are at or before s.rTime
                             // while (start != end) {go through each from the most recent back? and clear out the q with .pop()?} 
-                            s.clear(); // this isn't correct
-                            s.lp.stateQ.pop(); // don't think this is correct either
+                            s.clear();
+                            s.lp.stateQ.pop();
 
                             fossilFound = true;
                     }                    
