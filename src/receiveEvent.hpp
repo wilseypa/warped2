@@ -4,9 +4,6 @@
 class RecieveEvent
     {
         public:
-            
-            void RecieveEvent::thread();
-            void RecieveEvent::initialize();
 
             pthread_barrier_t termination_barrier_sync_1;
             pthread_barrier_t termination_barrier_sync_2;
