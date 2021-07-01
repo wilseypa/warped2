@@ -4,28 +4,10 @@
 class RecieveEvent
     {
         public:
-
-            RecieveEvent::RecieveEvent(
-            unsigned int num_worker_threads,
-            bool is_lp_migration_on,
-            unsigned int num_refresh_per_gvt,
-            unsigned int num_events_per_refresh,
-            std::shared_ptr<TimeWarpCommunicationManager> comm_manager,
-            std::unique_ptr<TimeWarpEventSet> event_set,
-            std::unique_ptr<TimeWarpGVTManager> gvt_manager,
-            std::unique_ptr<TimeWarpStateManager> state_manager,
-            std::unique_ptr<TimeWarpOutputManager> output_manager,
-            std::unique_ptr<TimeWarpFileStreamManager> twfs_manager,
-            std::unique_ptr<TimeWarpTerminationManager> termination_manager,
-            std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher,
-            std::unique_ptr<TimeWarpStatistics> tw_stats);
-
             
             void RecieveEvent::thread();
             void RecieveEvent::initialize();
-
-
-
+            
             pthread_barrier_t termination_barrier_sync_1;
             pthread_barrier_t termination_barrier_sync_2;
             pthread_barrier_t worker_thread_barrier_sync;
