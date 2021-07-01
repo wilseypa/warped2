@@ -7,7 +7,7 @@ class RecieveEvent
             
             void RecieveEvent::thread();
             void RecieveEvent::initialize();
-            
+
             pthread_barrier_t termination_barrier_sync_1;
             pthread_barrier_t termination_barrier_sync_2;
             pthread_barrier_t worker_thread_barrier_sync;
@@ -25,17 +25,7 @@ class RecieveEvent
         #ifdef TIMEWARP_EVENT_LOG
             // Event log for each worker thread
             std::vector<std::unique_ptr<CircularList<std::string>>> event_log_;
-        #endif
-
-            const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
-            const std::unique_ptr<TimeWarpEventSet> event_set_;
-            const std::unique_ptr<TimeWarpGVTManager> gvt_manager_;
-            const std::unique_ptr<TimeWarpStateManager> state_manager_;
-            const std::unique_ptr<TimeWarpOutputManager> output_manager_;
-            const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
-            const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
-            const std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher_;
-            const std::unique_ptr<TimeWarpStatistics> tw_stats_;
+        #endif        
 
             static THREAD_LOCAL_SPECIFIER unsigned int thread_id;
     };
@@ -43,6 +33,7 @@ class RecieveEvent
 
 #include "HouseKeeping.hpp"
 #include "TimeWarpEventDispatcher.hpp"
+#include "TimeWarpStatistics.hpp"
 
 namespace warped
 {
@@ -80,6 +71,7 @@ namespace warped
             const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
             const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
             const std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher_;
+            const std::unique_ptr<TimeWarpStatistics> tw_stats_;
 
     };
 }
