@@ -3,6 +3,8 @@ fCollect Thread File
 
 -----------------
 
+look at notes in oneNote for more details on logic operation
+
 for (unsigned int current_lp_id = 0; current_lp_id < num_local_lps_; current_lp_id++) {
         unsigned int num_committed = event_set_->fossilCollect(gvt, current_lp_id);
         tw_stats_->upCount(EVENTS_COMMITTED, thread_id, num_committed);
