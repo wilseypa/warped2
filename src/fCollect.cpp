@@ -57,7 +57,7 @@ namespace warped {
                             // while (start != end) {go through each from the most recent back? and clear out the q with .pop()?} 
                             s.clear();
                             s.lp.stateQ.pop();
-
+                            // notes detail what needs to happen here to clear events
                             fossilFound = true;
                     }                    
                 }
