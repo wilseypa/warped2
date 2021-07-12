@@ -32,6 +32,7 @@ namespace warped {
 
     void Worker::rollback(int event)
     {
+        /*
         timestamp_straggler = event.timestamp
         // find saved state in stateQ with the first timestamp before the timestamp of the straggler
         foreach state in stateQ () {
@@ -47,10 +48,12 @@ namespace warped {
             // sendAntiMessage()
         }
         return;
+        */
     }
 
     void Worker::processEvent(int event) // event here is a type, not an int
     {
+        /*
         // Lock e.lp.inQ
         // e <- e.lp.inQ.head()
         // UnLock e.lp.inQ
@@ -68,10 +71,12 @@ namespace warped {
         outEventList <- lp.eventExec(e) // should put a console log here to mark when an event is actually executed 
         // update LTSF entry for e.LP
         return (e, outEventList);
+        */
     }
 
     void Worker::thread() 
     {
+        /*
         while(!termination_manager_->terminationStatus()) {
             if (!(e<-ltsf.head()) || gvt.gvtEstCycle) {
                 if (worker.outMessage != NULL) {
@@ -109,5 +114,6 @@ namespace warped {
                 }
             }
         }
+        */
     }
 }
