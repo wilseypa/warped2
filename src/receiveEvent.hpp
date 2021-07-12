@@ -56,7 +56,7 @@ namespace warped
 
             void receiveEvent::initialize();
 
-            void receiveEvent::thread();
+            void receiveEvent::thread(std::unique_ptr<TimeWarpKernelMessage> kmsg);
             
         private:
 

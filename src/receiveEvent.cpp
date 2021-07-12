@@ -30,6 +30,8 @@ namespace warped {
 
     void receiveEvent::thread(std::unique_ptr<TimeWarpKernelMessage> kmsg) 
     {
+        /*
+        
         // Will run until this thread is destroyed
         while(!termination_manager_->terminationStatus()) {
             auto msg = unique_cast<TimeWarpKernelMessage, EventMessage>(std::move(kmsg));
@@ -52,5 +54,7 @@ namespace warped {
                 event_dispatcher_->sendLocalEvent(msg->event);
             }
         }
+
+        */
     }
 }
