@@ -65,7 +65,7 @@ namespace warped {
             virtual void initialize(unsigned int num_local_lps);
             virtual ~HouseKeeping() = default;
 
-            virtual void barrier(unsigned int num_worker_threads)) {}
+            virtual void barrier(unsigned int num_worker_threads) {}
 
             virtual bool gvtEstCycle() = false;
 
@@ -81,8 +81,8 @@ namespace warped {
             const std::unique_ptr<TimeWarpFileStreamManager> twfs_manager_;
             const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
             const std::unique_ptr<TimeWarpEventDispatcher> event_dispatcher_;
-            const std::unique_ptr<GvtCntrl> gvt_cntrl_;
 
+            const std::unique_ptr<GvtCntrl> gvt_cntrl_;
             const std::unique_ptr<receiveEvent> receive_event_;
             const std::unique_ptr<fCollect> fossil_collect_;
 
