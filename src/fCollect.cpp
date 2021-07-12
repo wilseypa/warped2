@@ -36,6 +36,8 @@ namespace warped {
         }
         
         void fCollect::thread() {
+            /*
+
             gvt = gvt_manager_->getGVT();
             
             while(!termination_manager_->terminationStatus()){
@@ -65,6 +67,8 @@ namespace warped {
                         sleep(gvt_manager_->getGVTPeriod()/2); // this will be HouseKeeping::gvtCycleInterval when changing, just a placeholder
                 }
             }
+
+            */
         }
     
 }
