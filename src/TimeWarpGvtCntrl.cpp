@@ -18,7 +18,8 @@ namespace warped
                 termination_manager_(std::move(termination_manager))) {}
 
             void GvtCntrl::thread()
-            {                
+            {    
+                /*            
                 gvt = gvt_manager_->getGVT();
                 
                 // Will run until this thread is destroyed
@@ -65,6 +66,6 @@ namespace warped
                         gvt = gvt_manager_->getGVT();
                     }
                 }	   
-
+                */
             }
 }
