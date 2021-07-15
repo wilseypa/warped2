@@ -24,7 +24,7 @@ public:
 
     bool readyToStart() override;
 
-    void progressGVT() override;
+    void progressGVT(unsigned int &local_gvt_passed_in) override;
 
     void receiveEventUpdate(std::shared_ptr<Event>& event, Color color) override;
 

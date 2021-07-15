@@ -30,7 +30,7 @@ bool TimeWarpAsynchronousGVTManager::readyToStart() {
     return ((elapsed >= gvt_period_) && (comm_manager_->getID() == 0));
 }
 
-void TimeWarpAsynchronousGVTManager::progressGVT() {
+void TimeWarpAsynchronousGVTManager::progressGVT(unsigned int &local_gvt_passed_in) {
 
     if (gvt_state_ == GVTState::LOCAL) {
 
