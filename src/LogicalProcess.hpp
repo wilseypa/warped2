@@ -64,6 +64,7 @@ public:
 
     std::list<std::shared_ptr<RandomNumberGenerator>> rng_list_;
 
+    /*
     STLLTSFQueue inQ_;
 
     STLLTSFQueue procInQ_;
@@ -71,6 +72,7 @@ public:
     STLLTSFQueue outQ_;
 
     STLLTSFQueue stateQ_;
+    */
 };
 
 template<class RNGType>
