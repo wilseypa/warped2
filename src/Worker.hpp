@@ -30,11 +30,12 @@ public:
     virtual void initialize();
     virtual ~Worker() = default;
 
-    // in the doc these are worker.value
-    // are these values being held in a class somewhere else?
     virtual unsigned int gvtContrib() = 0;
 
-    virtual void outMessage(); // NULL
+    virtual void outMessage() = NULL;
+
+    virtual void coastForward(std::shared_ptr<Event> straggler_event, 
+                                std::shared_ptr<Event> restored_state_event);
 
     virtual void rollback(std::shared_ptr<Event> straggler_event);
     
@@ -43,10 +44,10 @@ public:
     virtual void thread();
 
 private:
-    const std::unique_ptr<TimeWarpTerminationManager> termination_manager_;
+    const std::unique_ptr<TimeWarpTerminationManager> termination_manager_; // jack made this private, is this the right spot?
 
 protected:
-    std::shared_ptr<Event> e; //dummy code, this will be an event e
+    std::shared_ptr<Event> event;
 };
 
 }

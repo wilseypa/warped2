@@ -36,7 +36,7 @@ namespace warped
                 fossil_collect_->thread();
                 // Receive event Thread call
                 receive_event_->thread();
-                // is worker called here? multiple workers are created for each individual lp
+                
             }
             
         HouseKeeping::barrier(num_worker_threads_ + 2) {}
