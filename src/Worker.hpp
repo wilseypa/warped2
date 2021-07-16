@@ -36,9 +36,9 @@ public:
 
     virtual void outMessage(); // NULL
 
-    virtual void rollback(std::shared_ptr<Event> e);
+    virtual void rollback(std::shared_ptr<Event> straggler_event);
     
-    virtual void processEvent(std::shared_ptr<Event> e);
+    virtual void processEvent(unsigned int id);
 
     virtual void thread();
 

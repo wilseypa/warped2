@@ -65,13 +65,14 @@ namespace warped {
             virtual void initialize(unsigned int num_local_lps);
             virtual ~HouseKeeping() = default;
 
-            virtual void barrier(unsigned int num_worker_threads) {}
+            virtual void barrier(unsigned int num_worker_threads + 2) {} // gvt.barrier() ==> worker + fCollect + receiveEvent Barrier
+            // gvtCntrl.barrier() <- 2
 
             virtual bool gvtEstCycle() = false;
 
             virtual unsigned int gvtCycleInterval(unsigned int delay) = 0;
 
-            virtual int getGVT() { return gVT_; }
+            virtual int getGVT() { return gvt_; }
             
             const std::shared_ptr<TimeWarpCommunicationManager> comm_manager_;
             const std::unique_ptr<TimeWarpEventSet> event_set_;
@@ -87,7 +88,7 @@ namespace warped {
             const std::unique_ptr<fCollect> fossil_collect_;
 
         protected:
-            unsigned int gVT_ = 0;
+            unsigned int gvt_ = 0;
 
             unsigned int gvt_period_;
 
