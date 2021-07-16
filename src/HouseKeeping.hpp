@@ -60,7 +60,7 @@ namespace warped {
 
     class HouseKeeping {
         public:
-            HouseKeeping();
+            HouseKeeping(unsigned int num_worker_threads);
 
             virtual void initialize(unsigned int num_local_lps);
             virtual ~HouseKeeping() = default;
@@ -68,7 +68,7 @@ namespace warped {
             virtual void barrier(unsigned int num_worker_threads + 2) {} // gvt.barrier() ==> worker + fCollect + receiveEvent Barrier
             // gvtCntrl.barrier() <- 2
 
-            virtual bool gvtEstCycle() = false;
+            virtual bool gvtEstCycle() = 0;
 
             virtual unsigned int gvtCycleInterval(unsigned int delay) = 0;
 
