@@ -68,7 +68,7 @@ namespace warped {
             virtual void barrier(unsigned int num_worker_threads + 2) {} // gvt.barrier() ==> worker + fCollect + receiveEvent Barrier
             // gvtCntrl.barrier() <- 2
 
-            virtual bool gvtEstCycle() = 0;
+            virtual bool gvtEstCycle() = false;
 
             virtual unsigned int gvtCycleInterval(unsigned int delay) = 0;
 
