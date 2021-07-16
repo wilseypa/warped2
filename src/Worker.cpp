@@ -57,8 +57,8 @@ namespace warped {
 
     void Worker::rollback(std::shared_ptr<Event> straggler_event)
     {
-        /*
-        timestamp_straggler = event.timestamp
+        
+        auto timestamp_straggler = event->timestamp()
         // find saved state in stateQ with the first timestamp before the timestamp of the straggler
         foreach state in stateQ () {
             if (state.timestamp < timestamp_straggler) {
@@ -66,14 +66,22 @@ namespace warped {
             }                
         }
         // coast forward
+        auto restored_state_event = state_manager_->restoreState(straggler_event, local_lp_id,
+            current_lp);
+        assert(restored_state_event);
+        assert(*restored_state_event < *straggler_event);
+        
+        coastForward(straggler_event, restored_state_event);
         // move pointer forward towards the timestamp before the straggler
         // send anti-messages using the records in the outQ and preserve the MPI_Isend pointer to the last message sent in outMessage
-        //lastMessage = MPI_Isend Pointer
-        foreach item in outQ () {
-            // sendAntiMessage()
+        auto events_to_cancel = output_manager_->rollback(straggler_event, local_lp_id);
+        if (events_to_cancel != nullptr) {
+            cancelEvents(std::move(events_to_cancel));
         }
         return;
-        */
+        
+
+        /*
         unsigned int local_lp_id = local_lp_id_by_name_[straggler_event->receiverName()];
         LogicalProcess* current_lp = lps_by_name_[straggler_event->receiverName()];
 
@@ -108,15 +116,22 @@ namespace warped {
         }
 
         coastForward(straggler_event, restored_state_event);
+        */
     }
 
     void Worker::processEvent(unsigned int id) // event here is a type, not an int
     {
-        /*
+        unsigned int thread_id = id;
         // Lock e.lp.inQ
+        event_set_->acquireInputQueueLock(local_lp_id);
+
         // e <- e.lp.inQ.head()
+        std::shared_ptr<Event> event = event_set_->getEvent(thread_id) // this needs to change
+
         // UnLock e.lp.inQ
-        if (e.type == ANTIMESSAGE) {
+        event_set_->releaseInputQueueLock(local_lp_id);
+
+        if (event.type == ANTIMESSAGE) { // does ANTIMESSAGE = EventType::NEGATIVE
             // Find the positive message q that is the target of e
             if (q is in the processed queue) {
                 rollback(q->prev);
@@ -124,13 +139,14 @@ namespace warped {
             // Remove q, e and refresh the LTSF queue for that LP
             return (NULL, NULL);
         }
-        if (e.timestamp <= lvt) {
-            rollback(e);
+        if (event.timestamp <= lvt) {
+            rollback(event);
         }
         outEventList <- lp.eventExec(e) // should put a console log here to mark when an event is actually executed 
         // update LTSF entry for e.LP
         return (e, outEventList);
-        */
+
+        /*
         thread_id = id;
         unsigned int local_gvt_flag;
         unsigned int gvt = 0;
@@ -248,6 +264,7 @@ namespace warped {
                 gvt_manager_->reportThreadMin((unsigned int)-1, thread_id, local_gvt_flag);
             }
         }
+        */
     }
 
     void Worker::thread() 
