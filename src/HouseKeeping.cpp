@@ -23,6 +23,7 @@ namespace warped
         HouseKeeping::HouseKeeping(unsigned int num_worker_threads :
                 num_worker_threads_(num_worker_threads)) {}
         
+        // is the event dispatcher "moving" into here? or is it being maintained as a separate function of the code base...
         void HouseKeeping::initialize(unsigned int num_local_lps)
             {
                 //state_queue_ = make_unique<std::deque<SavedState>[]>(num_local_lps);

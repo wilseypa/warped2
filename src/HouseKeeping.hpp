@@ -32,9 +32,9 @@ Class houseKeeping() {
 #include <mutex>
 
 
-//#include "fCollect.hpp"
-//#include "receiveEvent.hpp"
-//#include "TimeWarpGvtCntrl.hpp"
+#include "fCollect.hpp"
+#include "receiveEvent.hpp"
+#include "TimeWarpGvtCntrl.hpp"
 
 
 #include "Event.hpp"
@@ -53,8 +53,8 @@ Class houseKeeping() {
 #include "utility/warnings.hpp" 
 #include <shared_mutex>
 
-//#include "TimeWarpEventDispatcher.hpp"
-//#include "TimeWarpKernelMessage.hpp"
+#include "TimeWarpEventDispatcher.hpp"
+#include "TimeWarpKernelMessage.hpp"
 
 namespace warped {
 
