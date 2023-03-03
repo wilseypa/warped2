@@ -139,7 +139,7 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
 }
 
 void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
-    auto malloc_info = mallinfo();
+    auto malloc_info = mallinfo2();
     int m = malloc_info.uordblks;
 
     uint64_t mem = m;
