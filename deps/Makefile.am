@@ -1,1 +1,1 @@
-SUBDIRS = cereal json metis tclap 
+SUBDIRS = json metis 
