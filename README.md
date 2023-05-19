@@ -12,7 +12,9 @@ WARPED requires than an MPI implementation such as [MPICH](http://www.mpich.org/
 [OpenMPI](http://www.open-mpi.org/) is installed.
 
 If building from the git repository instead of a tarball, you  will also need the GNU
-Autotools tool-chain, including Automake, Autoconf, and Libtool. 
+Autotools tool-chain, including Automake, Autoconf, tclap, cereal and Libtool.
+
+	sudo apt install libtclap-dev autotools-dev autoconf automake libtool libcereal-dev 
 
 #### Building from the Git repository
 
