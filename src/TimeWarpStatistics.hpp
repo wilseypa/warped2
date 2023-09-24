@@ -4,7 +4,6 @@
 #include <memory>   // for unique_ptr
 #include <cstdint>  // uint64_t
 #include <tuple>
-
 #include "TimeWarpCommunicationManager.hpp"
 
 namespace warped {
@@ -125,7 +124,7 @@ private:
 
     std::unique_ptr<Stats []> local_stats_;
     Stats global_stats_;
-
+    util::PercentileStats stats;
     uint64_t *local_pos_sent_by_node_;
     uint64_t *local_neg_sent_by_node_;
     uint64_t *remote_pos_sent_by_node_;
