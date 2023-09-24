@@ -32,6 +32,10 @@
 #include "utility/memory.hpp"
 #include "utility/warnings.hpp"
 
+#include "Latency.hpp"
+util::PercentileStats stats;
+
+
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::EventMessage)
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::Event)
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::NegativeEvent)
@@ -60,6 +64,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
 
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<LogicalProcess*>>&
                                               lps) {
+    util::LatencyTracker tracker{ stats };
     initialize(lps);
 
     // Create worker threads
@@ -135,6 +140,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     if (comm_manager_->getID() == 0) {
         tw_stats_->writeToFile(num_seconds);
         tw_stats_->printStats();
+        // Latency tracker here
+        auto result = stats.estimate();
+        std::cout<<"\n"<<result.p50<<std::endl;
     }
 }
 
