@@ -91,7 +91,6 @@ WARPED_CPP_FILES = \
 	src/TimeWarpStatistics.cpp \
 	src/TimeWarpSynchronousGVTManager.cpp \
 	src/TimeWarpTerminationManager.cpp \
-    src/temp.cpp \
     src/Utils.cpp \
     src/Latency.cpp
 
