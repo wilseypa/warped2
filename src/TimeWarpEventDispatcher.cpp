@@ -65,7 +65,7 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<LogicalProcess*>>&
                                               lps) {
                                                 
-    util::LatencyTracker tracker{ stats };
+    
     initialize(lps);
 
     // Create worker threads
@@ -165,7 +165,7 @@ void TimeWarpEventDispatcher::onGVT(unsigned int gvt) {
 }
 
 void TimeWarpEventDispatcher::processEvents(unsigned int id) {
-
+    util::LatencyTracker tracker{ stats };
     thread_id = id;
     unsigned int local_gvt_flag;
     unsigned int gvt = 0;
