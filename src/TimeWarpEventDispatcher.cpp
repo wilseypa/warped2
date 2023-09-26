@@ -21,6 +21,7 @@
 #include "EventDispatcher.hpp"
 #include "LTSFQueue.hpp"
 #include "Partitioner.hpp"
+#include "Latency.hpp"
 #include "LogicalProcess.hpp"
 #include "TimeWarpMPICommunicationManager.hpp"
 #include "TimeWarpGVTManager.hpp"
@@ -37,6 +38,8 @@ WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::Event)
 WARPED_REGISTER_POLYMORPHIC_SERIALIZABLE_CLASS(warped::NegativeEvent)
 
 namespace warped {
+
+util::PercentileStats stats;
 
 THREAD_LOCAL_SPECIFIER unsigned int TimeWarpEventDispatcher::thread_id;
 
@@ -60,6 +63,8 @@ TimeWarpEventDispatcher::TimeWarpEventDispatcher(unsigned int max_sim_time,
 
 void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<LogicalProcess*>>&
                                               lps) {
+                                                
+    util::LatencyTracker tracker{ stats };
     initialize(lps);
 
     // Create worker threads
@@ -135,6 +140,9 @@ void TimeWarpEventDispatcher::startSimulation(const std::vector<std::vector<Logi
     if (comm_manager_->getID() == 0) {
         tw_stats_->writeToFile(num_seconds);
         tw_stats_->printStats();
+        // Latency tracker here
+        auto result = stats.estimate();
+        std::cout<<"\n"<<result.p50<<std::endl;
     }
 }
 
