@@ -29,6 +29,7 @@ WARPED_NOINST_HPP_FILES = \
     src/LadderQueue.hpp \
     src/CircularList.hpp \
     src/CircularQueue.hpp \
+    src/Latency.hpp \
     src/LTSFQueue.hpp \
     src/NullEventStatistics.hpp \
     src/ProfileGuidedPartitioner.hpp \
@@ -54,7 +55,8 @@ WARPED_NOINST_HPP_FILES = \
 	src/TimeWarpStatistics.hpp \
 	src/TimeWarpSynchronousGVTManager.hpp \
 	src/TimeWarpTerminationManager.hpp \
-    src/utility/strings.hpp
+    src/utility/strings.hpp \
+    src/Utils.hpp
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -65,6 +67,7 @@ WARPED_CPP_FILES = \
     src/EventStatistics.cpp \
     src/FileStream.cpp \
     src/IndividualEventStatistics.cpp \
+    src/Latency.cpp \
     src/LogicalProcess.cpp \
     src/LadderQueue.cpp \
     src/ProfileGuidedPartitioner.cpp \
@@ -86,7 +89,8 @@ WARPED_CPP_FILES = \
     src/TimeWarpStateManager.cpp \
 	src/TimeWarpStatistics.cpp \
 	src/TimeWarpSynchronousGVTManager.cpp \
-	src/TimeWarpTerminationManager.cpp
+	src/TimeWarpTerminationManager.cpp \
+    src/Utils.cpp
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \
