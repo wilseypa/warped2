@@ -22,6 +22,9 @@ dnl Once MPI support is added, uncomment the next two lines
 m4_include([m4/check_lib_mpi.m4])
 CHECK_LIB_MPI
 
+dnl m4_include([m4/check_lib_folly.m4])
+dnl CHECK_LIB_FOLLY
+
 m4_include([m4/check_enable_debug.m4])
 CHECK_ENABLE_DEBUG
 
