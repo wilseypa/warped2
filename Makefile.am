@@ -54,7 +54,11 @@ WARPED_NOINST_HPP_FILES = \
 	src/TimeWarpStatistics.hpp \
 	src/TimeWarpSynchronousGVTManager.hpp \
 	src/TimeWarpTerminationManager.hpp \
-    src/utility/strings.hpp
+    src/utility/strings.hpp \
+    src/Utils.hpp \
+    src/Latency.hpp
+
+
 
 # All cpp files are listed in this variable
 WARPED_CPP_FILES = \
@@ -86,7 +90,10 @@ WARPED_CPP_FILES = \
     src/TimeWarpStateManager.cpp \
 	src/TimeWarpStatistics.cpp \
 	src/TimeWarpSynchronousGVTManager.cpp \
-	src/TimeWarpTerminationManager.cpp
+	src/TimeWarpTerminationManager.cpp \
+    src/Utils.cpp \
+    src/Latency.cpp
+
 
 libwarped_la_SOURCES = \
     $(WARPED_INSTALL_HPP_FILES) \
@@ -98,6 +105,8 @@ include_HEADERS = $(WARPED_INSTALL_HPP_FILES)
 libwarped_la_LIBADD = \
     $(top_builddir)/deps/json/libjsoncpp.la \
     $(top_builddir)/deps/metis/libmetis/libmetis.la
+    
+libwarped_la_LDFLAGS = -Wl, --no-as-needed -lfolly -Wl, -as-needed
 
 libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror
 
