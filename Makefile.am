@@ -99,7 +99,7 @@ libwarped_la_LIBADD = \
     $(top_builddir)/deps/json/libjsoncpp.la \
     $(top_builddir)/deps/metis/libmetis/libmetis.la
 
-libwarped_la_CXXFLAGS = -Wall -Wextra -pedantic -Werror
+libwarped_la_CXXFLAGS = -Wall -Wextra -Werror -pedantic -O3 -g
 
 # Use -isystem here instead of -I to disable warnings for third party code
 libwarped_la_CPPFLAGS=-isystem$(top_srcdir)/deps

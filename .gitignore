@@ -25,6 +25,7 @@
 Makefile.in
 Makefile
 m4/
+build/
 
 # http://www.gnu.org/software/autoconf
 

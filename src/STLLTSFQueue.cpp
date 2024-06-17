@@ -12,10 +12,13 @@
 
 namespace warped {
 
+// Define the comparison function separately
+bool eventComparison(const std::shared_ptr<Event>& lhs, const std::shared_ptr<Event>& rhs) {
+    return !(*lhs <= *rhs);
+}
+
 STLLTSFQueue::STLLTSFQueue()
-    : queue_([](std::shared_ptr<Event> lhs, std::shared_ptr<Event> rhs) {
-                    return !(*lhs <= *rhs);
-                }) {}
+    : queue_(eventComparison) {}
 
 bool STLLTSFQueue::empty() const {
     return queue_.empty();
